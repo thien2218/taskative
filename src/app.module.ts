@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { TodoModule } from "todo/todo.module";
+import { TodoModule } from "@/api/todo/todo.module";
 
 @Module({
    imports: [

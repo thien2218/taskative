@@ -1,9 +1,9 @@
-import { ValibotPipe } from "tools/pipes/valibot.pipe";
+import { ValibotPipe } from "@/tools/pipes/valibot.pipe";
 import {
    CreateTodo,
    CreateTodoSchema,
    SelectTodo
-} from "tools/schemas/todo.schema";
+} from "@/tools/schemas/todo.schema";
 import {
    Controller,
    Get,
@@ -18,9 +18,9 @@ import {
    Query,
    ParseIntPipe
 } from "@nestjs/common";
-import { TodoService } from "todo/todo.service";
-import { UpdateTodo } from "tools/schemas/todo.schema";
-import { ParseLimitPipe } from "tools/pipes/limit.pipe";
+import { TodoService } from "@/api/todo/todo.service";
+import { UpdateTodo } from "@/tools/schemas/todo.schema";
+import { ParseLimitPipe } from "@/tools/pipes/limit.pipe";
 
 @Controller("todo")
 export class TodoController {

@@ -1,6 +1,6 @@
-import { DatabaseService } from "database/database.service";
-import { todos } from "database/tables";
-import { CreateTodo, UpdateTodo } from "tools/schemas/todo.schema";
+import { DatabaseService } from "@/database/database.service";
+import { todos } from "@/database/tables";
+import { CreateTodo, UpdateTodo } from "@/tools/schemas/todo.schema";
 import { Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";

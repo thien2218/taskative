@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { TodoService } from "todo/todo.service";
-import { TodoController } from "todo/todo.controller";
+import { TodoService } from "@/api/todo/todo.service";
+import { TodoController } from "@/api/todo/todo.controller";
 import { DatabaseModule } from "@/database/database.module";
 
 @Module({

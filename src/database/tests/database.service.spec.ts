@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
-import { MockConfigService } from "database/__mocks__/config.service";
-import { DatabaseService } from "database/database.service";
+import { MockConfigService } from "@/database/__mocks__/config.service";
+import { DatabaseService } from "@/database/database.service";
 import { sql } from "drizzle-orm";
 
 describe("DatabaseService", () => {
