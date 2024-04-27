@@ -22,16 +22,9 @@ describe("DatabaseService", () => {
       dbService.onModuleInit();
    });
 
-   it("should be defined", () => {
-      expect(dbService).toBeDefined();
-   });
-
-   it("should define the db property", async () => {
-      expect(dbService.db).toBeDefined();
-   });
-
    it("should be able to connect to the database", async () => {
-      const result = await dbService.db.run(sql`SELECT 1 AS result`);
+      const db = dbService.getDb();
+      const result = await db.run(sql`SELECT 1 AS result`);
       expect(result.rows[0].result).toBe(1);
    });
 });

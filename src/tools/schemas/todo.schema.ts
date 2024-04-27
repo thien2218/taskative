@@ -4,11 +4,11 @@ import { Input, boolean, minLength, object, optional, string } from "valibot";
  * Schemas
  */
 export const CreateTodoSchema = object({
-   description: string([minLength(2)])
+   description: string([minLength(3)])
 });
 
 export const UpdateTodoSchema = object({
-   description: optional(string([minLength(2)])),
+   description: optional(string([minLength(3)])),
    completed: optional(boolean())
 });
 

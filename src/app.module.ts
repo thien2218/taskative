@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { TodoModule } from "@/api/todo/todo.module";
+import { AuthModule } from './api/auth/auth.module';
 
 @Module({
    imports: [
@@ -8,7 +9,8 @@ import { TodoModule } from "@/api/todo/todo.module";
          isGlobal: true,
          envFilePath: `.env.${process.env.NODE_ENV}`
       }),
-      TodoModule
+      TodoModule,
+      AuthModule
    ],
    controllers: [],
    providers: []

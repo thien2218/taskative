@@ -5,7 +5,7 @@ import { LibSQLDatabase, drizzle } from "drizzle-orm/libsql";
 
 @Injectable()
 export class DatabaseService implements OnModuleInit {
-   public readonly db: LibSQLDatabase;
+   private db: LibSQLDatabase;
 
    constructor(private readonly configService: ConfigService) {}
 
@@ -14,7 +14,7 @@ export class DatabaseService implements OnModuleInit {
       const authToken = this.configService.get<string>("DATABASE_AUTH_TOKEN");
 
       const client = createClient({ url, authToken });
-      (this as { db: LibSQLDatabase }).db = drizzle(client);
+      this.db = drizzle(client);
    }
 
    getDb() {
