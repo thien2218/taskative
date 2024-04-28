@@ -10,8 +10,10 @@ export class DatabaseService implements OnModuleInit {
    constructor(private readonly configService: ConfigService) {}
 
    onModuleInit() {
-      const url = this.configService.get<string>("DATABASE_URL");
-      const authToken = this.configService.get<string>("DATABASE_AUTH_TOKEN");
+      const url = this.configService.get<string>("DATABASE_URL") as string;
+      const authToken = this.configService.get<string>(
+         "DATABASE_AUTH_TOKEN"
+      ) as string;
 
       const client = createClient({ url, authToken });
       this.db = drizzle(client);

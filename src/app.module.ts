@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { TodoModule } from "@/api/todo/todo.module";
-import { AuthModule } from './api/auth/auth.module';
+import { AuthModule } from "./api/auth/auth.module";
 
 @Module({
    imports: [

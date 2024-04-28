@@ -1,15 +1,20 @@
 import { DatabaseService } from "@/database/database.service";
 import { todos } from "@/database/tables";
-import { CreateTodo, UpdateTodo } from "@/tools/schemas/todo.schema";
+import {
+   CreateTodoDto,
+   SelectTodoSchema,
+   UpdateTodoDto
+} from "@/tools/schemas/todo.schema";
 import { Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { parse } from "valibot";
 
 @Injectable()
 export class TodoService {
    constructor(private readonly dbService: DatabaseService) {}
 
-   async create(createTodoDto: CreateTodo) {
+   async create(createTodoDto: CreateTodoDto) {
       const db = this.dbService.getDb();
 
       const prepared = db
@@ -49,11 +54,11 @@ export class TodoService {
          .where(eq(todos.id, id))
          .prepare();
 
-      const todo = await prepared.get();
-      return todo;
+      const todo = await prepared.get().catch(this.dbService.handleDbError);
+      return parse(SelectTodoSchema, todo);
    }
 
-   async update(id: string, updateTodoDto: UpdateTodo) {
+   async update(id: string, updateTodoDto: UpdateTodoDto) {
       const db = this.dbService.getDb();
 
       const prepared = db

@@ -1,8 +1,8 @@
 import { ValibotPipe } from "@/tools/pipes/valibot.pipe";
 import {
-   CreateTodo,
+   CreateTodoDto,
    CreateTodoSchema,
-   SelectTodo
+   SelectTodoDto
 } from "@/tools/schemas/todo.schema";
 import {
    Controller,
@@ -19,7 +19,7 @@ import {
    ParseIntPipe
 } from "@nestjs/common";
 import { TodoService } from "@/api/todo/todo.service";
-import { UpdateTodo } from "@/tools/schemas/todo.schema";
+import { UpdateTodoDto } from "@/tools/schemas/todo.schema";
 import { ParseLimitPipe } from "@/tools/pipes/limit.pipe";
 
 @Controller("todo")
@@ -29,7 +29,7 @@ export class TodoController {
    @Post()
    @HttpCode(HttpStatus.CREATED)
    @UsePipes(new ValibotPipe(CreateTodoSchema))
-   create(@Body() createTodoDto: CreateTodo): Promise<SelectTodo> {
+   create(@Body() createTodoDto: CreateTodoDto): Promise<SelectTodoDto> {
       return this.todoService.create(createTodoDto);
    }
 
@@ -37,20 +37,20 @@ export class TodoController {
    findMany(
       @Query("page", ParseIntPipe) page: number,
       @Query("limit", ParseLimitPipe) limit: number
-   ): Promise<SelectTodo[]> {
+   ): Promise<SelectTodoDto[]> {
       return this.todoService.findMany(page, limit);
    }
 
    @Get(":id")
-   findOne(@Param("id") id: string): Promise<SelectTodo> {
+   findOne(@Param("id") id: string): Promise<SelectTodoDto> {
       return this.todoService.findOne(id);
    }
 
    @Patch(":id")
    update(
       @Param("id") id: string,
-      @Body() updateTodoDto: UpdateTodo
-   ): Promise<SelectTodo> {
+      @Body() updateTodoDto: UpdateTodoDto
+   ): Promise<SelectTodoDto> {
       return this.todoService.update(id, updateTodoDto);
    }
 

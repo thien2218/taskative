@@ -21,6 +21,6 @@ export const SelectTodoSchema = object({
 /**
  * Types
  */
-export type CreateTodo = Input<typeof CreateTodoSchema>;
-export type UpdateTodo = Input<typeof UpdateTodoSchema>;
-export type SelectTodo = Input<typeof SelectTodoSchema>;
+export type CreateTodoDto = Input<typeof CreateTodoSchema>;
+export type UpdateTodoDto = Input<typeof UpdateTodoSchema>;
+export type SelectTodoDto = Input<typeof SelectTodoSchema>;
