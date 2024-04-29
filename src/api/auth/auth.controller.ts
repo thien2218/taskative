@@ -3,14 +3,13 @@ import {
    Controller,
    Post,
    Res,
-   UnauthorizedException,
    UseGuards,
    UsePipes
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import {
-   // LoginDto,
-   // LoginSchema,
+   LoginDto,
+   LoginSchema,
    SignupDto,
    SignupSchema
 } from "@/tools/schemas/auth.schema";
@@ -24,14 +23,25 @@ import { SelectUserDto } from "@/tools/schemas/user.schema";
 export class AuthController {
    constructor(private readonly authService: AuthService) {}
 
+   // PUBLIC METHODS
    @Post("signup")
    @UsePipes(new ValibotPipe(SignupSchema))
    async signup(@Body() signupDto: SignupDto, @Res() res: FastifyReply) {
-      const { refreshToken, ...rest } =
-         await this.authService.signup(signupDto);
+      await this.authService
+         .signup(signupDto)
+         .then(({ refreshToken, ...rest }) => {
+            this.setRefreshTokenCookie(res, refreshToken);
+            res.send(rest);
+         })
+         .catch((e: Error) => {
+            res.send(e);
+         });
+   }
 
-      this.setRefreshTokenCookie(res, refreshToken);
-      res.send(rest);
+   @Post("login")
+   @UsePipes(new ValibotPipe(LoginSchema))
+   async login(@Body() loginDto: LoginDto) {
+      return this.authService.login(loginDto);
    }
 
    @Post("logout")
@@ -47,17 +57,12 @@ export class AuthController {
             });
             res.send({ message });
          })
-         .catch((e: UnauthorizedException) => {
-            res.status(401).send({ message: e.message });
+         .catch((e: Error) => {
+            res.send(e);
          });
    }
 
-   // @Post("login")
-   // @UsePipes(new ValibotPipe(LoginSchema))
-   // async login(@Body() loginDto: LoginDto) {
-   //    return this.authService.login(loginDto);
-   // }
-
+   // PRIVATE METHODS
    private setRefreshTokenCookie(res: FastifyReply, refreshToken: string) {
       res.setCookie("taskative-refresh-token", refreshToken, {
          path: "/",

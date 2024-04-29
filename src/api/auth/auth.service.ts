@@ -1,12 +1,16 @@
 import { DatabaseService } from "@/database/database.service";
 import { users } from "@/database/tables/users";
-import { SignupDto } from "@/tools/schemas/auth.schema";
+import { LoginDto, SignupDto } from "@/tools/schemas/auth.schema";
 import { SelectUserDto, SelectUserSchema } from "@/tools/schemas/user.schema";
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+   ConflictException,
+   Injectable,
+   UnauthorizedException
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as argon2 from "argon2";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { parse } from "valibot";
 
@@ -19,23 +23,21 @@ export class AuthService {
    ) {}
 
    // PUBLIC METHODS
-   async signup(signupDto: SignupDto) {
+   async signup({ password, ...rest }: SignupDto) {
       const db = this.dbService.getDb();
-      const passwordHash = await argon2.hash(signupDto.password, {
+      const passwordHash = await argon2.hash(password, {
          timeCost: 10
       });
 
       const payload: SelectUserDto = {
          id: nanoid(25),
-         email: signupDto.email,
-         username: signupDto.username,
-         profileImage: signupDto.profileImage,
+         ...rest,
          emailVerified: false,
          createdAt: Math.floor(new Date().getTime() / 1000),
          provider: "local"
       };
 
-      const { refreshToken, accessToken } = await this.generateToken(payload);
+      const authData = await this.generateToken(payload);
 
       const prepared = db.insert(users).values(this.userPlaceholders());
 
@@ -43,21 +45,49 @@ export class AuthService {
          .run({
             ...payload,
             passwordHash,
-            refreshToken,
+            refreshToken: authData.refreshToken,
             providerId: null
          })
          .catch(this.dbService.handleDbError);
 
-      return {
-         user: payload,
-         refreshToken,
-         accessToken
-      };
+      return authData;
    }
 
-   // async login(loginDto: LoginDto) {
-   //    // ...
-   // }
+   async login({ email, password }: LoginDto) {
+      const db = this.dbService.getDb();
+
+      const preparedGetUser = db
+         .select()
+         .from(users)
+         .where(eq(users.email, sql.placeholder("email")));
+
+      const user = await preparedGetUser.get({ email });
+
+      if (!user) {
+         throw new UnauthorizedException("Incorrect email or password");
+      }
+
+      if (!user.passwordHash) {
+         throw new ConflictException(
+            "This email is linked to another login method"
+         );
+      }
+
+      if (!(await argon2.verify(user.passwordHash, password))) {
+         throw new UnauthorizedException("Incorrect email or password");
+      }
+
+      const authData = await this.generateToken(user);
+
+      const preparedLoginUser = db
+         .update(users)
+         .set({ refreshToken: authData.refreshToken })
+         .where(eq(users.id, sql.placeholder("id")));
+
+      await preparedLoginUser.run({ id: user.id });
+
+      return authData;
+   }
 
    async logout(userId: string) {
       const db = this.dbService.getDb();
@@ -71,7 +101,7 @@ export class AuthService {
          .returning();
 
       if (!(await prepared.get({ id: userId }))) {
-         throw new UnauthorizedException("User is not logged in");
+         throw new Error("User is not logged in");
       } else {
          return "User logged out successfully";
       }
@@ -107,6 +137,6 @@ export class AuthService {
          })
       ]);
 
-      return { accessToken, refreshToken };
+      return { user: payload, accessToken, refreshToken };
    }
 }
