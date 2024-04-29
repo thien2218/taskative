@@ -11,7 +11,7 @@ export class RefreshStrategy extends PassportStrategy(Strategy, "refresh") {
          jwtFromRequest: ExtractJwt.fromExtractors([
             (req) => {
                if (req.cookies) {
-                  return req.cookies["reshare-refresh-token"];
+                  return req.cookies["taskative-refresh-token"];
                } else {
                   return null;
                }
@@ -25,7 +25,7 @@ export class RefreshStrategy extends PassportStrategy(Strategy, "refresh") {
    async validate(req: FastifyRequest, payload: any) {
       return {
          ...payload,
-         refreshToken: req.cookies["todo-refresh-token"]
+         refreshToken: req.cookies["taskative-refresh-token"]
       };
    }
 }

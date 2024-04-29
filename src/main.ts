@@ -1,10 +1,10 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
-import cookie from "@fastify/cookie";
 import {
    FastifyAdapter,
    NestFastifyApplication
 } from "@nestjs/platform-fastify";
+import fastifyCookie from "@fastify/cookie";
 
 async function bootstrap() {
    const app = await NestFactory.create<NestFastifyApplication>(
@@ -12,7 +12,7 @@ async function bootstrap() {
       new FastifyAdapter()
    );
 
-   app.register(cookie, {
+   await app.register(fastifyCookie, {
       secret: process.env.COOKIE_SECRET,
       parseOptions: {
          path: "/auth"

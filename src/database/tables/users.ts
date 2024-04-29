@@ -3,10 +3,10 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 export const users = sqliteTable("users", {
    id: text("id").primaryKey(),
    email: text("email").unique().notNull(),
-   emailVerified: integer("email_verified", { mode: "boolean" }).default(false),
+   emailVerified: integer("email_verified", { mode: "boolean" }).notNull(),
    username: text("username").unique().notNull(),
    passwordHash: text("password_hash"),
-   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+   createdAt: integer("created_at").notNull(),
    provider: text("provider", {
       enum: ["local", "google", "facebook"]
    }).notNull(),

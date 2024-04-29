@@ -2,12 +2,13 @@ import { DatabaseService } from "@/database/database.service";
 import { users } from "@/database/tables/users";
 import { SignupDto } from "@/tools/schemas/auth.schema";
 import { SelectUserDto, SelectUserSchema } from "@/tools/schemas/user.schema";
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as argon2 from "argon2";
 import { sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { parse } from "valibot";
 
 @Injectable()
 export class AuthService {
@@ -20,7 +21,9 @@ export class AuthService {
    // PUBLIC METHODS
    async signup(signupDto: SignupDto) {
       const db = this.dbService.getDb();
-      const passwordHash = await argon2.hash(signupDto.password);
+      const passwordHash = await argon2.hash(signupDto.password, {
+         timeCost: 10
+      });
 
       const payload: SelectUserDto = {
          id: nanoid(25),
@@ -28,7 +31,7 @@ export class AuthService {
          username: signupDto.username,
          profileImage: signupDto.profileImage,
          emailVerified: false,
-         createdAt: new Date(),
+         createdAt: Math.floor(new Date().getTime() / 1000),
          provider: "local"
       };
 
@@ -56,24 +59,42 @@ export class AuthService {
    //    // ...
    // }
 
+   async logout(userId: string) {
+      const db = this.dbService.getDb();
+
+      const prepared = db
+         .update(users)
+         .set({ refreshToken: null })
+         .where(
+            sql`${users.id} = ${sql.placeholder("id")} AND ${users.refreshToken} IS NOT NULL`
+         )
+         .returning();
+
+      if (!(await prepared.get({ id: userId }))) {
+         throw new UnauthorizedException("User is not logged in");
+      } else {
+         return "User logged out successfully";
+      }
+   }
+
    // PRIVATE METHODS
    private userPlaceholders() {
       return {
          id: sql.placeholder("id"),
          email: sql.placeholder("email"),
          username: sql.placeholder("username"),
-         emailVerified: sql.placeholder("email_verified"),
-         passwordHash: sql.placeholder("password_hash"),
+         emailVerified: sql.placeholder("emailVerified"),
+         passwordHash: sql.placeholder("passwordHash"),
          provider: sql.placeholder("provider"),
-         providerId: sql.placeholder("provider_id"),
-         refreshToken: sql.placeholder("refresh_token"),
-         createdAt: sql.placeholder("created_at"),
-         profileImage: sql.placeholder("profile_image")
+         providerId: sql.placeholder("providerId"),
+         refreshToken: sql.placeholder("refreshToken"),
+         createdAt: sql.placeholder("createdAt"),
+         profileImage: sql.placeholder("profileImage")
       };
    }
 
    private async generateToken(user: SelectUserDto) {
-      const payload = SelectUserSchema._parse(user);
+      const payload = parse(SelectUserSchema, user);
 
       const [accessToken, refreshToken] = await Promise.all([
          this.jwtService.signAsync(payload, {
@@ -82,7 +103,7 @@ export class AuthService {
          }),
          this.jwtService.signAsync(payload, {
             secret: this.configService.get<string>("REFRESH_TOKEN_SECRET"),
-            expiresIn: 60 * 60 * 24 * 15
+            expiresIn: 60 * 60 * 24 * 30
          })
       ]);
 

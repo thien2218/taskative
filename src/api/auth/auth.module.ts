@@ -3,11 +3,12 @@ import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { DatabaseModule } from "@/database/database.module";
 import { JwtModule } from "@nestjs/jwt";
-import { ConfigModule } from "@nestjs/config";
+import { RefreshStrategy } from "./stategies/refresh.strategy";
+import { AccessStrategy } from "./stategies/access.strategy";
 
 @Module({
-   imports: [DatabaseModule, JwtModule, ConfigModule],
-   providers: [AuthService],
+   imports: [DatabaseModule, JwtModule],
+   providers: [AuthService, RefreshStrategy, AccessStrategy],
    controllers: [AuthController]
 })
 export class AuthModule {}
