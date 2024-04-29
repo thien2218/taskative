@@ -4,17 +4,12 @@ import {
    minLength,
    object,
    string,
-   Input,
    nullable,
    optional,
-   Output,
    transform,
    custom
 } from "valibot";
 
-/**
- * Schemas
- */
 export const SignupSchema = transform(
    object(
       {
@@ -41,9 +36,3 @@ export const LoginSchema = object({
    email: string([email()]),
    password: string([minLength(8), maxLength(32)])
 });
-
-/**
- * Types
- */
-export type SignupDto = Output<typeof SignupSchema>;
-export type LoginDto = Input<typeof LoginSchema>;

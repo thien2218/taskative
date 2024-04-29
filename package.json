@@ -1,7 +1,7 @@
 {
-   "name": "todo-app",
+   "name": "taskative",
    "version": "0.0.1",
-   "description": "A todo app for everyone",
+   "description": "Taskative: A todo app for everyone - from complex to simple task management",
    "author": "",
    "private": true,
    "license": "UNLICENSED",

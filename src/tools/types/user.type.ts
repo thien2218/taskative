@@ -1,14 +1,9 @@
-export type User = {
-   id: string;
-   email: string;
-   username: string;
-   profileImage: string;
-   emailVerified: boolean;
-   createdAt: number;
-   provider: string;
-   providerId: string;
-};
+import { Input } from "valibot";
+import { SelectUserSchema } from "../schemas/user.schema";
 
-export type UserRefresh = User & {
+export type SelectUserDto = Input<typeof SelectUserSchema>;
+
+export type UserRefresh = SelectUserDto & {
    refreshToken: string;
+   exp: number;
 };

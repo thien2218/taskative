@@ -1,7 +1,8 @@
 import { DatabaseService } from "@/database/database.service";
 import { users } from "@/database/tables/users";
-import { LoginDto, SignupDto } from "@/tools/schemas/auth.schema";
-import { SelectUserDto, SelectUserSchema } from "@/tools/schemas/user.schema";
+import { SelectUserSchema } from "@/tools/schemas/user.schema";
+import { LoginDto, SignupDto } from "@/tools/types/auth.type";
+import { SelectUserDto, UserRefresh } from "@/tools/types/user.type";
 import {
    ConflictException,
    Injectable,
@@ -13,6 +14,10 @@ import * as argon2 from "argon2";
 import { eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { parse } from "valibot";
+
+const NEW_REFRESH_WINDOW = 14;
+const ACCESS_TOKEN_LIFETIME = 60 * 15;
+const REFRESH_TOKEN_LIFETIME = 60 * 60 * 24 * 30;
 
 @Injectable()
 export class AuthService {
@@ -37,9 +42,20 @@ export class AuthService {
          provider: "local"
       };
 
-      const authData = await this.generateToken(payload);
+      const authData = await this.generateTokens(payload);
 
-      const prepared = db.insert(users).values(this.userPlaceholders());
+      const prepared = db.insert(users).values({
+         id: sql.placeholder("id"),
+         email: sql.placeholder("email"),
+         username: sql.placeholder("username"),
+         emailVerified: sql.placeholder("emailVerified"),
+         passwordHash: sql.placeholder("passwordHash"),
+         provider: sql.placeholder("provider"),
+         providerId: sql.placeholder("providerId"),
+         refreshToken: sql.placeholder("refreshToken"),
+         createdAt: sql.placeholder("createdAt"),
+         profileImage: sql.placeholder("profileImage")
+      });
 
       await prepared
          .run({
@@ -66,7 +82,6 @@ export class AuthService {
       if (!user) {
          throw new UnauthorizedException("Incorrect email or password");
       }
-
       if (!user.passwordHash) {
          throw new ConflictException(
             "This email is linked to another login method"
@@ -77,14 +92,16 @@ export class AuthService {
          throw new UnauthorizedException("Incorrect email or password");
       }
 
-      const authData = await this.generateToken(user);
+      const authData = await this.generateTokens(user);
 
       const preparedLoginUser = db
          .update(users)
          .set({ refreshToken: authData.refreshToken })
          .where(eq(users.id, sql.placeholder("id")));
 
-      await preparedLoginUser.run({ id: user.id });
+      await preparedLoginUser
+         .run({ id: user.id })
+         .catch(this.dbService.handleDbError);
 
       return authData;
    }
@@ -101,39 +118,72 @@ export class AuthService {
          .returning();
 
       if (!(await prepared.get({ id: userId }))) {
-         throw new Error("User is not logged in");
+         throw new UnauthorizedException("User is not logged in");
       } else {
          return "User logged out successfully";
       }
    }
 
-   // PRIVATE METHODS
-   private userPlaceholders() {
-      return {
-         id: sql.placeholder("id"),
-         email: sql.placeholder("email"),
-         username: sql.placeholder("username"),
-         emailVerified: sql.placeholder("emailVerified"),
-         passwordHash: sql.placeholder("passwordHash"),
-         provider: sql.placeholder("provider"),
-         providerId: sql.placeholder("providerId"),
-         refreshToken: sql.placeholder("refreshToken"),
-         createdAt: sql.placeholder("createdAt"),
-         profileImage: sql.placeholder("profileImage")
-      };
+   async refresh({ id, refreshToken, exp }: UserRefresh) {
+      const db = this.dbService.getDb();
+      const now = Math.floor(new Date().getTime() / 1000);
+      const timeLeftInDays = +((exp - now) / (60 * 60 * 24)).toFixed(2);
+
+      const preparedGetUser = db
+         .select()
+         .from(users)
+         .where(eq(users.id, sql.placeholder("id")));
+
+      const user = await preparedGetUser.get({ id });
+
+      if (!user) {
+         throw new UnauthorizedException("User not found");
+      }
+      if (!user.refreshToken) {
+         throw new UnauthorizedException("User is not logged in");
+      }
+      if (user.refreshToken !== refreshToken) {
+         throw new ConflictException("Invalid refresh token");
+      }
+
+      if (timeLeftInDays < NEW_REFRESH_WINDOW) {
+         const authData = await this.generateTokens(user);
+
+         const preparedRefreshUser = db
+            .update(users)
+            .set({ refreshToken: authData.refreshToken })
+            .where(eq(users.id, sql.placeholder("id")));
+
+         await preparedRefreshUser
+            .run({ id })
+            .catch(this.dbService.handleDbError);
+
+         return authData;
+      }
+
+      // Only refresh the access token if the refresh token is still new
+      const payload = parse(SelectUserSchema, user);
+
+      const accessToken = await this.jwtService.signAsync(payload, {
+         secret: this.configService.get<string>("ACCESS_TOKEN_SECRET"),
+         expiresIn: ACCESS_TOKEN_LIFETIME
+      });
+
+      return { user: payload, accessToken, refreshToken: null };
    }
 
-   private async generateToken(user: SelectUserDto) {
+   // PRIVATE METHODS
+   private async generateTokens(user: SelectUserDto) {
       const payload = parse(SelectUserSchema, user);
 
       const [accessToken, refreshToken] = await Promise.all([
          this.jwtService.signAsync(payload, {
             secret: this.configService.get<string>("ACCESS_TOKEN_SECRET"),
-            expiresIn: 60 * 15
+            expiresIn: ACCESS_TOKEN_LIFETIME
          }),
          this.jwtService.signAsync(payload, {
             secret: this.configService.get<string>("REFRESH_TOKEN_SECRET"),
-            expiresIn: 60 * 60 * 24 * 30
+            expiresIn: REFRESH_TOKEN_LIFETIME
          })
       ]);
 
