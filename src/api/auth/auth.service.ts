@@ -44,18 +44,21 @@ export class AuthService {
 
       const authData = await this.generateTokens(payload);
 
-      const prepared = db.insert(users).values({
-         id: sql.placeholder("id"),
-         email: sql.placeholder("email"),
-         username: sql.placeholder("username"),
-         emailVerified: sql.placeholder("emailVerified"),
-         passwordHash: sql.placeholder("passwordHash"),
-         provider: sql.placeholder("provider"),
-         providerId: sql.placeholder("providerId"),
-         refreshToken: sql.placeholder("refreshToken"),
-         createdAt: sql.placeholder("createdAt"),
-         profileImage: sql.placeholder("profileImage")
-      });
+      const prepared = db
+         .insert(users)
+         .values({
+            id: sql.placeholder("id"),
+            email: sql.placeholder("email"),
+            username: sql.placeholder("username"),
+            emailVerified: sql.placeholder("emailVerified"),
+            passwordHash: sql.placeholder("passwordHash"),
+            provider: sql.placeholder("provider"),
+            providerId: sql.placeholder("providerId"),
+            refreshToken: sql.placeholder("refreshToken"),
+            createdAt: sql.placeholder("createdAt"),
+            profileImage: sql.placeholder("profileImage")
+         })
+         .prepare();
 
       await prepared
          .run({
@@ -75,7 +78,8 @@ export class AuthService {
       const preparedGetUser = db
          .select()
          .from(users)
-         .where(eq(users.email, sql.placeholder("email")));
+         .where(eq(users.email, sql.placeholder("email")))
+         .prepare();
 
       const user = await preparedGetUser.get({ email });
 
@@ -87,7 +91,6 @@ export class AuthService {
             "This email is linked to another login method"
          );
       }
-
       if (!(await argon2.verify(user.passwordHash, password))) {
          throw new UnauthorizedException("Incorrect email or password");
       }
@@ -97,7 +100,8 @@ export class AuthService {
       const preparedLoginUser = db
          .update(users)
          .set({ refreshToken: authData.refreshToken })
-         .where(eq(users.id, sql.placeholder("id")));
+         .where(eq(users.id, sql.placeholder("id")))
+         .prepare();
 
       await preparedLoginUser
          .run({ id: user.id })
@@ -115,7 +119,8 @@ export class AuthService {
          .where(
             sql`${users.id} = ${sql.placeholder("id")} AND ${users.refreshToken} IS NOT NULL`
          )
-         .returning();
+         .returning()
+         .prepare();
 
       if (!(await prepared.get({ id: userId }))) {
          throw new UnauthorizedException("User is not logged in");
@@ -132,7 +137,8 @@ export class AuthService {
       const preparedGetUser = db
          .select()
          .from(users)
-         .where(eq(users.id, sql.placeholder("id")));
+         .where(eq(users.id, sql.placeholder("id")))
+         .prepare();
 
       const user = await preparedGetUser.get({ id });
 
@@ -152,7 +158,8 @@ export class AuthService {
          const preparedRefreshUser = db
             .update(users)
             .set({ refreshToken: authData.refreshToken })
-            .where(eq(users.id, sql.placeholder("id")));
+            .where(eq(users.id, sql.placeholder("id")))
+            .prepare();
 
          await preparedRefreshUser
             .run({ id })
@@ -172,7 +179,7 @@ export class AuthService {
       return { user: payload, accessToken, refreshToken: null };
    }
 
-   // PRIVATE METHODS
+   // PRIVATE HELPERS
    private async generateTokens(user: SelectUserDto) {
       const payload = parse(SelectUserSchema, user);
 

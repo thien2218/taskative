@@ -77,7 +77,7 @@ export class AuthController {
       }
    }
 
-   // PRIVATE METHODS
+   // PRIVATE HELPERS
    private setRefreshTokenCookie(res: FastifyReply, refreshToken: string) {
       res.setCookie("taskative-refresh-token", refreshToken, {
          path: "/",
