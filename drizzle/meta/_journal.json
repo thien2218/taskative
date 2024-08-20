@@ -15,6 +15,13 @@
       "when": 1724089959586,
       "tag": "0001_wonderful_silhouette",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1724137026365,
+      "tag": "0002_even_shadow_king",
+      "breakpoints": true
     }
   ]
 }
