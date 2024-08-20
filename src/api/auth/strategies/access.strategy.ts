@@ -10,13 +10,12 @@ export class AccessStrategy extends PassportStrategy(Strategy, "access") {
       super({
          jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
          ignoreExpiration: true,
-         passReqToCallback: true,
          secretOrKey: configService.get("JWT_SECRET")
       });
    }
 
    async validate({ sub, exp, ...rest }: JwtPayload) {
-      if (Date.now() >= exp) {
+      if (Date.now() / 1000 <= exp) {
          return { userId: sub, ...rest };
       } else {
          throw new UnauthorizedException("Access token expired");

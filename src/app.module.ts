@@ -1,10 +1,10 @@
 import { Module } from "@nestjs/common";
 import { DatabaseModule } from "./database/database.module";
 import { ConfigModule } from "@nestjs/config";
-import { AuthModule } from "./auth/auth.module";
+import { AuthModule } from "./api/auth/auth.module";
 import { APP_GUARD } from "@nestjs/core";
-import { AccessGuard } from "./auth/guards/access.guards";
-import { UserModule } from './user/user.module';
+import { AccessGuard } from "./api/auth/guards/access.guards";
+import { UserModule } from "./api/user/user.module";
 
 @Module({
    imports: [
@@ -16,7 +16,6 @@ import { UserModule } from './user/user.module';
       AuthModule,
       UserModule
    ],
-   controllers: [],
    providers: [
       {
          provide: APP_GUARD,

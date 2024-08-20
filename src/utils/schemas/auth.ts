@@ -7,6 +7,7 @@ import {
    nonEmpty,
    nullable,
    object,
+   optional,
    pipe,
    string,
    transform
@@ -29,7 +30,7 @@ export const SignupSchema = pipe(
          email("Invalid email address"),
          maxLength(255, "Email address is too long")
       ),
-      profileImage: nullable(string(), null),
+      profileImage: optional(nullable(string()), null),
       firstName: pipe(
          string(),
          nonEmpty("First name is required"),

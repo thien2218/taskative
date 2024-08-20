@@ -23,7 +23,7 @@ export class AuthService {
 
    async signup({ password, ...rest }: SignupDto): Promise<AuthTokensDto> {
       const builder = this.dbService.builder;
-      const encryptedPassword = await hash(password, { timeCost: 10 });
+      const encryptedPassword = await hash(password);
       const id = nanoid(25);
       const tokens = await this.generateTokens({ sub: id, ...rest });
 
@@ -38,7 +38,6 @@ export class AuthService {
             lastName: sql.placeholder("lastName"),
             refreshToken: sql.placeholder("refreshToken")
          })
-         .returning()
          .prepare();
 
       await prepared
@@ -55,13 +54,13 @@ export class AuthService {
 
    async login({ email, password }: LoginDto): Promise<AuthTokensDto> {
       const builder = this.dbService.builder;
-      const prepared = builder
+      const getUserPrepared = builder
          .select()
          .from(users)
          .where(eq(users.email, sql.placeholder("email")))
          .prepare();
 
-      const user = await prepared
+      const user = await getUserPrepared
          .get({ email })
          .catch(this.dbService.handleDbError);
 
@@ -91,18 +90,28 @@ export class AuthService {
          lastName: user.lastName
       };
 
-      return this.generateTokens(payload);
+      const tokens = await this.generateTokens(payload);
+
+      const updateUserPrepared = builder
+         .update(users)
+         .set({ refreshToken: tokens.refreshToken })
+         .where(eq(users.id, sql.placeholder("id")))
+         .prepare();
+
+      await updateUserPrepared.run({ id: user.id });
+
+      return tokens;
    }
 
-   async logout(email: string) {
+   async logout(id: string) {
       const builder = this.dbService.builder;
       const prepared = builder
          .update(users)
          .set({ refreshToken: null })
-         .where(eq(users.email, sql.placeholder("email")))
+         .where(eq(users.id, sql.placeholder("id")))
          .prepare();
 
-      await prepared.run({ email }).catch(this.dbService.handleDbError);
+      await prepared.run({ id }).catch(this.dbService.handleDbError);
    }
 
    private async generateTokens(

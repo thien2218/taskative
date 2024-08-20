@@ -6,6 +6,14 @@ import { InferInput, InferOutput } from "valibot";
  */
 export type SelectUserDto = InferInput<typeof SelectUserSchema>;
 
+export type UserDto = {
+   userId: string;
+   email: string;
+   firstName: string;
+   lastName: string;
+   profileImage: string | null;
+};
+
 /**
  * Auth types
  */
