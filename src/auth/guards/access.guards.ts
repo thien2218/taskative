@@ -16,6 +16,11 @@ export class AccessGuard extends AuthGuard("access") {
 
       if (isPublic) return true;
 
+      const request = context.switchToHttp().getRequest();
+      const refreshToken = request.cookies["refresh-token"];
+
+      if (!refreshToken) return false;
+
       return super.canActivate(context);
    }
 }

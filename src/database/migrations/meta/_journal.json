@@ -22,6 +22,13 @@
       "when": 1724137026365,
       "tag": "0002_even_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1724158725246,
+      "tag": "0003_cooing_deathbird",
+      "breakpoints": true
     }
   ]
 }

@@ -5,9 +5,10 @@ dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 
 export default defineConfig({
    schema: "src/database/tables.ts",
+   out: "src/database/migrations",
    dialect: "sqlite",
    driver: "turso",
-   dbCredentialsDto: {
+   dbCredentials: {
       url: process.env.TURSO_DATABASE_URL as string,
       authToken: process.env.TURSO_AUTH_TOKEN
    },
