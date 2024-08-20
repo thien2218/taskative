@@ -17,5 +17,6 @@ export const users = sqliteTable("users", {
    createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
-   provider: text("provider").notNull().default("email")
+   provider: text("provider").notNull().default("email"),
+   refreshToken: text("refresh_token")
 });

@@ -30,6 +30,16 @@ export const SignupSchema = pipe(
          maxLength(255, "Email address is too long")
       ),
       profileImage: nullable(string(), null),
+      firstName: pipe(
+         string(),
+         nonEmpty("First name is required"),
+         maxLength(32, "First name cannot be longer than 32 characters")
+      ),
+      lastName: pipe(
+         string(),
+         nonEmpty("Last name is required"),
+         maxLength(32, "Last name cannot be longer than 32 characters")
+      ),
       password: pipe(
          string(),
          nonEmpty("Password is required"),
@@ -48,17 +58,5 @@ export const SignupSchema = pipe(
    // eslint-disable-next-line @typescript-eslint/no-unused-vars
    transform(({ confirmPassword, ...rest }) => {
       return rest;
-   })
-);
-
-export const JwtPayloadSchema = pipe(
-   object({
-      id: string(),
-      email: string(),
-      firstName: string(),
-      lastName: string()
-   }),
-   transform(({ id, ...rest }) => {
-      return { sub: id, ...rest };
    })
 );

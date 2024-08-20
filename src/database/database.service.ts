@@ -1,11 +1,11 @@
-import { createClient } from "@libsql/client";
+import { createClient, LibsqlError } from "@libsql/client";
 import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class DatabaseService {
-   protected db: LibSQLDatabase;
+   private db: LibSQLDatabase;
 
    constructor(private readonly configService: ConfigService) {}
 
@@ -16,5 +16,23 @@ export class DatabaseService {
       });
 
       this.db = drizzle(client);
+   }
+
+   get builder() {
+      return this.db;
+   }
+
+   handleDbError(err: any) {
+      if (err instanceof LibsqlError) {
+         const splitErr = err.message.split(": ");
+         const reason = splitErr[splitErr.length - 2];
+         const field = splitErr[splitErr.length - 1].split(".")[1];
+
+         const message = { field, reason };
+
+         throw new BadRequestException(message);
+      } else {
+         throw new BadRequestException(err);
+      }
    }
 }
