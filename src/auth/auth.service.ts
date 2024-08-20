@@ -1,19 +1,28 @@
 import { Injectable } from "@nestjs/common";
-import { AuthTokens, Credentials } from "src/utils/schemas";
+import { ConfigService } from "@nestjs/config";
+import { JwtService } from "@nestjs/jwt";
+import { DatabaseService } from "src/database/database.service";
+import { AuthTokensDto, LoginDto, SignupDto } from "src/utils/types";
 
 @Injectable()
 export class AuthService {
-   constructor() {}
+   constructor(
+      private readonly dbService: DatabaseService,
+      private readonly jwtService: JwtService,
+      private readonly configService: ConfigService
+   ) {}
 
-   async login({ email, password }: Credentials): Promise<AuthTokens> {
+   async login({ email, password }: LoginDto): Promise<AuthTokensDto> {
       return;
    }
 
-   async signup({ email, password }: Credentials): Promise<AuthTokens> {
+   async signup({ password, ...rest }: SignupDto): Promise<AuthTokensDto> {
       return;
    }
 
    async logout() {
       return;
    }
+
+   private async generateTokens(email: string): Promise<AuthTokensDto> {}
 }

@@ -2,20 +2,17 @@ import {
    check,
    email,
    forward,
-   InferInput,
    maxLength,
    minLength,
    nonEmpty,
+   nullable,
    object,
    pipe,
    string,
    transform
 } from "valibot";
 
-/**
- * Schemas
- */
-export const LoginCredsSchema = object({
+export const LoginSchema = object({
    email: pipe(
       string(),
       nonEmpty("Email is required"),
@@ -24,7 +21,7 @@ export const LoginCredsSchema = object({
    password: pipe(string(), nonEmpty("Please enter your password"))
 });
 
-export const SignupCredsSchema = pipe(
+export const SignupSchema = pipe(
    object({
       email: pipe(
          string(),
@@ -32,6 +29,7 @@ export const SignupCredsSchema = pipe(
          email("Invalid email address"),
          maxLength(255, "Email address is too long")
       ),
+      profileImage: nullable(string(), null),
       password: pipe(
          string(),
          nonEmpty("Password is required"),
@@ -53,12 +51,14 @@ export const SignupCredsSchema = pipe(
    })
 );
 
-/**
- * Types
- */
-export type Credentials = InferInput<typeof LoginCredsSchema>;
-export type AuthTokens = {
-   accessToken: string;
-   refreshToken: string;
-};
-export type AccessToken = Omit<AuthTokens, "refreshToken">;
+export const JwtPayloadSchema = pipe(
+   object({
+      id: string(),
+      email: string(),
+      firstName: string(),
+      lastName: string()
+   }),
+   transform(({ id, ...rest }) => {
+      return { sub: id, ...rest };
+   })
+);

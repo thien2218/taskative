@@ -1,19 +1,25 @@
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { PassportStrategy } from "@nestjs/passport";
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { JwtPayload } from "src/utils/schemas";
 
 @Injectable()
 export class AccessStrategy extends PassportStrategy(Strategy, "access") {
-   constructor() {
+   constructor(private readonly configService: ConfigService) {
       super({
          jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-         ignoreExpiration: false,
+         ignoreExpiration: true,
          passReqToCallback: true,
-         secretOrKey: ""
+         secretOrKey: configService.get("JWT_SECRET")
       });
    }
 
-   async validate(payload: any) {
-      return { userId: payload.sub, username: payload.username };
+   async validate({ sub, exp, ...rest }: JwtPayload) {
+      if (Date.now() >= exp) {
+         return { id: sub, ...rest };
+      } else {
+         throw new UnauthorizedException("Access token expired");
+      }
    }
 }
