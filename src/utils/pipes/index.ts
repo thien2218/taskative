@@ -23,8 +23,10 @@ export class PaginationPipe implements PipeTransform {
 
       if (isNaN(limit)) {
          throw new BadRequestException("QUERY: limit must be a number");
-      } else if (limit < 5 || limit > 50) {
-         throw new BadRequestException("QUERY: limit must be between 5 and 50");
+      } else if (limit < 5 || limit > 100) {
+         throw new BadRequestException(
+            "QUERY: limit must be between 5 and 100"
+         );
       } else if (limit % 5 !== 0) {
          throw new BadRequestException("QUERY: limit must be a multiple of 5");
       }

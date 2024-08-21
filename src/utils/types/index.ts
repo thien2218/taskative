@@ -1,4 +1,11 @@
-import { LoginSchema, SelectUserSchema, SignupSchema } from "../schemas";
+import {
+   CreateTaskSchema,
+   LoginSchema,
+   SelectTaskSchema,
+   SelectUserSchema,
+   SignupSchema,
+   UpdateTaskSchema
+} from "../schemas";
 import { InferInput, InferOutput } from "valibot";
 
 /**
@@ -7,19 +14,6 @@ import { InferInput, InferOutput } from "valibot";
 export type PaginationQuery = {
    limit: number;
    offset: number;
-};
-
-/**
- * User types
- */
-export type SelectUserDto = InferInput<typeof SelectUserSchema>;
-
-export type UserDto = {
-   userId: string;
-   email: string;
-   firstName: string;
-   lastName: string;
-   profileImage: string | null;
 };
 
 /**
@@ -42,3 +36,23 @@ export type JwtPayload = {
    lastName: string;
    profileImage?: string | null;
 };
+
+/**
+ * User types
+ */
+export type SelectUserDto = InferInput<typeof SelectUserSchema>;
+
+export type UserDto = {
+   userId: string;
+   email: string;
+   firstName: string;
+   lastName: string;
+   profileImage: string | null;
+};
+
+/**
+ * Task types
+ */
+export type CreateTaskDto = InferInput<typeof CreateTaskSchema>;
+export type SelectTaskDto = InferInput<typeof SelectTaskSchema>;
+export type UpdateTaskDto = InferInput<typeof UpdateTaskSchema>;
