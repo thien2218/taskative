@@ -14,3 +14,29 @@ export class ValibotPipe implements PipeTransform {
       }
    }
 }
+
+@Injectable()
+export class PaginationPipe implements PipeTransform {
+   transform(value: any) {
+      const limit = parseInt(value.limit, 10);
+      const page = parseInt(value.page, 10);
+
+      if (isNaN(limit)) {
+         throw new BadRequestException("QUERY: limit must be a number");
+      } else if (limit < 5 || limit > 50) {
+         throw new BadRequestException("QUERY: limit must be between 5 and 50");
+      } else if (limit % 5 !== 0) {
+         throw new BadRequestException("QUERY: limit must be a multiple of 5");
+      }
+
+      if (isNaN(page)) {
+         throw new BadRequestException("QUERY: page must be a number");
+      } else if (page < 1) {
+         throw new BadRequestException("QUERY: page must be greater than 0");
+      }
+
+      const offset = (page - 1) * limit;
+
+      return { limit, offset };
+   }
+}

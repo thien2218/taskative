@@ -10,14 +10,7 @@ import { parse } from "valibot";
 export class UserService {
    constructor(private readonly dbService: DatabaseService) {}
 
-   async findMany(): Promise<SelectUserDto[]> {
-      const builder = this.dbService.builder;
-      const prepared = builder.select().from(users).prepare();
-      const userList = await prepared.all();
-      return userList.map((user) => parse(SelectUserSchema, user));
-   }
-
-   async findOne(id: string): Promise<SelectUserDto> {
+   async getUserInfo(id: string): Promise<SelectUserDto> {
       const builder = this.dbService.builder;
       const prepared = builder
          .select()

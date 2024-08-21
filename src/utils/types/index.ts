@@ -2,6 +2,14 @@ import { LoginSchema, SelectUserSchema, SignupSchema } from "../schemas";
 import { InferInput, InferOutput } from "valibot";
 
 /**
+ * Query types
+ */
+export type PaginationQuery = {
+   limit: number;
+   offset: number;
+};
+
+/**
  * User types
  */
 export type SelectUserDto = InferInput<typeof SelectUserSchema>;

@@ -1,5 +1,5 @@
 import {
-   isoTimestamp,
+   date,
    maxLength,
    minLength,
    nullable,
@@ -15,7 +15,7 @@ import {
 export const SelectUserSchema = object({
    id: string(),
    email: string(),
-   createdAt: pipe(string(), isoTimestamp()),
+   createdAt: date(),
    profileImage: nullable(string()),
    provider: picklist(["google", "facebook", "email"]),
    firstName: string(),
