@@ -4,7 +4,8 @@ import {
    SelectTaskSchema,
    SelectUserSchema,
    SignupSchema,
-   UpdateTaskSchema
+   UpdateTaskSchema,
+   UpdateUserSchema
 } from "../schemas";
 import { InferInput, InferOutput } from "valibot";
 
@@ -41,6 +42,7 @@ export type JwtPayload = {
  * User types
  */
 export type SelectUserDto = InferInput<typeof SelectUserSchema>;
+export type UpdateUserDto = InferInput<typeof UpdateUserSchema>;
 
 export type UserDto = {
    userId: string;
