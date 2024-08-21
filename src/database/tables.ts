@@ -20,3 +20,18 @@ export const users = sqliteTable("users", {
    provider: text("provider").notNull().default("email"),
    refreshToken: text("refresh_token")
 });
+
+/**
+ * Tasks table
+ */
+export const tasks = sqliteTable("tasks", {
+   id: text("id").primaryKey(),
+   userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+   description: text("description").notNull(),
+   status: text("status").notNull().default("pending"),
+   createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`)
+});

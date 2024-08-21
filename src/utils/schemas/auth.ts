@@ -5,12 +5,13 @@ import {
    maxLength,
    minLength,
    nonEmpty,
-   nullable,
    object,
    optional,
    pipe,
+   startsWith,
    string,
-   transform
+   transform,
+   url
 } from "valibot";
 
 export const LoginSchema = object({
@@ -30,7 +31,6 @@ export const SignupSchema = pipe(
          email("Invalid email address"),
          maxLength(255, "Email address is too long")
       ),
-      profileImage: optional(nullable(string()), null),
       firstName: pipe(
          string(),
          nonEmpty("First name is required"),
@@ -47,7 +47,14 @@ export const SignupSchema = pipe(
          maxLength(20, "Password cannot be longer than 20 characters"),
          minLength(6, "Password must be at least 6 characters long")
       ),
-      confirmPassword: string()
+      confirmPassword: string(),
+      profileImage: optional(
+         pipe(
+            string(),
+            url("Invalid image URL"),
+            startsWith("https://", "Image URL must be secure")
+         )
+      )
    }),
    forward(
       check(

@@ -15,10 +15,10 @@ export class AccessStrategy extends PassportStrategy(Strategy, "access") {
    }
 
    async validate({ sub, exp, ...rest }: JwtPayload) {
-      if (Date.now() / 1000 <= exp) {
-         return { userId: sub, ...rest };
-      } else {
+      if (Date.now() / 1000 > exp) {
          throw new UnauthorizedException("Access token expired");
       }
+
+      return { userId: sub, ...rest };
    }
 }

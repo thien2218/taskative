@@ -5,6 +5,7 @@ import { AuthModule } from "./api/auth/auth.module";
 import { APP_GUARD } from "@nestjs/core";
 import { AccessGuard } from "./api/auth/guards/access.guards";
 import { UserModule } from "./api/user/user.module";
+import { TaskModule } from "./api/task/task.module";
 
 @Module({
    imports: [
@@ -14,7 +15,8 @@ import { UserModule } from "./api/user/user.module";
          envFilePath: `.env.${process.env.NODE_ENV}`
       }),
       AuthModule,
-      UserModule
+      UserModule,
+      TaskModule
    ],
    providers: [
       {

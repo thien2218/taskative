@@ -32,5 +32,5 @@ export type JwtPayload = {
    email: string;
    firstName: string;
    lastName: string;
-   profileImage: string | null;
+   profileImage?: string | null;
 };
