@@ -33,5 +33,8 @@ export const tasks = sqliteTable("tasks", {
    status: text("status").notNull().default("pending"),
    createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
+      .default(sql`(unixepoch())`),
+   updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
       .default(sql`(unixepoch())`)
 });

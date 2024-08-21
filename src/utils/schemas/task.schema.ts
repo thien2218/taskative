@@ -1,8 +1,9 @@
 import {
-   isoTimestamp,
+   date,
    maxLength,
    minLength,
    object,
+   optional,
    picklist,
    pipe,
    string
@@ -19,15 +20,18 @@ export const CreateTaskSchema = object({
 export const SelectTaskSchema = object({
    id: string(),
    description: string(),
-   status: picklist(["pending", "completed", "hiatus", "delayed", "deleted"]),
-   createdAt: pipe(string(), isoTimestamp())
+   status: string(),
+   createdAt: date(),
+   updatedAt: date()
 });
 
 export const UpdateTaskSchema = object({
-   description: pipe(
-      string(),
-      minLength(3, "Task description must be at least 3 characters long"),
-      maxLength(120, "Task description cannot exceed 120 characters")
+   description: optional(
+      pipe(
+         string(),
+         minLength(3, "Task description must be at least 3 characters long"),
+         maxLength(120, "Task description cannot exceed 120 characters")
+      )
    ),
-   status: picklist(["pending", "completed", "hiatus", "delayed", "deleted"])
+   status: optional(picklist(["pending", "completed", "hiatus"]))
 });

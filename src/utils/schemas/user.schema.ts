@@ -5,7 +5,6 @@ import {
    nullable,
    object,
    optional,
-   picklist,
    pipe,
    startsWith,
    string,
@@ -17,7 +16,7 @@ export const SelectUserSchema = object({
    email: string(),
    createdAt: date(),
    profileImage: nullable(string()),
-   provider: picklist(["google", "facebook", "email"]),
+   provider: string(),
    firstName: string(),
    lastName: string()
 });

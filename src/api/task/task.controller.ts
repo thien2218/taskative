@@ -3,6 +3,8 @@ import {
    Controller,
    Delete,
    Get,
+   HttpCode,
+   HttpStatus,
    Param,
    Patch,
    Post,
@@ -10,7 +12,7 @@ import {
    UsePipes
 } from "@nestjs/common";
 import { TaskService } from "./task.service";
-import { PaginationPipe, ValibotPipe } from "src/utils/pipes";
+import { PaginationQueryPipe, ValibotPipe } from "src/utils/pipes";
 import {
    CreateTaskDto,
    PaginationQuery,
@@ -27,7 +29,7 @@ export class TaskController {
 
    @Get()
    async findMany(
-      @Query(PaginationPipe) pagination: PaginationQuery,
+      @Query(PaginationQueryPipe) pagination: PaginationQuery,
       @User() { userId }: UserDto
    ): Promise<SelectTaskDto[]> {
       return this.taskService.findMany(pagination, userId);
@@ -50,6 +52,7 @@ export class TaskController {
       return this.taskService.create(userId, createTaskDto);
    }
 
+   @HttpCode(HttpStatus.NO_CONTENT)
    @UsePipes(new ValibotPipe(UpdateTaskSchema))
    @Patch(":id")
    async update(
@@ -60,6 +63,7 @@ export class TaskController {
       return this.taskService.update(id, userId, updateTaskDto);
    }
 
+   @HttpCode(HttpStatus.NO_CONTENT)
    @Delete(":id")
    async delete(@Param("id") id: string, @User() { userId }: UserDto) {
       return this.taskService.delete(id, userId);

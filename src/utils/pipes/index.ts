@@ -1,14 +1,23 @@
-import { PipeTransform, Injectable, BadRequestException } from "@nestjs/common";
+import {
+   PipeTransform,
+   Injectable,
+   BadRequestException,
+   ArgumentMetadata
+} from "@nestjs/common";
 import { ObjectSchema, parse } from "valibot";
 
 @Injectable()
 export class ValibotPipe implements PipeTransform {
    constructor(private readonly schema: ObjectSchema<any, any>) {}
 
-   transform(value: any) {
+   transform(value: any, metadata: ArgumentMetadata) {
       try {
-         const parsed = parse(this.schema, value);
-         return parsed;
+         if (metadata.type === "body") {
+            const parsed = parse(this.schema, value);
+            return parsed;
+         }
+
+         return value;
       } catch (error) {
          throw new BadRequestException(error);
       }
@@ -16,7 +25,7 @@ export class ValibotPipe implements PipeTransform {
 }
 
 @Injectable()
-export class PaginationPipe implements PipeTransform {
+export class PaginationQueryPipe implements PipeTransform {
    transform(value: any) {
       const limit = parseInt(value.limit, 10);
       const page = parseInt(value.page, 10);

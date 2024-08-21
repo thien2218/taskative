@@ -82,10 +82,11 @@ export class TaskService {
       { description, status }: UpdateTaskDto
    ) {
       const builder = this.dbService.builder;
+      const updatedAt = new Date();
 
       const prepared = builder
          .update(tasks)
-         .set({ description, status })
+         .set({ description, status, updatedAt })
          .where(
             and(
                eq(tasks.id, sql.placeholder("id")),
