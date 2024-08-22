@@ -18,9 +18,10 @@
       "test:cov": "jest --coverage",
       "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
       "test:e2e": "jest --config ./test/jest-e2e.json",
+      "test:db:migrate": "NODE_ENV=development drizzle-kit migrate",
+      "test:db:push": "NODE_ENV=development drizzle-kit push",
+      "test:db:seed": "NODE_ENV=development ts-node src/database/seed/$FILENAME",
       "db:generate": "drizzle-kit generate",
-      "db:test:migrate": "NODE_ENV=development drizzle-kit migrate",
-      "db:test:push": "NODE_ENV=development drizzle-kit push",
       "db:migrate": "NODE_ENV=production drizzle-kit migrate",
       "db:push": "NODE_ENV=production drizzle-kit push"
    },

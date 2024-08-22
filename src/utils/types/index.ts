@@ -7,7 +7,7 @@ import {
    UpdateTaskSchema,
    UpdateUserSchema
 } from "../schemas";
-import { InferInput, InferOutput } from "valibot";
+import { InferOutput } from "valibot";
 
 /**
  * Query types
@@ -20,7 +20,7 @@ export type PaginationQuery = {
 /**
  * Auth types
  */
-export type LoginDto = InferInput<typeof LoginSchema>;
+export type LoginDto = InferOutput<typeof LoginSchema>;
 
 export type SignupDto = InferOutput<typeof SignupSchema>;
 
@@ -41,8 +41,8 @@ export type JwtPayload = {
 /**
  * User types
  */
-export type SelectUserDto = InferInput<typeof SelectUserSchema>;
-export type UpdateUserDto = InferInput<typeof UpdateUserSchema>;
+export type SelectUserDto = InferOutput<typeof SelectUserSchema>;
+export type UpdateUserDto = InferOutput<typeof UpdateUserSchema>;
 
 export type UserDto = {
    userId: string;
@@ -55,6 +55,6 @@ export type UserDto = {
 /**
  * Task types
  */
-export type CreateTaskDto = InferInput<typeof CreateTaskSchema>;
-export type SelectTaskDto = InferInput<typeof SelectTaskSchema>;
-export type UpdateTaskDto = InferInput<typeof UpdateTaskSchema>;
+export type CreateTaskDto = InferOutput<typeof CreateTaskSchema>;
+export type SelectTaskDto = InferOutput<typeof SelectTaskSchema>;
+export type UpdateTaskDto = InferOutput<typeof UpdateTaskSchema>;

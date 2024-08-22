@@ -55,7 +55,7 @@ export class TaskService {
       return parse(SelectTaskSchema, task);
    }
 
-   async create(userId: string, { description }: CreateTaskDto) {
+   async create(userId: string, createTaskDto: CreateTaskDto) {
       const builder = this.dbService.builder;
 
       const prepared = builder
@@ -63,7 +63,8 @@ export class TaskService {
          .values({
             id: sql.placeholder("id"),
             userId: sql.placeholder("userId"),
-            description: sql.placeholder("description")
+            description: sql.placeholder("description"),
+            priority: sql.placeholder("priority")
          })
          .prepare();
 
@@ -71,7 +72,7 @@ export class TaskService {
          .run({
             id: nanoid(25),
             userId,
-            description
+            ...createTaskDto
          })
          .catch(this.dbService.handleDbError);
    }

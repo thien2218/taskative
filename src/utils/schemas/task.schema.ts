@@ -14,6 +14,10 @@ export const CreateTaskSchema = object({
       string(),
       minLength(3, "Task description must be at least 3 characters long"),
       maxLength(120, "Task description cannot exceed 120 characters")
+   ),
+   priority: optional(
+      picklist(["optional", "low", "medium", "high", "important"]),
+      "optional"
    )
 });
 
