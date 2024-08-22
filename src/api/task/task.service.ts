@@ -76,17 +76,13 @@ export class TaskService {
          .catch(this.dbService.handleDbError);
    }
 
-   async update(
-      id: string,
-      userId: string,
-      { description, status }: UpdateTaskDto
-   ) {
+   async update(id: string, userId: string, updateTaskDto: UpdateTaskDto) {
       const builder = this.dbService.builder;
       const updatedAt = new Date();
 
       const prepared = builder
          .update(tasks)
-         .set({ description, status, updatedAt })
+         .set({ ...updateTaskDto, updatedAt })
          .where(
             and(
                eq(tasks.id, sql.placeholder("id")),

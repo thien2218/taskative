@@ -21,6 +21,7 @@ export const SelectTaskSchema = object({
    id: string(),
    description: string(),
    status: string(),
+   priority: string(),
    createdAt: date(),
    updatedAt: date()
 });
@@ -33,5 +34,8 @@ export const UpdateTaskSchema = object({
          maxLength(120, "Task description cannot exceed 120 characters")
       )
    ),
-   status: optional(picklist(["pending", "completed", "hiatus"]))
+   status: optional(picklist(["pending", "completed", "hiatus"])),
+   priority: optional(
+      picklist(["optional", "low", "medium", "high", "important"])
+   )
 });

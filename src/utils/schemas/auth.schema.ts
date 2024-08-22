@@ -51,8 +51,8 @@ export const SignupSchema = pipe(
       profileImage: optional(
          pipe(
             string(),
-            url("Invalid image URL"),
-            startsWith("https://", "Image URL must be secure")
+            url("Invalid profile image URL"),
+            startsWith("https://", "Profile image URL must be secure")
          )
       )
    }),

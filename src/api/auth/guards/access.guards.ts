@@ -17,7 +17,7 @@ export class AccessGuard extends AuthGuard("access") {
       if (isPublic) return true;
 
       const request = context.switchToHttp().getRequest();
-      const refreshToken = request.cookies["refresh-token"];
+      const refreshToken = request.cookies["taskative_refreshToken"];
 
       if (!refreshToken) return false;
 

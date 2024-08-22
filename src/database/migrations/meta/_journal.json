@@ -43,6 +43,13 @@
       "when": 1724247842713,
       "tag": "0005_good_carnage",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1724300086660,
+      "tag": "0006_lazy_zodiak",
+      "breakpoints": true
     }
   ]
 }

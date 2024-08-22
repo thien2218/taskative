@@ -23,7 +23,7 @@ export class AuthController {
    async login(@Body() creds: LoginDto, @Res() res: Response) {
       const { accessToken, refreshToken } = await this.authService.login(creds);
 
-      res.cookie("refresh-token", refreshToken, {
+      res.cookie("taskative_refreshToken", refreshToken, {
          httpOnly: true,
          sameSite: "lax",
          secure: true
@@ -39,7 +39,7 @@ export class AuthController {
       const { accessToken, refreshToken } =
          await this.authService.signup(creds);
 
-      res.cookie("refresh-token", refreshToken, {
+      res.cookie("taskative_refreshToken", refreshToken, {
          httpOnly: true,
          sameSite: "lax",
          secure: true
@@ -50,7 +50,7 @@ export class AuthController {
 
    @Post("logout")
    async logout(@User() { userId }: UserDto, @Res() res: Response) {
-      res.clearCookie("refresh-token");
+      res.clearCookie("taskative_refreshToken");
       await this.authService.logout(userId);
       res.status(HttpStatus.NO_CONTENT).send();
    }

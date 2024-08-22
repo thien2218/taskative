@@ -31,6 +31,7 @@ export const tasks = sqliteTable("tasks", {
       .references(() => users.id),
    description: text("description").notNull(),
    status: text("status").notNull().default("pending"),
+   priority: text("priority").notNull().default("optional"),
    createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
