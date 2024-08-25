@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 import * as agron2 from "argon2";
 import db from ".";
-import { users } from "../tables";
+import { usersTable } from "../tables";
 
 const seed = async () => {
    const data = [];
@@ -16,7 +16,7 @@ const seed = async () => {
       });
    }
 
-   await db.insert(users).values(data).execute();
+   await db.insert(usersTable).values(data).execute();
 };
 
 seed().catch((e) => {

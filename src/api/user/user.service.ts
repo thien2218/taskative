@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { eq, sql } from "drizzle-orm";
 import { DatabaseService } from "src/database/database.service";
-import { users } from "src/database/tables";
+import { usersTable } from "src/database/tables";
 import { SelectUserSchema } from "src/utils/schemas";
 import { SelectUserDto, UpdateUserDto } from "src/utils/types";
 import { parse } from "valibot";
@@ -15,8 +15,8 @@ export class UserService {
 
       const prepared = builder
          .select()
-         .from(users)
-         .where(eq(users.id, sql.placeholder("id")))
+         .from(usersTable)
+         .where(eq(usersTable.id, sql.placeholder("id")))
          .prepare();
 
       const user = await prepared.get({ id });
@@ -32,9 +32,9 @@ export class UserService {
       const builder = this.dbService.builder;
 
       const prepared = builder
-         .update(users)
+         .update(usersTable)
          .set(updateUserDto)
-         .where(eq(users.id, sql.placeholder("id")))
+         .where(eq(usersTable.id, sql.placeholder("id")))
          .prepare();
 
       await prepared.run({ id });

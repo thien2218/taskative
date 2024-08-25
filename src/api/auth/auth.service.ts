@@ -5,7 +5,7 @@ import { hash, verify } from "argon2";
 import { eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "src/database/database.service";
-import { users } from "src/database/tables";
+import { usersTable } from "src/database/tables";
 import {
    AuthTokensDto,
    JwtPayload,
@@ -28,7 +28,7 @@ export class AuthService {
       const tokens = await this.generateTokens({ sub: id, ...rest });
 
       const prepared = builder
-         .insert(users)
+         .insert(usersTable)
          .values({
             id: sql.placeholder("id"),
             email: sql.placeholder("email"),
@@ -56,8 +56,8 @@ export class AuthService {
       const builder = this.dbService.builder;
       const getUserPrepared = builder
          .select()
-         .from(users)
-         .where(eq(users.email, sql.placeholder("email")))
+         .from(usersTable)
+         .where(eq(usersTable.email, sql.placeholder("email")))
          .prepare();
 
       const user = await getUserPrepared
@@ -93,9 +93,9 @@ export class AuthService {
       const tokens = await this.generateTokens(payload);
 
       const updateUserPrepared = builder
-         .update(users)
+         .update(usersTable)
          .set({ refreshToken: tokens.refreshToken })
-         .where(eq(users.id, sql.placeholder("id")))
+         .where(eq(usersTable.id, sql.placeholder("id")))
          .prepare();
 
       await updateUserPrepared.run({ id: user.id });
@@ -106,9 +106,9 @@ export class AuthService {
    async logout(id: string) {
       const builder = this.dbService.builder;
       const prepared = builder
-         .update(users)
+         .update(usersTable)
          .set({ refreshToken: null })
-         .where(eq(users.id, sql.placeholder("id")))
+         .where(eq(usersTable.id, sql.placeholder("id")))
          .prepare();
 
       await prepared.run({ id }).catch(this.dbService.handleDbError);

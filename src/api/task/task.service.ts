@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { and, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "src/database/database.service";
-import { tasks } from "src/database/tables";
+import { tasksTable } from "src/database/tables";
 import { SelectTaskSchema } from "src/utils/schemas";
 import { CreateTaskDto, PaginationQuery, UpdateTaskDto } from "src/utils/types";
 import { parse } from "valibot";
@@ -17,8 +17,8 @@ export class TaskService {
 
       const prepared = builder
          .select()
-         .from(tasks)
-         .where(eq(tasks.userId, sql.placeholder("userId")))
+         .from(tasksTable)
+         .where(eq(tasksTable.userId, sql.placeholder("userId")))
          .limit(sql.placeholder("limit"))
          .offset(sql.placeholder("offset"))
          .prepare();
@@ -26,7 +26,7 @@ export class TaskService {
       const taskList = await prepared.all({ userId, limit, offset });
 
       if (!taskList.length) {
-         throw new NotFoundException("No more tasks found");
+         throw new NotFoundException("No more tasksTable found");
       }
 
       return taskList.map((task) => parse(SelectTaskSchema, task));
@@ -37,11 +37,11 @@ export class TaskService {
 
       const prepared = builder
          .select()
-         .from(tasks)
+         .from(tasksTable)
          .where(
             and(
-               eq(tasks.id, sql.placeholder("id")),
-               eq(tasks.userId, sql.placeholder("userId"))
+               eq(tasksTable.id, sql.placeholder("id")),
+               eq(tasksTable.userId, sql.placeholder("userId"))
             )
          )
          .prepare();
@@ -59,7 +59,7 @@ export class TaskService {
       const builder = this.dbService.builder;
 
       const prepared = builder
-         .insert(tasks)
+         .insert(tasksTable)
          .values({
             id: sql.placeholder("id"),
             userId: sql.placeholder("userId"),
@@ -82,12 +82,12 @@ export class TaskService {
       const updatedAt = new Date();
 
       const prepared = builder
-         .update(tasks)
+         .update(tasksTable)
          .set({ ...updateTaskDto, updatedAt })
          .where(
             and(
-               eq(tasks.id, sql.placeholder("id")),
-               eq(tasks.userId, sql.placeholder("userId"))
+               eq(tasksTable.id, sql.placeholder("id")),
+               eq(tasksTable.userId, sql.placeholder("userId"))
             )
          )
          .prepare();
@@ -99,12 +99,12 @@ export class TaskService {
       const builder = this.dbService.builder;
 
       const prepared = builder
-         .update(tasks)
+         .update(tasksTable)
          .set({ status: "deleted" })
          .where(
             and(
-               eq(tasks.id, sql.placeholder("id")),
-               eq(tasks.userId, sql.placeholder("userId"))
+               eq(tasksTable.id, sql.placeholder("id")),
+               eq(tasksTable.userId, sql.placeholder("userId"))
             )
          )
          .prepare();
