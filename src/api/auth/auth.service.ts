@@ -5,7 +5,7 @@ import { hash, verify } from "argon2";
 import { eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "src/database/database.service";
-import { usersTable } from "src/database/tables";
+import { profilesTable, usersTable } from "src/database/tables";
 import {
    AuthTokensDto,
    JwtPayload,
@@ -21,31 +21,32 @@ export class AuthService {
       private readonly configService: ConfigService
    ) {}
 
-   async signup({ password, ...rest }: SignupDto): Promise<AuthTokensDto> {
+   async signup({
+      email,
+      password,
+      ...rest
+   }: SignupDto): Promise<AuthTokensDto> {
       const builder = this.dbService.builder;
       const encryptedPassword = await hash(password);
       const id = nanoid(25);
-      const tokens = await this.generateTokens({ sub: id, ...rest });
+      const tokens = await this.generateTokens({ sub: id, email, ...rest });
 
-      const prepared = builder
+      const query = builder
          .insert(usersTable)
          .values({
             id: sql.placeholder("id"),
             email: sql.placeholder("email"),
             encryptedPassword: sql.placeholder("encryptedPassword"),
-            profileImage: sql.placeholder("profileImage"),
-            firstName: sql.placeholder("firstName"),
-            lastName: sql.placeholder("lastName"),
             refreshToken: sql.placeholder("refreshToken")
          })
          .prepare();
 
-      await prepared
+      await query
          .run({
             id,
             encryptedPassword,
-            refreshToken: tokens.refreshToken,
-            ...rest
+            email,
+            refreshToken: tokens.refreshToken
          })
          .catch(this.dbService.handleDbError);
 
@@ -54,13 +55,22 @@ export class AuthService {
 
    async login({ email, password }: LoginDto): Promise<AuthTokensDto> {
       const builder = this.dbService.builder;
-      const getUserPrepared = builder
-         .select()
+
+      const getUserQuery = builder
+         .select({
+            id: usersTable.id,
+            encryptedPassword: usersTable.encryptedPassword,
+            refreshToken: usersTable.refreshToken,
+            profileImage: profilesTable.profileImage,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName
+         })
          .from(usersTable)
          .where(eq(usersTable.email, sql.placeholder("email")))
+         .innerJoin(profilesTable, eq(usersTable.id, profilesTable.userId))
          .prepare();
 
-      const user = await getUserPrepared
+      const user = await getUserQuery
          .get({ email })
          .catch(this.dbService.handleDbError);
 
@@ -68,50 +78,43 @@ export class AuthService {
          throw new BadRequestException("Invalid email or password");
       }
 
-      if (user.refreshToken) {
+      const { id, refreshToken, encryptedPassword, ...rest } = user;
+
+      if (refreshToken) {
          throw new BadRequestException("User already logged in");
       }
-
-      if (!user.encryptedPassword) {
+      if (!encryptedPassword) {
          throw new BadRequestException("Incorrect login method");
       }
-
-      const isPasswordValid = await verify(user.encryptedPassword, password);
-
-      if (!isPasswordValid) {
+      if (!(await verify(encryptedPassword, password))) {
          throw new BadRequestException("Invalid email or password");
       }
 
-      const payload = {
-         sub: user.id,
-         email: user.email,
-         profileImage: user.profileImage,
-         firstName: user.firstName,
-         lastName: user.lastName
-      };
+      const payload = { sub: id, email, ...rest };
 
       const tokens = await this.generateTokens(payload);
 
-      const updateUserPrepared = builder
+      const updateUserQuery = builder
          .update(usersTable)
          .set({ refreshToken: tokens.refreshToken })
          .where(eq(usersTable.id, sql.placeholder("id")))
          .prepare();
 
-      await updateUserPrepared.run({ id: user.id });
+      await updateUserQuery.run({ id: user.id });
 
       return tokens;
    }
 
    async logout(id: string) {
       const builder = this.dbService.builder;
-      const prepared = builder
+
+      const query = builder
          .update(usersTable)
          .set({ refreshToken: null })
          .where(eq(usersTable.id, sql.placeholder("id")))
          .prepare();
 
-      await prepared.run({ id }).catch(this.dbService.handleDbError);
+      await query.run({ id }).catch(this.dbService.handleDbError);
    }
 
    private async generateTokens(
