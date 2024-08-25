@@ -18,8 +18,8 @@ export class UserController {
    constructor(private readonly userService: UserService) {}
 
    @Get()
-   async getUserInfo(@User() { userId }: UserDto) {
-      return this.userService.getUserInfo(userId);
+   async userProfile(@User() { userId }: UserDto) {
+      return this.userService.userProfile(userId);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)

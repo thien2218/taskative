@@ -15,7 +15,7 @@ export class TaskService {
       const { limit, offset } = pagination;
       const builder = this.dbService.builder;
 
-      const prepared = builder
+      const query = builder
          .select()
          .from(tasksTable)
          .where(eq(tasksTable.userId, sql.placeholder("userId")))
@@ -23,10 +23,10 @@ export class TaskService {
          .offset(sql.placeholder("offset"))
          .prepare();
 
-      const tasks = await prepared.all({ userId, limit, offset });
+      const tasks = await query.all({ userId, limit, offset });
 
       if (!tasks.length) {
-         throw new NotFoundException("No more tasksTable found");
+         throw new NotFoundException("No tasks found");
       }
 
       return tasks.map((task) => parse(SelectTaskSchema, task));
@@ -35,7 +35,7 @@ export class TaskService {
    async findOne(id: string, userId: string) {
       const builder = this.dbService.builder;
 
-      const prepared = builder
+      const query = builder
          .select()
          .from(tasksTable)
          .where(
@@ -46,7 +46,7 @@ export class TaskService {
          )
          .prepare();
 
-      const task = await prepared.get({ id, userId });
+      const task = await query.get({ id, userId });
 
       if (!task) {
          throw new NotFoundException("Task not found");
@@ -58,7 +58,7 @@ export class TaskService {
    async create(userId: string, createTaskDto: CreateTaskDto) {
       const builder = this.dbService.builder;
 
-      const prepared = builder
+      const query = builder
          .insert(tasksTable)
          .values({
             id: sql.placeholder("id"),
@@ -68,7 +68,7 @@ export class TaskService {
          })
          .prepare();
 
-      await prepared
+      await query
          .run({
             id: nanoid(25),
             userId,
@@ -81,7 +81,7 @@ export class TaskService {
       const builder = this.dbService.builder;
       const updatedAt = new Date();
 
-      const prepared = builder
+      const query = builder
          .update(tasksTable)
          .set({ ...updateTaskDto, updatedAt })
          .where(
@@ -92,13 +92,13 @@ export class TaskService {
          )
          .prepare();
 
-      await prepared.run({ id, userId }).catch(this.dbService.handleDbError);
+      await query.run({ id, userId }).catch(this.dbService.handleDbError);
    }
 
    async delete(id: string, userId: string) {
       const builder = this.dbService.builder;
 
-      const prepared = builder
+      const query = builder
          .update(tasksTable)
          .set({ status: "deleted" })
          .where(
@@ -109,6 +109,6 @@ export class TaskService {
          )
          .prepare();
 
-      await prepared.run({ id, userId }).catch(this.dbService.handleDbError);
+      await query.run({ id, userId }).catch(this.dbService.handleDbError);
    }
 }

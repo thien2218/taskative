@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6ee23dc4-4cff-490a-a5b5-ce205a406d08",
+  "id": "58fba752-093d-41f4-83ef-87808d916c7d",
   "prevId": "100b45fc-2b67-4b1c-9150-b048b3489c4e",
   "tables": {
     "lists": {
@@ -184,9 +184,9 @@
           "notNull": true,
           "autoincrement": false
         },
-        "steps": {
-          "name": "steps",
-          "type": "text",
+        "due_date": {
+          "name": "due_date",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

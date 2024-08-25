@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { eq, sql } from "drizzle-orm";
 import { DatabaseService } from "src/database/database.service";
-import { usersTable } from "src/database/tables";
+import { profilesTable, usersTable } from "src/database/tables";
 import { SelectUserSchema } from "src/utils/schemas";
 import { SelectUserDto, UpdateUserDto } from "src/utils/types";
 import { parse } from "valibot";
@@ -10,33 +10,34 @@ import { parse } from "valibot";
 export class UserService {
    constructor(private readonly dbService: DatabaseService) {}
 
-   async getUserInfo(id: string): Promise<SelectUserDto> {
+   async userProfile(id: string): Promise<SelectUserDto> {
       const builder = this.dbService.builder;
 
-      const prepared = builder
-         .select()
+      const query = builder
+         .select({ user: usersTable, profile: profilesTable })
          .from(usersTable)
          .where(eq(usersTable.id, sql.placeholder("id")))
+         .innerJoin(profilesTable, eq(usersTable.id, profilesTable.userId))
          .prepare();
 
-      const user = await prepared.get({ id });
+      const data = await query.get({ id });
 
-      if (!user) {
+      if (!data) {
          throw new NotFoundException("User not found");
       }
 
-      return parse(SelectUserSchema, user);
+      return parse(SelectUserSchema, { ...data.user, ...data.profile });
    }
 
    async update(id: string, updateUserDto: UpdateUserDto) {
       const builder = this.dbService.builder;
 
-      const prepared = builder
-         .update(usersTable)
+      const query = builder
+         .update(profilesTable)
          .set(updateUserDto)
-         .where(eq(usersTable.id, sql.placeholder("id")))
+         .where(eq(profilesTable.userId, sql.placeholder("id")))
          .prepare();
 
-      await prepared.run({ id });
+      await query.run({ id });
    }
 }

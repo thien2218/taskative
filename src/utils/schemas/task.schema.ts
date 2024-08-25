@@ -2,6 +2,7 @@ import {
    date,
    maxLength,
    minLength,
+   nullable,
    object,
    optional,
    picklist,
@@ -26,6 +27,8 @@ export const SelectTaskSchema = object({
    description: string(),
    status: string(),
    priority: string(),
+   note: nullable(string()),
+   dueDate: nullable(date()),
    createdAt: date(),
    updatedAt: date()
 });

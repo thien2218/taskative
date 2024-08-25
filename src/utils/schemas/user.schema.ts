@@ -14,11 +14,12 @@ import {
 export const SelectUserSchema = object({
    id: string(),
    email: string(),
-   createdAt: date(),
    profileImage: nullable(string()),
    provider: string(),
    firstName: string(),
-   lastName: string()
+   lastName: string(),
+   createdAt: date(),
+   updatedAt: date()
 });
 
 export const UpdateUserSchema = object({

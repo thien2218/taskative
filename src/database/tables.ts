@@ -52,7 +52,7 @@ export const tasksTable = sqliteTable("tasks", {
    description: text("description").notNull(),
    status: text("status").notNull().default("pending"),
    priority: text("priority").notNull(),
-   steps: text("steps", { mode: "json" }).$type<string[]>(),
+   dueDate: integer("due_date", { mode: "timestamp" }),
    note: text("note"),
    createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
