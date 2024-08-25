@@ -23,13 +23,13 @@ export class TaskService {
          .offset(sql.placeholder("offset"))
          .prepare();
 
-      const taskList = await prepared.all({ userId, limit, offset });
+      const tasks = await prepared.all({ userId, limit, offset });
 
-      if (!taskList.length) {
+      if (!tasks.length) {
          throw new NotFoundException("No more tasksTable found");
       }
 
-      return taskList.map((task) => parse(SelectTaskSchema, task));
+      return tasks.map((task) => parse(SelectTaskSchema, task));
    }
 
    async findOne(id: string, userId: string) {

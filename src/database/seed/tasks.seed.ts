@@ -3,9 +3,9 @@ import db from ".";
 import { tasksTable, usersTable } from "../tables";
 
 const seed = async () => {
-   const usersList = await db.select().from(usersTable).all();
+   const users = await db.select().from(usersTable).all();
 
-   if (!usersList.length) {
+   if (!users.length) {
       throw new Error("Users table is empty");
    }
 
@@ -14,7 +14,7 @@ const seed = async () => {
    const data = [];
 
    for (let i = 0; i < 30; i++) {
-      userId = usersList[Math.floor(Math.random() * usersList.length)].id;
+      userId = users[Math.floor(Math.random() * users.length)].id;
 
       data.push({
          id: nanoid(25),

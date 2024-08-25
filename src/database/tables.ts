@@ -8,11 +8,18 @@ export const usersTable = sqliteTable("users", {
       .notNull()
       .default(false),
    encryptedPassword: text("encrypted_password"),
+   provider: text("provider").notNull().default("email"),
+   refreshToken: text("refresh_token")
+});
+
+export const profilesTable = sqliteTable("profiles", {
+   userId: text("user_id")
+      .primaryKey()
+      .notNull()
+      .references(() => usersTable.id),
    firstName: text("first_name").notNull(),
    lastName: text("last_name").notNull(),
    profileImage: text("profile_image"),
-   provider: text("provider").notNull().default("email"),
-   refreshToken: text("refresh_token"),
    createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -41,10 +48,12 @@ export const tasksTable = sqliteTable("tasks", {
    userId: text("user_id")
       .notNull()
       .references(() => usersTable.id),
+   listId: text("list_id").references(() => listsTable.id),
    description: text("description").notNull(),
    status: text("status").notNull().default("pending"),
    priority: text("priority").notNull(),
-   listId: text("list_id").references(() => listsTable.id),
+   steps: text("steps", { mode: "json" }).$type<string[]>(),
+   note: text("note"),
    createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
