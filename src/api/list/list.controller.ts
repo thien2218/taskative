@@ -22,7 +22,11 @@ import {
    UserDto
 } from "src/utils/types";
 import { User } from "src/utils/decorators";
-import { CreateListSchema, UpdateListSchema } from "src/utils/schemas";
+import {
+   AddToListSchema,
+   CreateListSchema,
+   UpdateListSchema
+} from "src/utils/schemas";
 
 @Controller("list")
 export class ListController {
@@ -59,6 +63,16 @@ export class ListController {
       @Body() createListDto: CreateListDto
    ) {
       return this.listService.create(userId, createListDto);
+   }
+
+   @UsePipes(new ValibotPipe(AddToListSchema))
+   @Post(":id/tasks")
+   async addToList(
+      @Param("id") id: string,
+      @User() { userId }: UserDto,
+      @Body() { taskIds }: { taskIds: string[] }
+   ): Promise<{ totalAddedTasks: number }> {
+      return this.listService.addToList(id, userId, taskIds);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)

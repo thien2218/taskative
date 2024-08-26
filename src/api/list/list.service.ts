@@ -1,5 +1,6 @@
+import { ResultSet } from "@libsql/client/.";
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "src/database/database.service";
 import { listsTable, tasksTable } from "src/database/tables";
@@ -100,6 +101,27 @@ export class ListService {
          .catch(this.dbService.handleDbError);
 
       return parse(SelectListSchema, list);
+   }
+
+   async addToList(id: string, userId: string, taskIds: string[]) {
+      const builder = this.dbService.builder;
+
+      const query = builder
+         .update(tasksTable)
+         .set({ listId: id })
+         .where(
+            and(
+               inArray(tasksTable.id, sql.placeholder("taskIds")),
+               eq(tasksTable.userId, sql.placeholder("userId"))
+            )
+         )
+         .prepare();
+
+      const { rowsAffected } = (await query
+         .run({ taskIds, userId })
+         .catch(this.dbService.handleDbError)) as ResultSet;
+
+      return { totalAddedTasks: rowsAffected };
    }
 
    async update(id: string, userId: string, updateListDto: UpdateListDto) {

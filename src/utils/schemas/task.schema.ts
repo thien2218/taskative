@@ -56,6 +56,5 @@ export const UpdateTaskSchema = pipe(
 );
 
 export const AddToListSchema = object({
-   listId: string(),
    taskIds: array(string())
 });

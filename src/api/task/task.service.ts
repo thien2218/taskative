@@ -1,16 +1,10 @@
-import { ResultSet } from "@libsql/client";
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "src/database/database.service";
 import { tasksTable } from "src/database/tables";
 import { SelectTaskSchema } from "src/utils/schemas";
-import {
-   AddToListDto,
-   CreateTaskDto,
-   PaginationQuery,
-   UpdateTaskDto
-} from "src/utils/types";
+import { CreateTaskDto, PaginationQuery, UpdateTaskDto } from "src/utils/types";
 import { parse } from "valibot";
 
 @Injectable()
@@ -82,27 +76,6 @@ export class TaskService {
             ...createTaskDto
          })
          .catch(this.dbService.handleDbError);
-   }
-
-   async addToList(userId: string, { listId, taskIds }: AddToListDto) {
-      const builder = this.dbService.builder;
-
-      const query = builder
-         .update(tasksTable)
-         .set({ listId })
-         .where(
-            and(
-               inArray(tasksTable.id, sql.placeholder("taskIds")),
-               eq(tasksTable.userId, sql.placeholder("userId"))
-            )
-         )
-         .prepare();
-
-      const { rowsAffected } = (await query
-         .run({ taskIds, userId })
-         .catch(this.dbService.handleDbError)) as ResultSet;
-
-      return { totalAddedTasks: rowsAffected };
    }
 
    async update(id: string, userId: string, updateTaskDto: UpdateTaskDto) {

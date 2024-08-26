@@ -14,7 +14,6 @@ import {
 import { TaskService } from "./task.service";
 import { PaginationQueryPipe, ValibotPipe } from "src/utils/pipes";
 import {
-   AddToListDto,
    CreateTaskDto,
    PaginationQuery,
    SelectTaskDto,
@@ -22,11 +21,7 @@ import {
    UserDto
 } from "src/utils/types";
 import { User } from "src/utils/decorators";
-import {
-   AddToListSchema,
-   CreateTaskSchema,
-   UpdateTaskSchema
-} from "src/utils/schemas";
+import { CreateTaskSchema, UpdateTaskSchema } from "src/utils/schemas";
 
 @Controller("task")
 export class TaskController {
@@ -55,15 +50,6 @@ export class TaskController {
       @User() { userId }: UserDto
    ) {
       return this.taskService.create(userId, createTaskDto);
-   }
-
-   @UsePipes(new ValibotPipe(AddToListSchema))
-   @Post()
-   async addToList(
-      @Body() addListDto: AddToListDto,
-      @User() { userId }: UserDto
-   ): Promise<{ totalAddedTasks: number }> {
-      return this.taskService.addToList(userId, addListDto);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)
