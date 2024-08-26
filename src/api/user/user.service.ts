@@ -38,6 +38,13 @@ export class UserService {
          .where(eq(profilesTable.userId, sql.placeholder("id")))
          .prepare();
 
-      await query.run({ id });
+      await query
+         .run({ id })
+         .then(({ rowsAffected }) => {
+            if (!rowsAffected) {
+               throw new NotFoundException("Task not found");
+            }
+         })
+         .catch(this.dbService.handleDbError);
    }
 }

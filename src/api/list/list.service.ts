@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 import { DatabaseService } from "src/database/database.service";
 import { listsTable, tasksTable } from "src/database/tables";
 import { SelectListSchema, SelectTaskSchema } from "src/utils/schemas";
-import { CreateListDto, PaginationQuery } from "src/utils/types";
+import { CreateListDto, PaginationQuery, UpdateListDto } from "src/utils/types";
 import { parse } from "valibot";
 
 @Injectable()
@@ -102,7 +102,7 @@ export class ListService {
       return parse(SelectListSchema, list);
    }
 
-   async update(id: string, userId: string, updateListDto: any) {
+   async update(id: string, userId: string, updateListDto: UpdateListDto) {
       const builder = this.dbService.builder;
 
       const query = builder
@@ -114,11 +114,15 @@ export class ListService {
                eq(listsTable.userId, sql.placeholder("userId"))
             )
          )
-         .returning()
          .prepare();
 
       await query
          .run({ id, userId, ...updateListDto })
+         .then(({ rowsAffected }) => {
+            if (!rowsAffected) {
+               throw new NotFoundException("List not found");
+            }
+         })
          .catch(this.dbService.handleDbError);
    }
 
@@ -135,6 +139,13 @@ export class ListService {
          )
          .prepare();
 
-      await query.run({ id, userId }).catch(this.dbService.handleDbError);
+      await query
+         .run({ id, userId })
+         .then(({ rowsAffected }) => {
+            if (!rowsAffected) {
+               throw new NotFoundException("List not found");
+            }
+         })
+         .catch(this.dbService.handleDbError);
    }
 }

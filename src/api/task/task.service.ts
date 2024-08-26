@@ -1,3 +1,4 @@
+import { ResultSet } from "@libsql/client";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -97,7 +98,11 @@ export class TaskService {
          )
          .prepare();
 
-      await query.run({ taskIds, userId }).catch(this.dbService.handleDbError);
+      const { rowsAffected } = (await query
+         .run({ taskIds, userId })
+         .catch(this.dbService.handleDbError)) as ResultSet;
+
+      return { totalAddedTasks: rowsAffected };
    }
 
    async update(id: string, userId: string, updateTaskDto: UpdateTaskDto) {
@@ -115,15 +120,21 @@ export class TaskService {
          )
          .prepare();
 
-      await query.run({ id, userId }).catch(this.dbService.handleDbError);
+      await query
+         .run({ id, userId })
+         .then(({ rowsAffected }) => {
+            if (!rowsAffected) {
+               throw new NotFoundException("List not found");
+            }
+         })
+         .catch(this.dbService.handleDbError);
    }
 
    async delete(id: string, userId: string) {
       const builder = this.dbService.builder;
 
       const query = builder
-         .update(tasksTable)
-         .set({ status: "deleted" })
+         .delete(tasksTable)
          .where(
             and(
                eq(tasksTable.id, sql.placeholder("id")),
@@ -132,6 +143,13 @@ export class TaskService {
          )
          .prepare();
 
-      await query.run({ id, userId }).catch(this.dbService.handleDbError);
+      await query
+         .run({ id, userId })
+         .then(({ rowsAffected }) => {
+            if (!rowsAffected) {
+               throw new NotFoundException("Task not found");
+            }
+         })
+         .catch(this.dbService.handleDbError);
    }
 }

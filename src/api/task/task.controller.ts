@@ -62,7 +62,7 @@ export class TaskController {
    async addToList(
       @Body() addListDto: AddToListDto,
       @User() { userId }: UserDto
-   ) {
+   ): Promise<{ totalAddedTasks: number }> {
       return this.taskService.addToList(userId, addListDto);
    }
 
