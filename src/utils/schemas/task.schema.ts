@@ -1,4 +1,5 @@
 import {
+   array,
    check,
    date,
    maxLength,
@@ -53,3 +54,8 @@ export const UpdateTaskSchema = pipe(
       "At least one field must be provided to update task"
    )
 );
+
+export const AddToListSchema = object({
+   listId: string(),
+   taskIds: array(string())
+});

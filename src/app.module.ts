@@ -6,6 +6,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { AccessGuard } from "./api/auth/guards/access.guards";
 import { UserModule } from "./api/user/user.module";
 import { TaskModule } from "./api/task/task.module";
+import { ListModule } from "./api/list/list.module";
 
 @Module({
    imports: [
@@ -16,7 +17,8 @@ import { TaskModule } from "./api/task/task.module";
       }),
       AuthModule,
       UserModule,
-      TaskModule
+      TaskModule,
+      ListModule
    ],
    providers: [
       {

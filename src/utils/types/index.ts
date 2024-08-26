@@ -1,6 +1,9 @@
 import {
+   AddToListSchema,
+   CreateListSchema,
    CreateTaskSchema,
    LoginSchema,
+   SelectListSchema,
    SelectTaskSchema,
    SelectUserSchema,
    SignupSchema,
@@ -58,3 +61,11 @@ export type UserDto = {
 export type CreateTaskDto = InferOutput<typeof CreateTaskSchema>;
 export type SelectTaskDto = InferOutput<typeof SelectTaskSchema>;
 export type UpdateTaskDto = InferOutput<typeof UpdateTaskSchema>;
+export type AddToListDto = InferOutput<typeof AddToListSchema>;
+
+/**
+ * List types
+ */
+export type SelectListDto = InferOutput<typeof SelectListSchema>;
+export type CreateListDto = InferOutput<typeof CreateListSchema>;
+export type UpdateListDto = InferOutput<typeof UpdateTaskSchema>;

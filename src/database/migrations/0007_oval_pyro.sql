@@ -5,7 +5,7 @@ CREATE TABLE `lists` (
 	`description` text,
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `profiles` (
@@ -15,7 +15,7 @@ CREATE TABLE `profiles` (
 	`profile_image` text,
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 INSERT INTO `profiles` SELECT `id`, `first_name`, `last_name`, `profile_image`, `created_at`, (unixepoch()) FROM `users`;--> statement-breakpoint
@@ -29,8 +29,8 @@ CREATE TABLE `tasks` (
    `priority` text NOT NULL,
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
    `updated_at` integer DEFAULT (unixepoch()) NOT NULL,
-   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
-   FOREIGN KEY (`list_id`) REFERENCES `lists`(`id`) ON UPDATE no action ON DELETE no action
+   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
+   FOREIGN KEY (`list_id`) REFERENCES `lists`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
 INSERT INTO `tasks` SELECT `id`, `user_id`, NULL, `description`, `status`, `priority`, `created_at`, `updated_at` FROM `dropped_tasks`;--> statement-breakpoint

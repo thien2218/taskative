@@ -27,9 +27,10 @@ export class AuthService {
       ...rest
    }: SignupDto): Promise<AuthTokensDto> {
       const builder = this.dbService.builder;
-      const encryptedPassword = await hash(password);
       const id = nanoid(25);
+      const encodedPassword = await hash(password);
       const tokens = await this.generateTokens({ sub: id, email, ...rest });
+      const encodedRefreshToken = await hash(tokens.refreshToken);
 
       await builder.transaction(async (tx) => {
          await tx
@@ -37,8 +38,8 @@ export class AuthService {
             .values({
                id,
                email,
-               encryptedPassword,
-               refreshToken: tokens.refreshToken
+               encodedPassword,
+               encodedRefreshToken
             })
             .run()
             .catch(this.dbService.handleDbError);
@@ -59,8 +60,8 @@ export class AuthService {
       const getUserQuery = builder
          .select({
             id: usersTable.id,
-            encryptedPassword: usersTable.encryptedPassword,
-            refreshToken: usersTable.refreshToken,
+            encodedPassword: usersTable.encodedPassword,
+            encodedRefreshToken: usersTable.encodedRefreshToken,
             profileImage: profilesTable.profileImage,
             firstName: profilesTable.firstName,
             lastName: profilesTable.lastName
@@ -78,25 +79,25 @@ export class AuthService {
          throw new BadRequestException("Invalid email or password");
       }
 
-      const { id, refreshToken, encryptedPassword, ...rest } = user;
+      const { id, encodedRefreshToken, encodedPassword, ...rest } = user;
 
-      if (refreshToken) {
+      if (encodedRefreshToken) {
          throw new BadRequestException("User already logged in");
       }
-      if (!encryptedPassword) {
+      if (!encodedPassword) {
          throw new BadRequestException("Incorrect login method");
       }
-      if (!(await verify(encryptedPassword, password))) {
+      if (!(await verify(encodedPassword, password))) {
          throw new BadRequestException("Invalid email or password");
       }
 
       const payload = { sub: id, email, ...rest };
-
       const tokens = await this.generateTokens(payload);
+      const newEncodedRefreshToken = await hash(tokens.refreshToken);
 
       const updateUserQuery = builder
          .update(usersTable)
-         .set({ refreshToken: tokens.refreshToken })
+         .set({ encodedRefreshToken: newEncodedRefreshToken })
          .where(eq(usersTable.id, sql.placeholder("id")))
          .prepare();
 
@@ -110,7 +111,7 @@ export class AuthService {
 
       const query = builder
          .update(usersTable)
-         .set({ refreshToken: null })
+         .set({ encodedRefreshToken: null })
          .where(eq(usersTable.id, sql.placeholder("id")))
          .prepare();
 

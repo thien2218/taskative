@@ -7,9 +7,9 @@ export const usersTable = sqliteTable("users", {
    emailVerified: integer("email_verified", { mode: "boolean" })
       .notNull()
       .default(false),
-   encryptedPassword: text("encrypted_password"),
+   encodedPassword: text("encoded_password"),
    provider: text("provider").notNull().default("email"),
-   refreshToken: text("refresh_token")
+   encodedRefreshToken: text("encoded_refresh_token")
 });
 
 export const profilesTable = sqliteTable("profiles", {

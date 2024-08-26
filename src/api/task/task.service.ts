@@ -1,18 +1,22 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "src/database/database.service";
 import { tasksTable } from "src/database/tables";
 import { SelectTaskSchema } from "src/utils/schemas";
-import { CreateTaskDto, PaginationQuery, UpdateTaskDto } from "src/utils/types";
+import {
+   AddToListDto,
+   CreateTaskDto,
+   PaginationQuery,
+   UpdateTaskDto
+} from "src/utils/types";
 import { parse } from "valibot";
 
 @Injectable()
 export class TaskService {
    constructor(private readonly dbService: DatabaseService) {}
 
-   async findMany(pagination: PaginationQuery, userId: string) {
-      const { limit, offset } = pagination;
+   async findMany(page: PaginationQuery, userId: string) {
       const builder = this.dbService.builder;
 
       const query = builder
@@ -23,7 +27,9 @@ export class TaskService {
          .offset(sql.placeholder("offset"))
          .prepare();
 
-      const tasks = await query.all({ userId, limit, offset });
+      const tasks = (await query
+         .all({ userId, ...page })
+         .catch(this.dbService.handleDbError)) as any[];
 
       if (!tasks.length) {
          throw new NotFoundException("No tasks found");
@@ -75,6 +81,23 @@ export class TaskService {
             ...createTaskDto
          })
          .catch(this.dbService.handleDbError);
+   }
+
+   async addToList(userId: string, { listId, taskIds }: AddToListDto) {
+      const builder = this.dbService.builder;
+
+      const query = builder
+         .update(tasksTable)
+         .set({ listId })
+         .where(
+            and(
+               inArray(tasksTable.id, sql.placeholder("taskIds")),
+               eq(tasksTable.userId, sql.placeholder("userId"))
+            )
+         )
+         .prepare();
+
+      await query.run({ taskIds, userId }).catch(this.dbService.handleDbError);
    }
 
    async update(id: string, userId: string, updateTaskDto: UpdateTaskDto) {
