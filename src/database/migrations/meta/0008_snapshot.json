@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "58fba752-093d-41f4-83ef-87808d916c7d",
+  "id": "c5f649bb-3d26-4c8d-8fed-a813b379e4c2",
   "prevId": "100b45fc-2b67-4b1c-9150-b048b3489c4e",
   "tables": {
     "lists": {
@@ -182,13 +182,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "due_date": {
-          "name": "due_date",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "note": {

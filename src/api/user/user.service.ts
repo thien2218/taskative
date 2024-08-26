@@ -10,7 +10,7 @@ import { parse } from "valibot";
 export class UserService {
    constructor(private readonly dbService: DatabaseService) {}
 
-   async userProfile(id: string): Promise<SelectUserDto> {
+   async findOne(id: string): Promise<SelectUserDto> {
       const builder = this.dbService.builder;
 
       const query = builder
@@ -34,7 +34,7 @@ export class UserService {
 
       const query = builder
          .update(profilesTable)
-         .set(updateUserDto)
+         .set({ ...updateUserDto, updatedAt: new Date() })
          .where(eq(profilesTable.userId, sql.placeholder("id")))
          .prepare();
 

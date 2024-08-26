@@ -31,19 +31,23 @@ export class PaginationQueryPipe implements PipeTransform {
       const page = parseInt(value.page, 10);
 
       if (isNaN(limit)) {
-         throw new BadRequestException("QUERY: limit must be a number");
+         throw new BadRequestException("QUERY PARAM: limit must be a number");
       } else if (limit < 5 || limit > 100) {
          throw new BadRequestException(
-            "QUERY: limit must be between 5 and 100"
+            "QUERY PARAM: limit must be between 5 and 100"
          );
       } else if (limit % 5 !== 0) {
-         throw new BadRequestException("QUERY: limit must be a multiple of 5");
+         throw new BadRequestException(
+            "QUERY PARAM: limit must be a multiple of 5"
+         );
       }
 
       if (isNaN(page)) {
-         throw new BadRequestException("QUERY: page must be a number");
+         throw new BadRequestException("QUERY PARAM: page must be a number");
       } else if (page < 1) {
-         throw new BadRequestException("QUERY: page must be greater than 0");
+         throw new BadRequestException(
+            "QUERY PARAM: page must be greater than 0"
+         );
       }
 
       const offset = (page - 1) * limit;

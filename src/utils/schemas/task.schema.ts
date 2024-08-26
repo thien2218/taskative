@@ -1,4 +1,5 @@
 import {
+   check,
    date,
    maxLength,
    minLength,
@@ -28,21 +29,27 @@ export const SelectTaskSchema = object({
    status: string(),
    priority: string(),
    note: nullable(string()),
-   dueDate: nullable(date()),
    createdAt: date(),
    updatedAt: date()
 });
 
-export const UpdateTaskSchema = object({
-   description: optional(
-      pipe(
-         string(),
-         minLength(3, "Task description must be at least 3 characters long"),
-         maxLength(120, "Task description cannot exceed 120 characters")
+export const UpdateTaskSchema = pipe(
+   object({
+      description: optional(
+         pipe(
+            string(),
+            minLength(3, "Task description must be at least 3 characters long"),
+            maxLength(120, "Task description cannot exceed 120 characters")
+         )
+      ),
+      status: optional(picklist(["pending", "completed", "hiatus"])),
+      priority: optional(
+         picklist(["optional", "low", "medium", "high", "important"])
       )
-   ),
-   status: optional(picklist(["pending", "completed", "hiatus"])),
-   priority: optional(
-      picklist(["optional", "low", "medium", "high", "important"])
+   }),
+   check(
+      ({ description, status, priority }) =>
+         !!description || !!status || !!priority,
+      "At least one field must be provided to update task"
    )
-});
+);

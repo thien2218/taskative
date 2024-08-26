@@ -31,24 +31,24 @@ export class AuthService {
       const id = nanoid(25);
       const tokens = await this.generateTokens({ sub: id, email, ...rest });
 
-      const query = builder
-         .insert(usersTable)
-         .values({
-            id: sql.placeholder("id"),
-            email: sql.placeholder("email"),
-            encryptedPassword: sql.placeholder("encryptedPassword"),
-            refreshToken: sql.placeholder("refreshToken")
-         })
-         .prepare();
+      await builder.transaction(async (tx) => {
+         await tx
+            .insert(usersTable)
+            .values({
+               id,
+               email,
+               encryptedPassword,
+               refreshToken: tokens.refreshToken
+            })
+            .run()
+            .catch(this.dbService.handleDbError);
 
-      await query
-         .run({
-            id,
-            encryptedPassword,
-            email,
-            refreshToken: tokens.refreshToken
-         })
-         .catch(this.dbService.handleDbError);
+         await tx
+            .insert(profilesTable)
+            .values({ userId: id, ...rest })
+            .run()
+            .catch(this.dbService.handleDbError);
+      });
 
       return tokens;
    }

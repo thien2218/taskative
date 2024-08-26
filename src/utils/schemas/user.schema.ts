@@ -1,4 +1,5 @@
 import {
+   check,
    date,
    maxLength,
    minLength,
@@ -22,26 +23,33 @@ export const SelectUserSchema = object({
    updatedAt: date()
 });
 
-export const UpdateUserSchema = object({
-   firstName: optional(
-      pipe(
-         string(),
-         minLength(3, "First name must be at least 3 characters long"),
-         maxLength(50, "First name cannot exceed 50 characters")
+export const UpdateUserSchema = pipe(
+   object({
+      firstName: optional(
+         pipe(
+            string(),
+            minLength(3, "First name must be at least 3 characters long"),
+            maxLength(50, "First name cannot exceed 50 characters")
+         )
+      ),
+      lastName: optional(
+         pipe(
+            string(),
+            minLength(3, "Last name must be at least 3 characters long"),
+            maxLength(50, "Last name cannot exceed 50 characters")
+         )
+      ),
+      profileImage: optional(
+         pipe(
+            string(),
+            url("Invalid profile image URL"),
+            startsWith("https://", "Profile image URL must be secure")
+         )
       )
-   ),
-   lastName: optional(
-      pipe(
-         string(),
-         minLength(3, "Last name must be at least 3 characters long"),
-         maxLength(50, "Last name cannot exceed 50 characters")
-      )
-   ),
-   profileImage: optional(
-      pipe(
-         string(),
-         url("Invalid profile image URL"),
-         startsWith("https://", "Profile image URL must be secure")
-      )
+   }),
+   check(
+      ({ firstName, lastName, profileImage }) =>
+         !!firstName || !!lastName || !!profileImage,
+      "At least one field must be provided to update profile"
    )
-});
+);
