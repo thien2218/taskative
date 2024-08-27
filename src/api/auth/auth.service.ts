@@ -21,6 +21,9 @@ export class AuthService {
       private readonly configService: ConfigService
    ) {}
 
+   /* ======================================== */
+   /* ======================================== */
+   /* ======================================== */
    async signup({
       email,
       password,
@@ -54,6 +57,9 @@ export class AuthService {
       return tokens;
    }
 
+   /* ======================================== */
+   /* ======================================== */
+   /* ======================================== */
    async login({ email, password }: LoginDto): Promise<AuthTokensDto> {
       const builder = this.dbService.builder;
 
@@ -61,7 +67,6 @@ export class AuthService {
          .select({
             id: usersTable.id,
             encodedPassword: usersTable.encodedPassword,
-            encodedRefreshToken: usersTable.encodedRefreshToken,
             profileImage: profilesTable.profileImage,
             firstName: profilesTable.firstName,
             lastName: profilesTable.lastName
@@ -79,11 +84,8 @@ export class AuthService {
          throw new BadRequestException("Invalid email or password");
       }
 
-      const { id, encodedRefreshToken, encodedPassword, ...rest } = user;
+      const { id, encodedPassword, ...rest } = user;
 
-      if (encodedRefreshToken) {
-         throw new BadRequestException("User already logged in");
-      }
       if (!encodedPassword) {
          throw new BadRequestException("Incorrect login method");
       }
@@ -93,19 +95,24 @@ export class AuthService {
 
       const payload = { sub: id, email, ...rest };
       const tokens = await this.generateTokens(payload);
-      const newEncodedRefreshToken = await hash(tokens.refreshToken);
+      const encodedRefreshToken = await hash(tokens.refreshToken);
 
       const updateUserQuery = builder
          .update(usersTable)
-         .set({ encodedRefreshToken: newEncodedRefreshToken })
+         .set({ encodedRefreshToken })
          .where(eq(usersTable.id, sql.placeholder("id")))
          .prepare();
 
-      await updateUserQuery.run({ id: user.id });
+      await updateUserQuery
+         .run({ id: user.id })
+         .catch(this.dbService.handleDbError);
 
       return tokens;
    }
 
+   /* ======================================== */
+   /* ======================================== */
+   /* ======================================== */
    async logout(id: string) {
       const builder = this.dbService.builder;
 
@@ -118,12 +125,75 @@ export class AuthService {
       await query.run({ id }).catch(this.dbService.handleDbError);
    }
 
+   /* ======================================== */
+   /* ======================================== */
+   /* ======================================== */
+   async refresh(
+      id: string,
+      curRefreshToken: string
+   ): Promise<{ accessToken: string; refreshToken: string | null }> {
+      const builder = this.dbService.builder;
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { exp, iat, ...payload } = await this.jwtService.verifyAsync<
+         JwtPayload & { iat: number }
+      >(curRefreshToken);
+
+      if (exp * 1000 < Date.now()) {
+         throw new BadRequestException("Refresh token expired");
+      }
+
+      const getUserQuery = builder
+         .select({ encodedRefreshToken: usersTable.encodedRefreshToken })
+         .from(usersTable)
+         .where(eq(usersTable.id, sql.placeholder("id")))
+         .prepare();
+
+      const data = await getUserQuery
+         .get({ id })
+         .catch(this.dbService.handleDbError);
+
+      if (!data) {
+         throw new BadRequestException("Invalid refresh token");
+      }
+      if (!data.encodedRefreshToken) {
+         throw new BadRequestException("User already logged out");
+      }
+      if (!(await verify(data.encodedRefreshToken, curRefreshToken))) {
+         throw new BadRequestException("Invalid refresh token");
+      }
+
+      const accessToken = await this.jwtService.signAsync(payload, {
+         expiresIn: this.configService.get("ACCESS_EXPIRY")
+      });
+
+      let refreshToken: string | null = null;
+
+      if (exp - Date.now() / 1000 < 7 * 24 * 60 * 60) {
+         refreshToken = await this.jwtService.signAsync(payload, {
+            expiresIn: this.configService.get("REFRESH_EXPIRY")
+         });
+
+         const encodedRefreshToken = await hash(refreshToken);
+
+         const updateUserQuery = builder
+            .update(usersTable)
+            .set({ encodedRefreshToken })
+            .where(eq(usersTable.id, sql.placeholder("id")))
+            .prepare();
+
+         await updateUserQuery.run({ id }).catch(this.dbService.handleDbError);
+      }
+
+      return { accessToken, refreshToken };
+   }
+
    private async generateTokens(
       payload: Omit<JwtPayload, "exp">
    ): Promise<AuthTokensDto> {
       const [accessToken, refreshToken] = await Promise.all([
          this.jwtService.signAsync(payload, {
-            expiresIn: this.configService.get("ACCESS_EXPIRY")
+            expiresIn: "1s"
          }),
          this.jwtService.signAsync(payload, {
             expiresIn: this.configService.get("REFRESH_EXPIRY")

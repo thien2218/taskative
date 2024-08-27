@@ -11,7 +11,7 @@ dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 @Module({
    imports: [
       DatabaseModule,
-      JwtModule.register({ secret: process.env.JWT_SECRET })
+      JwtModule.register({ secret: process.env.JWT_SECRET, global: true })
    ],
    controllers: [AuthController],
    providers: [AuthService, AccessStrategy]

@@ -51,7 +51,7 @@ export type UserDto = {
    email: string;
    firstName: string;
    lastName: string;
-   profileImage: string | null;
+   profileImage?: string | null;
 };
 
 /**

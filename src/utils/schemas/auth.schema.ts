@@ -64,7 +64,5 @@ export const SignupSchema = pipe(
       ["confirmPassword"]
    ),
    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-   transform(({ confirmPassword, ...rest }) => {
-      return rest;
-   })
+   transform(({ confirmPassword, ...rest }) => rest)
 );
