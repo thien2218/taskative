@@ -10,6 +10,7 @@ import {
    AuthTokensDto,
    JwtPayload,
    LoginDto,
+   OAuthValidateDto,
    SignupDto
 } from "src/utils/types";
 
@@ -62,23 +63,7 @@ export class AuthService {
    /* ======================================== */
    async login({ email, password }: LoginDto): Promise<AuthTokensDto> {
       const builder = this.dbService.builder;
-
-      const getUserQuery = builder
-         .select({
-            id: usersTable.id,
-            encodedPassword: usersTable.encodedPassword,
-            profileImage: profilesTable.profileImage,
-            firstName: profilesTable.firstName,
-            lastName: profilesTable.lastName
-         })
-         .from(usersTable)
-         .where(eq(usersTable.email, sql.placeholder("email")))
-         .innerJoin(profilesTable, eq(usersTable.id, profilesTable.userId))
-         .prepare();
-
-      const user = await getUserQuery
-         .get({ email })
-         .catch(this.dbService.handleDbError);
+      const user = await this.findUserByEmail(email);
 
       if (!user) {
          throw new BadRequestException("Invalid email or password");
@@ -188,12 +173,66 @@ export class AuthService {
       return { accessToken, refreshToken };
    }
 
-   private async generateTokens(
+   /* ======================================== */
+   /* ======================================== */
+   /* ======================================== */
+   async validateOAuthUser({ email, provider, ...rest }: OAuthValidateDto) {
+      const user = await this.findUserByEmail(email);
+
+      if (user) {
+         return { sub: user.id, email, ...rest };
+      }
+
+      const id = nanoid(25);
+
+      await this.dbService.builder.transaction(async (tx) => {
+         await tx
+            .insert(usersTable)
+            .values({ id, email, provider })
+            .run()
+            .catch(this.dbService.handleDbError);
+
+         await tx
+            .insert(profilesTable)
+            .values({ userId: id, ...rest })
+            .run()
+            .catch(this.dbService.handleDbError);
+      });
+
+      return { sub: id, email, ...rest };
+   }
+
+   /* ======================================== */
+   /* ======================================== */
+   /* ======================================== */
+   private async findUserByEmail(email: string) {
+      const builder = this.dbService.builder;
+
+      const query = builder
+         .select({
+            id: usersTable.id,
+            encodedPassword: usersTable.encodedPassword,
+            profileImage: profilesTable.profileImage,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName
+         })
+         .from(usersTable)
+         .where(eq(usersTable.email, sql.placeholder("email")))
+         .innerJoin(profilesTable, eq(usersTable.id, profilesTable.userId))
+         .prepare();
+
+      return query.get({ email }).catch(this.dbService.handleDbError);
+   }
+
+   /* ======================================== */
+   /* ======================================== */
+   /* ======================================== */
+   async generateTokens(
       payload: Omit<JwtPayload, "exp">
    ): Promise<AuthTokensDto> {
       const [accessToken, refreshToken] = await Promise.all([
          this.jwtService.signAsync(payload, {
-            expiresIn: "1s"
+            expiresIn: this.configService.get("ACCESS_EXPIRY")
          }),
          this.jwtService.signAsync(payload, {
             expiresIn: this.configService.get("REFRESH_EXPIRY")

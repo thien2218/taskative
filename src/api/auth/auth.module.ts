@@ -5,6 +5,8 @@ import { JwtModule } from "@nestjs/jwt";
 import * as dotenv from "dotenv";
 import { AccessStrategy } from "./strategies/access.strategy";
 import { DatabaseModule } from "src/database/database.module";
+import { GoogleOAuthStrategy } from "./strategies/google-oauth.strategy";
+import { GoogleOAuthGuard } from "./guards/google-oauth.guard";
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 
@@ -14,6 +16,11 @@ dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
       JwtModule.register({ secret: process.env.JWT_SECRET, global: true })
    ],
    controllers: [AuthController],
-   providers: [AuthService, AccessStrategy]
+   providers: [
+      AuthService,
+      AccessStrategy,
+      GoogleOAuthStrategy,
+      GoogleOAuthGuard
+   ]
 })
 export class AuthModule {}

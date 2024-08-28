@@ -55,6 +55,23 @@ export type UserDto = {
 };
 
 /**
+ * OAuth user types
+ */
+export type GoogleOAuthProfile = {
+   emails: { value: string; verified: boolean }[];
+   name: { givenName: string; familyName: string };
+   photos: { value: string }[];
+};
+
+export type OAuthValidateDto = {
+   email: string;
+   firstName: string;
+   lastName: string;
+   profileImage?: string;
+   provider: "google" | "facebook";
+};
+
+/**
  * Task types
  */
 export type CreateTaskDto = InferOutput<typeof CreateTaskSchema>;

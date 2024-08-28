@@ -1,9 +1,11 @@
 import {
    Body,
    Controller,
+   Get,
    HttpStatus,
    Post,
    Res,
+   UseGuards,
    UsePipes
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
@@ -12,6 +14,7 @@ import { ValibotPipe } from "src/utils/pipes";
 import { LoginDto, SignupDto, UserDto } from "src/utils/types";
 import { LoginSchema, SignupSchema } from "src/utils/schemas";
 import { Response } from "express";
+import { GoogleOAuthGuard } from "./guards/google-oauth.guard";
 
 @Controller("auth")
 export class AuthController {
@@ -48,6 +51,33 @@ export class AuthController {
 
       res.setHeader("Authorization", `Bearer ${accessToken}`);
       res.status(HttpStatus.OK).send();
+   }
+
+   @Unauthenticated()
+   @UseGuards(GoogleOAuthGuard)
+   @Get("google/login")
+   async googleLogin() {
+      return { message: "Logging in with Google..." };
+   }
+
+   @Unauthenticated()
+   @UseGuards(GoogleOAuthGuard)
+   @Get("google/callback")
+   async googleCallback(
+      @User() user: Omit<UserDto, "userId"> & { sub: string },
+      @Res() res: Response
+   ) {
+      const { accessToken, refreshToken } =
+         await this.authService.generateTokens(user);
+
+      res.cookie("taskative_refreshToken", refreshToken, {
+         httpOnly: true,
+         sameSite: "lax",
+         secure: true
+      });
+
+      res.setHeader("Authorization", `Bearer ${accessToken}`);
+      res.send();
    }
 
    @Post("logout")
