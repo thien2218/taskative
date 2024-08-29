@@ -18,10 +18,10 @@ export const DatabaseService = jest.fn().mockReturnValue({
       rightJoin: jest.fn().mockReturnThis(),
       fullJoin: jest.fn().mockReturnThis(),
 
-      transaction: jest.fn(),
-      get: jest.fn(),
-      execute: jest.fn(),
-      run: jest.fn(),
-      all: jest.fn()
+      transaction: jest.fn().mockResolvedValue({}),
+      get: jest.fn().mockResolvedValue({}),
+      execute: jest.fn().mockResolvedValue({}),
+      run: jest.fn().mockResolvedValue({}),
+      all: jest.fn().mockResolvedValue({})
    }
 });

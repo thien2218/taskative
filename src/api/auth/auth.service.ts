@@ -131,15 +131,6 @@ export class AuthService {
    ): Promise<{ accessToken: string; refreshToken: string | null }> {
       const builder = this.dbService.builder;
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { exp, iat, ...payload } = await this.jwtService.verifyAsync<
-         JwtPayload & { iat: number }
-      >(curRefreshToken);
-
-      if (exp * 1000 < Date.now()) {
-         throw new BadRequestException("Refresh token expired");
-      }
-
       const getUserQuery = builder
          .select({ encodedRefreshToken: usersTable.encodedRefreshToken })
          .from(usersTable)
@@ -159,6 +150,11 @@ export class AuthService {
       if (!(await verify(data.encodedRefreshToken, curRefreshToken))) {
          throw new BadRequestException("Invalid refresh token");
       }
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { exp, iat, ...payload } = await this.jwtService.verifyAsync<
+         JwtPayload & { iat: number }
+      >(curRefreshToken);
 
       const accessToken = await this.jwtService.signAsync(payload, {
          expiresIn: this.configService.get("ACCESS_EXPIRY")
