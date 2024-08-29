@@ -8,10 +8,10 @@ import {
    UsePipes
 } from "@nestjs/common";
 import { UserService } from "./user.service";
-import { UpdateUserDto, UserDto } from "src/utils/types";
-import { User } from "src/utils/decorators";
-import { ValibotPipe } from "src/utils/pipes";
-import { UpdateUserSchema } from "src/utils/schemas";
+import { UpdateUserDto, UserDto } from "utils/types";
+import { User } from "utils/decorators";
+import { ValibotPipe } from "utils/pipes";
+import { UpdateUserSchema } from "utils/schemas";
 
 @Controller("user")
 export class UserController {

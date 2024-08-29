@@ -4,15 +4,15 @@ import { JwtService } from "@nestjs/jwt";
 import { hash, verify } from "argon2";
 import { eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { DatabaseService } from "src/database/database.service";
-import { profilesTable, usersTable } from "src/database/tables";
+import { DatabaseService } from "database/database.service";
+import { profilesTable, usersTable } from "database/tables";
 import {
-   AuthTokensDto,
+   AuthTokens,
    JwtPayload,
    LoginDto,
    OAuthValidateDto,
    SignupDto
-} from "src/utils/types";
+} from "utils/types";
 
 @Injectable()
 export class AuthService {
@@ -25,11 +25,7 @@ export class AuthService {
    /* ======================================== */
    /* ======================================== */
    /* ======================================== */
-   async signup({
-      email,
-      password,
-      ...rest
-   }: SignupDto): Promise<AuthTokensDto> {
+   async signup({ email, password, ...rest }: SignupDto): Promise<AuthTokens> {
       const builder = this.dbService.builder;
       const id = nanoid(25);
       const encodedPassword = await hash(password);
@@ -61,9 +57,25 @@ export class AuthService {
    /* ======================================== */
    /* ======================================== */
    /* ======================================== */
-   async login({ email, password }: LoginDto): Promise<AuthTokensDto> {
+   async login({ email, password }: LoginDto): Promise<AuthTokens> {
       const builder = this.dbService.builder;
-      const user = await this.findUserByEmail(email);
+
+      const query = builder
+         .select({
+            id: usersTable.id,
+            encodedPassword: usersTable.encodedPassword,
+            profileImage: profilesTable.profileImage,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName
+         })
+         .from(usersTable)
+         .where(eq(usersTable.email, sql.placeholder("email")))
+         .innerJoin(profilesTable, eq(usersTable.id, profilesTable.userId))
+         .prepare();
+
+      const user = await query
+         .get({ email })
+         .catch(this.dbService.handleDbError);
 
       if (!user) {
          throw new BadRequestException("Invalid email or password");
@@ -177,10 +189,19 @@ export class AuthService {
    /* ======================================== */
    /* ======================================== */
    async validateOAuthUser({ email, provider, ...rest }: OAuthValidateDto) {
-      const user = await this.findUserByEmail(email);
+      const builder = this.dbService.builder;
 
-      if (user) {
-         return { sub: user.id, email, ...rest };
+      const query = builder
+         .select({ id: usersTable.id })
+         .from(usersTable)
+         .where(eq(usersTable.email, sql.placeholder("email")));
+
+      const data = await query
+         .get({ email })
+         .catch(this.dbService.handleDbError);
+
+      if (data) {
+         return { sub: data.id, email, ...rest };
       }
 
       const id = nanoid(25);
@@ -205,31 +226,7 @@ export class AuthService {
    /* ======================================== */
    /* ======================================== */
    /* ======================================== */
-   private async findUserByEmail(email: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
-         .select({
-            id: usersTable.id,
-            encodedPassword: usersTable.encodedPassword,
-            profileImage: profilesTable.profileImage,
-            firstName: profilesTable.firstName,
-            lastName: profilesTable.lastName
-         })
-         .from(usersTable)
-         .where(eq(usersTable.email, sql.placeholder("email")))
-         .innerJoin(profilesTable, eq(usersTable.id, profilesTable.userId))
-         .prepare();
-
-      return query.get({ email }).catch(this.dbService.handleDbError);
-   }
-
-   /* ======================================== */
-   /* ======================================== */
-   /* ======================================== */
-   async generateTokens(
-      payload: Omit<JwtPayload, "exp">
-   ): Promise<AuthTokensDto> {
+   async generateTokens(payload: Omit<JwtPayload, "exp">): Promise<AuthTokens> {
       const [accessToken, refreshToken] = await Promise.all([
          this.jwtService.signAsync(payload, {
             expiresIn: this.configService.get("ACCESS_EXPIRY")

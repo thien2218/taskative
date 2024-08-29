@@ -12,16 +12,16 @@ import {
    UsePipes
 } from "@nestjs/common";
 import { TaskService } from "./task.service";
-import { PaginationQueryPipe, ValibotPipe } from "src/utils/pipes";
+import { PaginationQueryPipe, ValibotPipe } from "utils/pipes";
 import {
    CreateTaskDto,
    PaginationQuery,
    SelectTaskDto,
    UpdateTaskDto,
    UserDto
-} from "src/utils/types";
-import { User } from "src/utils/decorators";
-import { CreateTaskSchema, UpdateTaskSchema } from "src/utils/schemas";
+} from "utils/types";
+import { User } from "utils/decorators";
+import { CreateTaskSchema, UpdateTaskSchema } from "utils/schemas";
 
 @Controller("task")
 export class TaskController {

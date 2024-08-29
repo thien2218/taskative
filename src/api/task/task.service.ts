@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { and, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { DatabaseService } from "src/database/database.service";
-import { tasksTable } from "src/database/tables";
-import { SelectTaskSchema } from "src/utils/schemas";
-import { CreateTaskDto, PaginationQuery, UpdateTaskDto } from "src/utils/types";
+import { DatabaseService } from "database/database.service";
+import { tasksTable } from "database/tables";
+import { SelectTaskSchema } from "utils/schemas";
+import { CreateTaskDto, PaginationQuery, UpdateTaskDto } from "utils/types";
 import { parse } from "valibot";
 
 @Injectable()

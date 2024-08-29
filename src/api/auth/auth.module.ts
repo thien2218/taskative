@@ -4,7 +4,7 @@ import { AuthService } from "./auth.service";
 import { JwtModule } from "@nestjs/jwt";
 import * as dotenv from "dotenv";
 import { AccessStrategy } from "./strategies/access.strategy";
-import { DatabaseModule } from "src/database/database.module";
+import { DatabaseModule } from "database/database.module";
 import { GoogleOAuthStrategy } from "./strategies/google-oauth.strategy";
 import { GoogleOAuthGuard } from "./guards/google-oauth.guard";
 

@@ -2,10 +2,10 @@ import { ResultSet } from "@libsql/client/.";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { DatabaseService } from "src/database/database.service";
-import { listsTable, tasksTable } from "src/database/tables";
-import { SelectListSchema, SelectTaskSchema } from "src/utils/schemas";
-import { CreateListDto, PaginationQuery, UpdateListDto } from "src/utils/types";
+import { DatabaseService } from "database/database.service";
+import { listsTable, tasksTable } from "database/tables";
+import { SelectListSchema, SelectTaskSchema } from "utils/schemas";
+import { CreateListDto, PaginationQuery, UpdateListDto } from "utils/types";
 import { parse } from "valibot";
 
 @Injectable()

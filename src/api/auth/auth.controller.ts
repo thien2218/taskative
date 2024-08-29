@@ -9,10 +9,10 @@ import {
    UsePipes
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
-import { Unauthenticated, User } from "src/utils/decorators";
-import { ValibotPipe } from "src/utils/pipes";
-import { LoginDto, SignupDto, UserDto } from "src/utils/types";
-import { LoginSchema, SignupSchema } from "src/utils/schemas";
+import { Unauthenticated, User } from "utils/decorators";
+import { ValibotPipe } from "utils/pipes";
+import { LoginDto, SignupDto, UserDto } from "utils/types";
+import { LoginSchema, SignupSchema } from "utils/schemas";
 import { Response } from "express";
 import { GoogleOAuthGuard } from "./guards/google-oauth.guard";
 

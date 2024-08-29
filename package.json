@@ -7,17 +7,17 @@
    "license": "UNLICENSED",
    "scripts": {
       "build": "nest build",
-      "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+      "format": "prettier --write \"**/*.ts\" \"test/**/*.ts\"",
       "start": "nest start",
       "start:dev": "NODE_ENV=development nest start --watch",
       "start:debug": "NODE_ENV=development nest start --debug --watch",
       "start:prod": "NODE_ENV=production node dist/main",
       "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-      "test": "jest",
-      "test:watch": "jest --watch",
-      "test:cov": "jest --coverage",
-      "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-      "test:e2e": "jest --config ./test/jest-e2e.json",
+      "test": "NODE_ENV=development jest",
+      "test:watch": "NODE_ENV=development jest --watch",
+      "test:cov": "NODE_ENV=development jest --coverage",
+      "test:debug": "NODE_ENV=development node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+      "test:e2e": "NODE_ENV=development jest --config ./test/jest-e2e.json",
       "test:db:migrate": "NODE_ENV=development drizzle-kit migrate",
       "test:db:push": "NODE_ENV=development drizzle-kit push",
       "test:db:seed": "NODE_ENV=development ts-node src/database/seed/$FILENAME",
@@ -88,6 +88,10 @@
          "**/*.(t|j)s"
       ],
       "coverageDirectory": "../coverage",
-      "testEnvironment": "node"
+      "testEnvironment": "node",
+      "moduleDirectories": [
+         "node_modules",
+         "src"
+      ]
    }
 }

@@ -12,7 +12,7 @@ import {
    UsePipes
 } from "@nestjs/common";
 import { ListService } from "./list.service";
-import { PaginationQueryPipe, ValibotPipe } from "src/utils/pipes";
+import { PaginationQueryPipe, ValibotPipe } from "utils/pipes";
 import {
    CreateListDto,
    PaginationQuery,
@@ -20,13 +20,13 @@ import {
    SelectTaskDto,
    UpdateListDto,
    UserDto
-} from "src/utils/types";
-import { User } from "src/utils/decorators";
+} from "utils/types";
+import { User } from "utils/decorators";
 import {
    AddToListSchema,
    CreateListSchema,
    UpdateListSchema
-} from "src/utils/schemas";
+} from "utils/schemas";
 
 @Controller("list")
 export class ListController {

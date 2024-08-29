@@ -26,7 +26,7 @@ export type LoginDto = InferOutput<typeof LoginSchema>;
 
 export type SignupDto = InferOutput<typeof SignupSchema>;
 
-export type AuthTokensDto = {
+export type AuthTokens = {
    accessToken: string;
    refreshToken: string;
 };
