@@ -3,12 +3,15 @@ import { UserService } from "../user.service";
 import { DatabaseModule } from "database/database.module";
 import { DatabaseService } from "database/database.service";
 import { NotFoundException } from "@nestjs/common";
+import { selectUserStub, updateUserStub } from "utils/stubs";
 
 jest.mock("database/database.service");
 
 describe("UserService", () => {
    let service: UserService;
    let dbService: DatabaseService;
+
+   const userId = "userId";
 
    beforeAll(async () => {
       const module: TestingModule = await Test.createTestingModule({
@@ -27,17 +30,9 @@ describe("UserService", () => {
 
       beforeEach(() => {
          jest.spyOn(dbService.builder, "get").mockResolvedValue({
-            user: {
-               id: "id",
-               email: "test@gmail.com",
-               encodedPassword: "123",
-               encodedRefreshToken: null,
-               provider: "facebook"
-            },
+            user: selectUserStub(),
             profile: {
-               firstName: "Test",
-               lastName: "User",
-               profileImage: null,
+               ...selectUserStub(),
                createdAt: new Date(),
                updatedAt: new Date()
             }
@@ -45,31 +40,23 @@ describe("UserService", () => {
       });
 
       it("should get the user profile from the database", async () => {
-         await service.findProfile("123");
+         await service.findProfile(userId);
 
          expect(dbService.builder.select).toHaveBeenCalled();
-         expect(dbService.builder.get).toHaveBeenCalledWith({ id: "123" });
+         expect(dbService.builder.get).toHaveBeenCalledWith({ id: userId });
       });
 
       it("should raise an exception when the user is not found", async () => {
          jest.spyOn(dbService.builder, "get").mockResolvedValue(undefined);
 
-         await expect(service.findProfile("id")).rejects.toThrow(
+         await expect(service.findProfile(userId)).rejects.toThrow(
             NotFoundException
          );
       });
 
       it("should return the user profile", async () => {
-         const profile = await service.findProfile("id");
-
-         expect(profile).toMatchObject({
-            id: "id",
-            email: "test@gmail.com",
-            profileImage: null,
-            firstName: "Test",
-            lastName: "User",
-            provider: "facebook"
-         });
+         const profile = await service.findProfile(userId);
+         expect(profile).toMatchObject(selectUserStub());
       });
    });
 
@@ -79,11 +66,11 @@ describe("UserService", () => {
       });
 
       it("should make an update statement to the database", async () => {
-         (dbService.builder.run as jest.Mock).mockResolvedValue({
+         (dbService.builder.run as jest.Mock).mockResolvedValueOnce({
             rowsAffected: 1
          });
 
-         await service.update("id", { firstName: "John" });
+         await service.update(userId, updateUserStub());
 
          expect(dbService.builder.update).toHaveBeenCalled();
 
@@ -91,23 +78,23 @@ describe("UserService", () => {
             .results[0].value;
 
          expect(mockUpdate.set).toHaveBeenCalledWith({
-            firstName: "John",
+            ...updateUserStub(),
             updatedAt: expect.any(Date)
          });
 
          expect(dbService.builder.run).toHaveBeenCalledWith({
-            id: "id"
+            id: userId
          });
       });
 
       it("should raise an exception when no user record is updated", async () => {
-         (dbService.builder.run as jest.Mock).mockResolvedValue({
+         (dbService.builder.run as jest.Mock).mockResolvedValueOnce({
             rowsAffected: 0
          });
 
-         await expect(
-            service.update("id", { firstName: "John" })
-         ).rejects.toThrow(NotFoundException);
+         await expect(service.update(userId, updateUserStub())).rejects.toThrow(
+            NotFoundException
+         );
       });
    });
 });
