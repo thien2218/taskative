@@ -33,7 +33,7 @@ export const listsTable = sqliteTable("lists", {
    userId: text("user_id")
       .notNull()
       .references(() => usersTable.id),
-   name: text("name").notNull(),
+   name: text("name").notNull().unique(),
    description: text("description"),
    createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()

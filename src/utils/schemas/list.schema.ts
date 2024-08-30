@@ -8,7 +8,7 @@ export const SelectListSchema = object({
 
 export const CreateListSchema = object({
    name: string(),
-   description: nullable(string())
+   description: optional(string())
 });
 
 export const UpdateListSchema = pipe(

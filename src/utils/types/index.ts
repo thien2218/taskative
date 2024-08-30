@@ -6,6 +6,7 @@ import {
    SelectTaskSchema,
    SelectUserSchema,
    SignupSchema,
+   UpdateListSchema,
    UpdateTaskSchema,
    UpdateUserSchema
 } from "../schemas";
@@ -83,4 +84,4 @@ export type UpdateTaskDto = InferOutput<typeof UpdateTaskSchema>;
  */
 export type SelectListDto = InferOutput<typeof SelectListSchema>;
 export type CreateListDto = InferOutput<typeof CreateListSchema>;
-export type UpdateListDto = InferOutput<typeof UpdateTaskSchema>;
+export type UpdateListDto = InferOutput<typeof UpdateListSchema>;

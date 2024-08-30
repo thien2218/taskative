@@ -11,7 +11,7 @@ import { parse } from "valibot";
 export class TaskService {
    constructor(private readonly dbService: DatabaseService) {}
 
-   async findMany(page: PaginationQuery, userId: string) {
+   async findMany(userId: string, page: PaginationQuery) {
       const builder = this.dbService.builder;
 
       const query = builder
@@ -95,12 +95,12 @@ export class TaskService {
 
       await query
          .run({ id, userId })
-         .then(({ rowsAffected }) => {
-            if (!rowsAffected) {
+         .catch(this.dbService.handleDbError)
+         .then((resultSet) => {
+            if (resultSet && !resultSet.rowsAffected) {
                throw new NotFoundException("List not found");
             }
-         })
-         .catch(this.dbService.handleDbError);
+         });
    }
 
    async delete(id: string, userId: string) {
@@ -118,11 +118,11 @@ export class TaskService {
 
       await query
          .run({ id, userId })
-         .then(({ rowsAffected }) => {
-            if (!rowsAffected) {
-               throw new NotFoundException("Task not found");
+         .catch(this.dbService.handleDbError)
+         .then((resultSet) => {
+            if (resultSet && !resultSet.rowsAffected) {
+               throw new NotFoundException("List not found");
             }
-         })
-         .catch(this.dbService.handleDbError);
+         });
    }
 }

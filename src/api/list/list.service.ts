@@ -89,18 +89,15 @@ export class ListService {
             name: sql.placeholder("name"),
             description: sql.placeholder("description")
          })
-         .returning()
          .prepare();
 
-      const list = await query
+      await query
          .run({
             id: nanoid(25),
             userId,
             ...createListDto
          })
          .catch(this.dbService.handleDbError);
-
-      return parse(SelectListSchema, list);
    }
 
    async addToList(id: string, userId: string, taskIds: string[]) {
@@ -129,7 +126,10 @@ export class ListService {
 
       const query = builder
          .update(listsTable)
-         .set(updateListDto)
+         .set({
+            ...updateListDto,
+            updatedAt: new Date()
+         })
          .where(
             and(
                eq(listsTable.id, sql.placeholder("id")),
@@ -139,13 +139,13 @@ export class ListService {
          .prepare();
 
       await query
-         .run({ id, userId, ...updateListDto })
-         .then(({ rowsAffected }) => {
-            if (!rowsAffected) {
+         .run({ id, userId })
+         .catch(this.dbService.handleDbError)
+         .then((resultSet) => {
+            if (resultSet && !resultSet.rowsAffected) {
                throw new NotFoundException("List not found");
             }
-         })
-         .catch(this.dbService.handleDbError);
+         });
    }
 
    async delete(id: string, userId: string) {
@@ -163,11 +163,11 @@ export class ListService {
 
       await query
          .run({ id, userId })
-         .then(({ rowsAffected }) => {
-            if (!rowsAffected) {
+         .catch(this.dbService.handleDbError)
+         .then((resultSet) => {
+            if (resultSet && !resultSet.rowsAffected) {
                throw new NotFoundException("List not found");
             }
-         })
-         .catch(this.dbService.handleDbError);
+         });
    }
 }

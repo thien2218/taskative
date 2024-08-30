@@ -10,7 +10,7 @@ import { parse } from "valibot";
 export class UserService {
    constructor(private readonly dbService: DatabaseService) {}
 
-   async findOne(id: string): Promise<SelectUserDto> {
+   async findProfile(id: string): Promise<SelectUserDto> {
       const builder = this.dbService.builder;
 
       const query = builder
@@ -40,11 +40,11 @@ export class UserService {
 
       await query
          .run({ id })
-         .then(({ rowsAffected }) => {
-            if (!rowsAffected) {
-               throw new NotFoundException("Task not found");
+         .catch(this.dbService.handleDbError)
+         .then((resultSet) => {
+            if (resultSet && !resultSet.rowsAffected) {
+               throw new NotFoundException("List not found");
             }
-         })
-         .catch(this.dbService.handleDbError);
+         });
    }
 }

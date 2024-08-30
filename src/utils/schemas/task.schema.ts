@@ -46,11 +46,11 @@ export const UpdateTaskSchema = pipe(
       status: optional(picklist(["pending", "completed", "hiatus"])),
       priority: optional(
          picklist(["optional", "low", "medium", "high", "important"])
-      )
+      ),
+      note: optional(string())
    }),
    check(
-      ({ description, status, priority }) =>
-         !!description || !!status || !!priority,
+      (values) => Object.keys(values).length > 0,
       "At least one field must be provided to update task"
    )
 );

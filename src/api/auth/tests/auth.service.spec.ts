@@ -4,7 +4,13 @@ import { DatabaseService } from "database/database.service";
 import { DatabaseModule } from "database/database.module";
 import { JwtModule, JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
-import { jwtPayloadStub, loginStub, oauthStub, signupStub } from "utils/stubs";
+import {
+   jwtPayloadStub,
+   loginStub,
+   oauthStub,
+   signupStub,
+   tokensStub
+} from "utils/stubs";
 import { BadRequestException } from "@nestjs/common";
 import * as argon2 from "argon2";
 import { nanoid } from "nanoid";
@@ -18,8 +24,13 @@ describe("AuthService", () => {
    let service: AuthService;
    let dbService: DatabaseService;
 
+   const userId = "userId";
+   const encodedPassword = "encodedPassword";
+   const encodedRefreshToken = "encodedRefreshToken";
+   const signedToken = "signedToken";
+
    const mockJwtService = {
-      signAsync: jest.fn().mockResolvedValue("token"),
+      signAsync: jest.fn().mockResolvedValue(signedToken),
       verifyAsync: jest.fn().mockResolvedValue({
          exp: Date.now() / 1000 + 15 * 24 * 60 * 60
       })
@@ -58,13 +69,14 @@ describe("AuthService", () => {
          expect(service.signup).toBeDefined();
       });
 
+      it("should insert the user into the database with transaction", async () => {
+         await service.signup(signupStub());
+         expect(dbService.builder.transaction).toHaveBeenCalled();
+      });
+
       it("should return a pair of access and refresh token", async () => {
          const tokens = await service.signup(signupStub());
-
-         expect(tokens).toEqual({
-            accessToken: "token",
-            refreshToken: "token"
-         });
+         expect(tokens).toEqual(tokensStub());
       });
    });
 
@@ -75,52 +87,63 @@ describe("AuthService", () => {
          expect(service.login).toBeDefined();
       });
 
-      beforeEach(async () => {
+      beforeAll(async () => {
          jest
             .spyOn(dbService.builder, "get")
-            .mockResolvedValue({ encodedPassword: "123" });
+            .mockResolvedValue({ encodedPassword });
          jest.spyOn(argon2, "verify").mockResolvedValue(true);
-         jest.spyOn(argon2, "hash").mockResolvedValue("123");
+         jest.spyOn(argon2, "hash").mockResolvedValue(encodedRefreshToken);
       });
 
       it("should get the user from the database with the email", async () => {
          await login();
+
          expect(dbService.builder.get).toHaveBeenCalledWith({
             email: loginStub().email
          });
       });
 
       it("should raise an exception if user is not found", async () => {
-         jest.spyOn(dbService.builder, "get").mockResolvedValue(undefined);
-         await expect(login).rejects.toThrow(BadRequestException);
+         jest.spyOn(dbService.builder, "get").mockResolvedValueOnce(undefined);
+
+         await expect(service.login(loginStub())).rejects.toThrow(
+            BadRequestException
+         );
       });
 
       it("should raise an exception if password doesn't exist for that user instance", async () => {
          jest
             .spyOn(dbService.builder, "get")
-            .mockResolvedValue({ encodedPassword: null });
+            .mockResolvedValueOnce({ encodedPassword: null });
 
-         await expect(login).rejects.toThrow(BadRequestException);
+         await expect(service.login(loginStub())).rejects.toThrow(
+            BadRequestException
+         );
       });
 
       it("should raise an exception if entered password doesn't match with the hashed one", async () => {
-         jest.spyOn(argon2, "verify").mockResolvedValue(false);
-         await expect(login).rejects.toThrow(BadRequestException);
+         jest.spyOn(argon2, "verify").mockResolvedValueOnce(false);
+
+         await expect(service.login(loginStub())).rejects.toThrow(
+            BadRequestException
+         );
       });
 
       it("should store the hashed refresh token to the user's record", async () => {
          await login();
+
          expect(argon2.hash).toHaveBeenCalled();
          expect(dbService.builder.update).toHaveBeenCalled();
+
+         const mockUpdate = (dbService.builder.update as jest.Mock).mock
+            .results[0].value;
+
+         expect(mockUpdate.set).toHaveBeenCalledWith({ encodedRefreshToken });
       });
 
       it("should return a pair of access and refresh token", async () => {
          const tokens = await login();
-
-         expect(tokens).toEqual({
-            accessToken: "token",
-            refreshToken: "token"
-         });
+         expect(tokens).toEqual(tokensStub());
       });
    });
 
@@ -130,25 +153,25 @@ describe("AuthService", () => {
       });
 
       it("should update the user record's hashed refresh token to null", async () => {
-         await service.logout("123");
+         await service.logout(userId);
 
          expect(dbService.builder.update).toHaveBeenCalled();
 
-         const updateMock = (dbService.builder.update as jest.Mock).mock
+         const mockUpdate = (dbService.builder.update as jest.Mock).mock
             .results[0].value;
 
-         expect(updateMock.set).toHaveBeenCalledWith({
+         expect(mockUpdate.set).toHaveBeenCalledWith({
             encodedRefreshToken: null
          });
 
          expect(dbService.builder.run).toHaveBeenCalledWith({
-            id: "123"
+            id: userId
          });
       });
    });
 
    describe("refresh", () => {
-      const refresh = () => service.refresh("123", "refresh token");
+      const refresh = () => service.refresh(userId, encodedRefreshToken);
 
       it("should be defined", () => {
          expect(service.refresh).toBeDefined();
@@ -156,15 +179,17 @@ describe("AuthService", () => {
 
       beforeEach(() => {
          jest.spyOn(dbService.builder, "get").mockResolvedValue({
-            encodedRefreshToken: "123"
+            encodedRefreshToken
          });
          jest.spyOn(argon2, "verify").mockResolvedValue(true);
-         jest.spyOn(argon2, "hash").mockResolvedValue("123");
+         jest.spyOn(argon2, "hash").mockResolvedValue(encodedRefreshToken);
       });
 
       it("should get the user in the database with specified id", async () => {
          await refresh();
-         expect(dbService.builder.get).toHaveBeenCalledWith({ id: "123" });
+
+         expect(dbService.builder.select).toHaveBeenCalled();
+         expect(dbService.builder.get).toHaveBeenCalledWith({ id: userId });
       });
 
       it("should raise an exception if user is not found", async () => {
@@ -192,11 +217,7 @@ describe("AuthService", () => {
 
       it("should return only the access token when the current refresh token is relatively new", async () => {
          const tokens = await refresh();
-
-         expect(tokens).toEqual({
-            accessToken: "token",
-            refreshToken: null
-         });
+         expect(tokens).toEqual({ ...tokensStub(), refreshToken: null });
       });
 
       it("should generate a new refresh token and update the user record in the database if the current refresh token is relatively old", async () => {
@@ -210,25 +231,17 @@ describe("AuthService", () => {
          expect(argon2.hash).toHaveBeenCalled();
          expect(dbService.builder.update).toHaveBeenCalled();
 
-         const updateMock = (dbService.builder.update as jest.Mock).mock
+         const mockUpdate = (dbService.builder.update as jest.Mock).mock
             .results[0].value;
 
-         expect(updateMock.set).toHaveBeenCalledWith({
-            encodedRefreshToken: "123"
+         expect(mockUpdate.set).toHaveBeenCalledWith({
+            encodedRefreshToken
          });
       });
 
       it("should return both the access and the refresh token is relatively old", async () => {
-         jest.spyOn(mockJwtService, "verifyAsync").mockResolvedValue({
-            exp: Date.now() / 1000 + 60 * 60
-         });
-
          const tokens = await refresh();
-
-         expect(tokens).toEqual({
-            accessToken: "token",
-            refreshToken: "token"
-         });
+         expect(tokens).toEqual(tokensStub());
       });
    });
 
@@ -237,22 +250,24 @@ describe("AuthService", () => {
          expect(service.validateOAuthUser).toBeDefined();
       });
 
-      beforeEach(() => {
+      beforeAll(() => {
          jest.spyOn(dbService.builder, "get").mockResolvedValue(undefined);
          (nanoid as jest.Mock).mockReturnValue("456");
       });
 
-      it("should get the user id from the database with the email", () => {
-         service.validateOAuthUser(oauthStub());
+      it("should get the user id from the database with the email", async () => {
+         await service.validateOAuthUser(oauthStub());
 
          expect(dbService.builder.get).toHaveBeenCalledWith({
-            email: "test@gmail.com"
+            email: oauthStub().email
          });
       });
 
       it("should return the user payload if the user's already exist", async () => {
          const { provider, ...rest } = oauthStub();
-         jest.spyOn(dbService.builder, "get").mockResolvedValue({ id: "123" });
+         jest
+            .spyOn(dbService.builder, "get")
+            .mockResolvedValueOnce({ id: "123" });
 
          const userPayload = await service.validateOAuthUser(oauthStub());
          expect(userPayload).toEqual({ sub: "123", ...rest });
@@ -260,8 +275,8 @@ describe("AuthService", () => {
 
       it("should create a new user if the user doesn't exist", async () => {
          const { provider, ...rest } = oauthStub();
-
          const userPayload = await service.validateOAuthUser(oauthStub());
+
          expect(dbService.builder.transaction).toHaveBeenCalled();
          expect(userPayload).toEqual({ sub: "456", ...rest });
       });
@@ -283,10 +298,7 @@ describe("AuthService", () => {
       });
 
       it("should returns 2 tokens", () => {
-         expect(tokens).toEqual({
-            accessToken: "token",
-            refreshToken: "token"
-         });
+         expect(tokens).toEqual(tokensStub());
       });
    });
 });
