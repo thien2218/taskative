@@ -1,33 +1,44 @@
 import { nanoid } from "nanoid";
 import db from ".";
-import { tasksTable, usersTable } from "../tables";
+import { listsTable, tasksTable, usersTable } from "../tables";
 
-const seed = async () => {
-   const users = await db.select().from(usersTable).all();
+const seedTasks = async () => {
+   const userIds = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .all();
 
-   if (!users.length) {
+   const listIds = await db
+      .select({ id: listsTable.id })
+      .from(listsTable)
+      .all();
+
+   if (!userIds.length) {
       throw new Error("Users table is empty");
    }
+   if (!listIds.length) {
+      throw new Error("Lists table is empty");
+   }
 
-   let userId;
-
-   const data = [];
+   const tasks = [];
 
    for (let i = 0; i < 30; i++) {
-      userId = users[Math.floor(Math.random() * users.length)].id;
+      const userId = userIds[Math.floor(Math.random() * userIds.length)].id;
+      const listId =
+         i % 6 === 0
+            ? null
+            : listIds[Math.floor(Math.random() * listIds.length)].id;
 
-      data.push({
+      tasks.push({
          id: nanoid(25),
          userId,
+         listId,
          description: `Task ${i}`,
          priority: "optional"
       });
    }
 
-   await db.insert(tasksTable).values(data).execute();
+   await db.insert(tasksTable).values(tasks).execute();
 };
 
-seed().catch((e) => {
-   console.error(e);
-   process.exit(0);
-});
+export default seedTasks;

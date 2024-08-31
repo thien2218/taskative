@@ -31,10 +31,10 @@ export class AccessGuard extends AuthGuard("access") {
          const refreshToken = request.cookies["taskative_refreshToken"];
          const { exp } = this.jwtService.verify<JwtPayload>(refreshToken);
 
-         if (exp * 1000 < Date.now()) {
+         if (exp < Date.now() / 1000) {
             if (isForUnauthenticated) return true;
             return false;
-         }
+         } else if (isForUnauthenticated) return false;
       } catch {
          if (isForUnauthenticated) return true;
          return false;

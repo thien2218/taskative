@@ -20,7 +20,12 @@ export const LoginSchema = object({
       nonEmpty("Email is required"),
       email("Invalid email address")
    ),
-   password: pipe(string(), nonEmpty("Please enter your password"))
+   password: pipe(
+      string(),
+      minLength(6, "Password must be at least 6 characters long"),
+      maxLength(20, "Password cannot be longer than 20 characters"),
+      nonEmpty("Please enter your password")
+   )
 });
 
 export const SignupSchema = pipe(

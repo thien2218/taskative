@@ -32,24 +32,24 @@ export class AuthService {
       const tokens = await this.generateTokens({ sub: id, email, ...rest });
       const encodedRefreshToken = await hash(tokens.refreshToken);
 
-      await builder.transaction(async (tx) => {
-         await tx
-            .insert(usersTable)
-            .values({
-               id,
-               email,
-               encodedPassword,
-               encodedRefreshToken
-            })
-            .run()
-            .catch(this.dbService.handleDbError);
+      await builder
+         .transaction(async (tx) => {
+            await tx
+               .insert(usersTable)
+               .values({
+                  id,
+                  email,
+                  encodedPassword,
+                  encodedRefreshToken
+               })
+               .run();
 
-         await tx
-            .insert(profilesTable)
-            .values({ userId: id, ...rest })
-            .run()
-            .catch(this.dbService.handleDbError);
-      });
+            await tx
+               .insert(profilesTable)
+               .values({ userId: id, ...rest })
+               .run();
+         })
+         .catch(this.dbService.handleDbError);
 
       return tokens;
    }
@@ -187,34 +187,43 @@ export class AuthService {
    async validateOAuthUser({ email, provider, ...rest }: OAuthValidateDto) {
       const builder = this.dbService.builder;
 
-      const query = builder
-         .select({ id: usersTable.id })
+      const getUserDataQuery = builder
+         .select({ id: usersTable.id, emailVerified: usersTable.emailVerified })
          .from(usersTable)
          .where(eq(usersTable.email, sql.placeholder("email")));
 
-      const data = await query
+      const data = await getUserDataQuery
          .get({ email })
          .catch(this.dbService.handleDbError);
 
       if (data) {
+         if (!data.emailVerified) {
+            const updateUserQuery = builder
+               .update(usersTable)
+               .set({ emailVerified: true })
+               .where(eq(usersTable.id, sql.placeholder("id")))
+               .prepare();
+
+            await updateUserQuery
+               .run({ id: data.id })
+               .catch(this.dbService.handleDbError);
+         }
+
          return { sub: data.id, email, ...rest };
       }
 
       const id = nanoid(25);
 
-      await this.dbService.builder.transaction(async (tx) => {
-         await tx
-            .insert(usersTable)
-            .values({ id, email, provider })
-            .run()
-            .catch(this.dbService.handleDbError);
+      await this.dbService.builder
+         .transaction(async (tx) => {
+            await tx.insert(usersTable).values({ id, email, provider }).run();
 
-         await tx
-            .insert(profilesTable)
-            .values({ userId: id, ...rest })
-            .run()
-            .catch(this.dbService.handleDbError);
-      });
+            await tx
+               .insert(profilesTable)
+               .values({ userId: id, ...rest })
+               .run();
+         })
+         .catch(this.dbService.handleDbError);
 
       return { sub: id, email, ...rest };
    }

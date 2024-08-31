@@ -32,7 +32,7 @@ export class TaskController {
       @Query(PaginationQueryPipe) pagination: PaginationQuery,
       @User() { userId }: UserDto
    ): Promise<SelectTaskDto[]> {
-      return this.taskService.findMany(pagination, userId);
+      return this.taskService.findMany(userId, pagination);
    }
 
    @Get(":id")
