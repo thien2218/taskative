@@ -6,8 +6,8 @@ export const tokensStub = () => ({
 });
 
 export const signupStub = (): SignupDto => ({
-   email: "test@email.com",
-   password: "123456",
+   email: "test@gmail.com",
+   password: "password",
    firstName: "Test",
    lastName: "User",
    profileImage: "https://example.com"
@@ -15,7 +15,7 @@ export const signupStub = (): SignupDto => ({
 
 export const loginStub = (): LoginDto => ({
    email: "test@gmail.com",
-   password: "123"
+   password: "password"
 });
 
 export const jwtPayloadStub = (): JwtPayload => ({

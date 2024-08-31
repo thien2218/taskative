@@ -9,7 +9,7 @@ import {
    UsePipes
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
-import { Unauthenticated, User } from "utils/decorators";
+import { Public, Unauthenticated, User } from "utils/decorators";
 import { ValibotPipe } from "utils/pipes";
 import { LoginDto, SignupDto, UserDto } from "utils/types";
 import { LoginSchema, SignupSchema } from "utils/schemas";
@@ -20,7 +20,7 @@ import { GoogleOAuthGuard } from "./guards/google-oauth.guard";
 export class AuthController {
    constructor(private readonly authService: AuthService) {}
 
-   @Unauthenticated()
+   @Public()
    @UsePipes(new ValibotPipe(SignupSchema))
    @Post("signup")
    async signup(@Body() creds: SignupDto, @Res() res: Response) {
@@ -84,6 +84,6 @@ export class AuthController {
    async logout(@User() { userId }: UserDto, @Res() res: Response) {
       res.clearCookie("taskative_refreshToken");
       await this.authService.logout(userId);
-      res.status(HttpStatus.NO_CONTENT).send();
+      res.status(HttpStatus.OK).send();
    }
 }

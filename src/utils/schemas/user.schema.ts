@@ -2,7 +2,6 @@ import {
    check,
    date,
    maxLength,
-   minLength,
    nullable,
    object,
    optional,
@@ -26,18 +25,10 @@ export const SelectUserSchema = object({
 export const UpdateUserSchema = pipe(
    object({
       firstName: optional(
-         pipe(
-            string(),
-            minLength(3, "First name must be at least 3 characters long"),
-            maxLength(50, "First name cannot exceed 50 characters")
-         )
+         pipe(string(), maxLength(32, "First name cannot exceed 32 characters"))
       ),
       lastName: optional(
-         pipe(
-            string(),
-            minLength(3, "Last name must be at least 3 characters long"),
-            maxLength(50, "Last name cannot exceed 50 characters")
-         )
+         pipe(string(), maxLength(32, "Last name cannot exceed 32 characters"))
       ),
       profileImage: optional(
          pipe(

@@ -216,7 +216,10 @@ export class AuthService {
 
       await this.dbService.builder
          .transaction(async (tx) => {
-            await tx.insert(usersTable).values({ id, email, provider }).run();
+            await tx
+               .insert(usersTable)
+               .values({ id, email, provider, emailVerified: true })
+               .run();
 
             await tx
                .insert(profilesTable)
