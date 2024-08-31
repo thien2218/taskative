@@ -25,10 +25,10 @@ export class UserController {
    @HttpCode(HttpStatus.NO_CONTENT)
    @UsePipes(new ValibotPipe(UpdateUserSchema))
    @Patch()
-   async update(
+   async updateProfile(
       @User() { userId }: UserDto,
       @Body() updateUserSchema: UpdateUserDto
    ) {
-      return this.userService.update(userId, updateUserSchema);
+      return this.userService.updateProfile(userId, updateUserSchema);
    }
 }

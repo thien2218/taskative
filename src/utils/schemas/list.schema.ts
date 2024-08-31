@@ -1,9 +1,11 @@
-import { check, nullable, object, optional, pipe, string } from "valibot";
+import { check, date, nullable, object, optional, pipe, string } from "valibot";
 
 export const SelectListSchema = object({
    id: string(),
    name: string(),
-   description: nullable(string())
+   description: nullable(string()),
+   createdAt: date(),
+   updatedAt: date()
 });
 
 export const CreateListSchema = object({

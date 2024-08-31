@@ -56,13 +56,18 @@ describe("UserService", () => {
 
       it("should return the user profile", async () => {
          const profile = await service.findProfile(userId);
-         expect(profile).toMatchObject(selectUserStub());
+
+         expect(profile).toMatchObject({
+            ...selectUserStub(),
+            createdAt: expect.any(Date),
+            updatedAt: expect.any(Date)
+         });
       });
    });
 
-   describe("update", () => {
+   describe("updateProfile", () => {
       it("should be defined", () => {
-         expect(service.update).toBeDefined();
+         expect(service.updateProfile).toBeDefined();
       });
 
       it("should make an update statement to the database", async () => {
@@ -70,7 +75,7 @@ describe("UserService", () => {
             rowsAffected: 1
          });
 
-         await service.update(userId, updateUserStub());
+         await service.updateProfile(userId, updateUserStub());
 
          expect(dbService.builder.update).toHaveBeenCalled();
 
@@ -92,9 +97,9 @@ describe("UserService", () => {
             rowsAffected: 0
          });
 
-         await expect(service.update(userId, updateUserStub())).rejects.toThrow(
-            NotFoundException
-         );
+         await expect(
+            service.updateProfile(userId, updateUserStub())
+         ).rejects.toThrow(NotFoundException);
       });
    });
 });

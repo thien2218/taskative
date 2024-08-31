@@ -61,9 +61,8 @@ describe("ListService", () => {
 
       beforeAll(() => {
          jest.spyOn(dbService.builder, "get").mockResolvedValue({
-            id: listId,
             userId,
-            ...createListStub()
+            ...selectListStub()
          });
       });
 
@@ -87,7 +86,12 @@ describe("ListService", () => {
 
       it("should return the list if it exists", async () => {
          const list = await service.findOne(listId, userId);
-         expect(list).toEqual(selectListStub());
+
+         expect(list).toEqual({
+            ...selectListStub(),
+            createdAt: expect.any(Date),
+            updatedAt: expect.any(Date)
+         });
       });
    });
 
@@ -128,7 +132,12 @@ describe("ListService", () => {
 
       it("should return a parsed array of lists", async () => {
          const lists = await service.findMany(userId, paginationStub());
-         expect(lists[0]).toMatchObject(selectListStub());
+
+         expect(lists[0]).toEqual({
+            ...selectListStub(),
+            createdAt: expect.any(Date),
+            updatedAt: expect.any(Date)
+         });
       });
    });
 

@@ -5,13 +5,12 @@ export const createTaskStub = (): CreateTaskDto => ({
    priority: "medium"
 });
 
-export const selectTaskStub = (): Omit<
-   Omit<SelectTaskDto, "createdAt">,
-   "updatedAt"
-> => ({
-   id: "id",
+export const selectTaskStub = (): SelectTaskDto => ({
+   id: "taskId",
    description: "Task 1",
    priority: "medium",
    note: null,
-   status: "pending"
+   status: "pending",
+   createdAt: new Date(),
+   updatedAt: new Date()
 });

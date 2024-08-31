@@ -55,8 +55,7 @@ describe("TaskService", () => {
       beforeAll(() => {
          jest.spyOn(dbService.builder, "get").mockResolvedValue({
             ...selectTaskStub(),
-            createdAt: new Date(),
-            updatedAt: new Date()
+            userId
          });
       });
 
@@ -80,7 +79,12 @@ describe("TaskService", () => {
 
       it("should return the task if it exists", async () => {
          const task = await service.findOne(userId, taskId);
-         expect(task).toMatchObject(selectTaskStub());
+
+         expect(task).toEqual({
+            ...selectTaskStub(),
+            updatedAt: expect.any(Date),
+            createdAt: expect.any(Date)
+         });
       });
    });
 
@@ -120,7 +124,12 @@ describe("TaskService", () => {
 
       it("should return a parsed array of tasks if they exist", async () => {
          const tasks = await service.findMany(userId, paginationStub());
-         expect(tasks[0]).toMatchObject(selectTaskStub());
+
+         expect(tasks[0]).toEqual({
+            ...selectTaskStub(),
+            updatedAt: expect.any(Date),
+            createdAt: expect.any(Date)
+         });
       });
    });
 

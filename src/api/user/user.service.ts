@@ -29,7 +29,7 @@ export class UserService {
       return parse(SelectUserSchema, { ...data.user, ...data.profile });
    }
 
-   async update(id: string, updateUserDto: UpdateUserDto) {
+   async updateProfile(id: string, updateUserDto: UpdateUserDto) {
       const builder = this.dbService.builder;
 
       const query = builder
