@@ -1,6 +1,6 @@
 export * from "./auth.stub";
 export * from "./task.stub";
-export * from "./list.stub";
+export * from "./board.stub";
 export * from "./user.stub";
 
 export const paginationStub = () => ({

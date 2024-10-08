@@ -11,32 +11,32 @@ import {
    Query,
    UsePipes
 } from "@nestjs/common";
-import { ListService } from "./list.service";
+import { BoardService } from "./board.service";
 import { PaginationQueryPipe, ValibotPipe } from "utils/pipes";
 import {
-   CreateListDto,
+   CreateBoardDto,
    PaginationQuery,
-   SelectListDto,
+   SelectBoardDto,
    SelectTaskDto,
-   UpdateListDto,
+   UpdateBoardDto,
    UserDto
 } from "utils/types";
 import { User } from "utils/decorators";
 import {
-   AddToListSchema,
-   CreateListSchema,
-   UpdateListSchema
+   AddToBoardSchema,
+   CreateBoardSchema,
+   UpdateBoardSchema
 } from "utils/schemas";
 
-@Controller("list")
-export class ListController {
-   constructor(private readonly listService: ListService) {}
+@Controller("board")
+export class BoardController {
+   constructor(private readonly listService: BoardService) {}
 
    @Get()
    async findMany(
       @Query(PaginationQueryPipe) page: PaginationQuery,
       @User() { userId }: UserDto
-   ): Promise<SelectListDto[]> {
+   ): Promise<SelectBoardDto[]> {
       return this.listService.findMany(userId, page);
    }
 
@@ -44,7 +44,7 @@ export class ListController {
    async findOne(
       @Param("id") id: string,
       @User() { userId }: UserDto
-   ): Promise<SelectListDto> {
+   ): Promise<SelectBoardDto> {
       return this.listService.findOne(id, userId);
    }
 
@@ -56,34 +56,34 @@ export class ListController {
       return this.listService.findTasks(id, userId);
    }
 
-   @UsePipes(new ValibotPipe(CreateListSchema))
+   @UsePipes(new ValibotPipe(CreateBoardSchema))
    @Post()
    async create(
       @User() { userId }: UserDto,
-      @Body() createListDto: CreateListDto
+      @Body() createBoardDto: CreateBoardDto
    ) {
-      return this.listService.create(userId, createListDto);
+      return this.listService.create(userId, createBoardDto);
    }
 
-   @UsePipes(new ValibotPipe(AddToListSchema))
+   @UsePipes(new ValibotPipe(AddToBoardSchema))
    @Post(":id/tasks")
-   async addToList(
+   async addToBoard(
       @Param("id") id: string,
       @User() { userId }: UserDto,
       @Body() { taskIds }: { taskIds: string[] }
    ): Promise<{ totalAddedTasks: number }> {
-      return this.listService.addToList(id, userId, taskIds);
+      return this.listService.addToBoard(id, userId, taskIds);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)
-   @UsePipes(new ValibotPipe(UpdateListSchema))
+   @UsePipes(new ValibotPipe(UpdateBoardSchema))
    @Patch(":id")
    async update(
       @Param("id") id: string,
       @User() { userId }: UserDto,
-      @Body() updateListDto: UpdateListDto
+      @Body() updateBoardDto: UpdateBoardDto
    ) {
-      return this.listService.update(id, userId, updateListDto);
+      return this.listService.update(id, userId, updateBoardDto);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)

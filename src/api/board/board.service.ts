@@ -3,13 +3,13 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "database/database.service";
-import { listsTable, tasksTable } from "database/tables";
-import { SelectListSchema, SelectTaskSchema } from "utils/schemas";
-import { CreateListDto, PaginationQuery, UpdateListDto } from "utils/types";
+import { boardsTable, tasksTable } from "database/tables";
+import { SelectBoardSchema, SelectTaskSchema } from "utils/schemas";
+import { CreateBoardDto, PaginationQuery, UpdateBoardDto } from "utils/types";
 import { parse } from "valibot";
 
 @Injectable()
-export class ListService {
+export class BoardService {
    constructor(private readonly dbService: DatabaseService) {}
 
    async findMany(userId: string, page: PaginationQuery) {
@@ -17,21 +17,21 @@ export class ListService {
 
       const query = builder
          .select()
-         .from(listsTable)
-         .where(eq(listsTable.userId, sql.placeholder("userId")))
+         .from(boardsTable)
+         .where(eq(boardsTable.userId, sql.placeholder("userId")))
          .limit(sql.placeholder("limit"))
          .offset(sql.placeholder("offset"))
          .prepare();
 
-      const lists = (await query
+      const boards = (await query
          .all({ userId, ...page })
          .catch(this.dbService.handleDbError)) as any[];
 
-      if (!lists.length) {
-         throw new NotFoundException("No lists found");
+      if (!boards.length) {
+         throw new NotFoundException("No boards found");
       }
 
-      return lists.map((list) => parse(SelectListSchema, list));
+      return boards.map((board) => parse(SelectBoardSchema, board));
    }
 
    async findOne(id: string, userId: string) {
@@ -39,22 +39,22 @@ export class ListService {
 
       const query = builder
          .select()
-         .from(listsTable)
+         .from(boardsTable)
          .where(
             and(
-               eq(listsTable.id, sql.placeholder("id")),
-               eq(listsTable.userId, sql.placeholder("userId"))
+               eq(boardsTable.id, sql.placeholder("id")),
+               eq(boardsTable.userId, sql.placeholder("userId"))
             )
          )
          .prepare();
 
-      const list = await query.get({ id, userId });
+      const board = await query.get({ id, userId });
 
-      if (!list) {
-         throw new NotFoundException("List not found");
+      if (!board) {
+         throw new NotFoundException("Board not found");
       }
 
-      return parse(SelectListSchema, list);
+      return parse(SelectBoardSchema, board);
    }
 
    async findTasks(id: string, userId: string) {
@@ -65,24 +65,24 @@ export class ListService {
          .from(tasksTable)
          .where(
             and(
-               eq(tasksTable.listId, sql.placeholder("listId")),
+               eq(tasksTable.boardId, sql.placeholder("boardId")),
                eq(tasksTable.userId, sql.placeholder("userId"))
             )
          )
          .prepare();
 
       const tasks = (await query
-         .all({ listId: id, userId })
+         .all({ boardId: id, userId })
          .catch(this.dbService.handleDbError)) as any[];
 
       return tasks.map((task) => parse(SelectTaskSchema, task));
    }
 
-   async create(userId: string, createListDto: CreateListDto) {
+   async create(userId: string, createBoardDto: CreateBoardDto) {
       const builder = this.dbService.builder;
 
       const query = builder
-         .insert(listsTable)
+         .insert(boardsTable)
          .values({
             id: sql.placeholder("id"),
             userId: sql.placeholder("userId"),
@@ -95,17 +95,17 @@ export class ListService {
          .run({
             id: nanoid(25),
             userId,
-            ...createListDto
+            ...createBoardDto
          })
          .catch(this.dbService.handleDbError);
    }
 
-   async addToList(id: string, userId: string, taskIds: string[]) {
+   async addToBoard(id: string, userId: string, taskIds: string[]) {
       const builder = this.dbService.builder;
 
       const query = builder
          .update(tasksTable)
-         .set({ listId: id })
+         .set({ boardId: id })
          .where(
             and(
                inArray(tasksTable.id, sql.placeholder("taskIds")),
@@ -121,19 +121,19 @@ export class ListService {
       return { totalAddedTasks: rowsAffected };
    }
 
-   async update(id: string, userId: string, updateListDto: UpdateListDto) {
+   async update(id: string, userId: string, updateBoardDto: UpdateBoardDto) {
       const builder = this.dbService.builder;
 
       const query = builder
-         .update(listsTable)
+         .update(boardsTable)
          .set({
-            ...updateListDto,
+            ...updateBoardDto,
             updatedAt: new Date()
          })
          .where(
             and(
-               eq(listsTable.id, sql.placeholder("id")),
-               eq(listsTable.userId, sql.placeholder("userId"))
+               eq(boardsTable.id, sql.placeholder("id")),
+               eq(boardsTable.userId, sql.placeholder("userId"))
             )
          )
          .prepare();
@@ -143,7 +143,7 @@ export class ListService {
          .catch(this.dbService.handleDbError)
          .then((resultSet) => {
             if (resultSet && !resultSet.rowsAffected) {
-               throw new NotFoundException("List not found");
+               throw new NotFoundException("Board not found");
             }
          });
    }
@@ -152,11 +152,11 @@ export class ListService {
       const builder = this.dbService.builder;
 
       const query = builder
-         .delete(listsTable)
+         .delete(boardsTable)
          .where(
             and(
-               eq(listsTable.id, sql.placeholder("id")),
-               eq(listsTable.userId, sql.placeholder("userId"))
+               eq(boardsTable.id, sql.placeholder("id")),
+               eq(boardsTable.userId, sql.placeholder("userId"))
             )
          )
          .prepare();
@@ -166,7 +166,7 @@ export class ListService {
          .catch(this.dbService.handleDbError)
          .then((resultSet) => {
             if (resultSet && !resultSet.rowsAffected) {
-               throw new NotFoundException("List not found");
+               throw new NotFoundException("Board not found");
             }
          });
    }

@@ -2,7 +2,7 @@ import { createClient } from "@libsql/client";
 import * as dotenv from "dotenv";
 import { drizzle } from "drizzle-orm/libsql";
 import seedUsers from "./users.seed";
-import seedLists from "./lists.seed";
+import seedBoards from "./lists.seed";
 import seedTasks from "./tasks.seed";
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
@@ -18,7 +18,7 @@ export default db;
 
 const main = async () => {
    await seedUsers();
-   await seedLists();
+   await seedBoards();
    await seedTasks();
 };
 

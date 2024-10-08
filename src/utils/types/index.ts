@@ -1,12 +1,12 @@
 import {
-   CreateListSchema,
+   CreateBoardSchema,
    CreateTaskSchema,
    LoginSchema,
-   SelectListSchema,
+   SelectBoardSchema,
    SelectTaskSchema,
    SelectUserSchema,
    SignupSchema,
-   UpdateListSchema,
+   UpdateBoardSchema,
    UpdateTaskSchema,
    UpdateUserSchema
 } from "../schemas";
@@ -80,8 +80,8 @@ export type SelectTaskDto = InferOutput<typeof SelectTaskSchema>;
 export type UpdateTaskDto = InferOutput<typeof UpdateTaskSchema>;
 
 /**
- * List types
+ * Board types
  */
-export type SelectListDto = InferOutput<typeof SelectListSchema>;
-export type CreateListDto = InferOutput<typeof CreateListSchema>;
-export type UpdateListDto = InferOutput<typeof UpdateListSchema>;
+export type SelectBoardDto = InferOutput<typeof SelectBoardSchema>;
+export type CreateBoardDto = InferOutput<typeof CreateBoardSchema>;
+export type UpdateBoardDto = InferOutput<typeof UpdateBoardSchema>;

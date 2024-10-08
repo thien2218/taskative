@@ -1,8 +1,8 @@
-import { listsTable, usersTable } from "../tables";
+import { boardsTable, usersTable } from "../tables";
 import db from ".";
 import { nanoid } from "nanoid";
 
-const seedLists = async () => {
+const seedBoards = async () => {
    const userIds = await db
       .select({ id: usersTable.id })
       .from(usersTable)
@@ -20,12 +20,12 @@ const seedLists = async () => {
       lists.push({
          id: nanoid(25),
          userId,
-         name: `List ${i}`,
-         description: `Description for list ${i}`
+         name: `Board ${i}`,
+         description: `Description for board ${i}`
       });
    }
 
-   await db.insert(listsTable).values(lists).execute();
+   await db.insert(boardsTable).values(lists).execute();
 };
 
-export default seedLists;
+export default seedBoards;

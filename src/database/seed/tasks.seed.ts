@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import db from ".";
-import { listsTable, tasksTable, usersTable } from "../tables";
+import { boardsTable, tasksTable, usersTable } from "../tables";
 
 const seedTasks = async () => {
    const userIds = await db
@@ -8,31 +8,31 @@ const seedTasks = async () => {
       .from(usersTable)
       .all();
 
-   const listIds = await db
-      .select({ id: listsTable.id })
-      .from(listsTable)
+   const boardIds = await db
+      .select({ id: boardsTable.id })
+      .from(boardsTable)
       .all();
 
    if (!userIds.length) {
       throw new Error("Users table is empty");
    }
-   if (!listIds.length) {
-      throw new Error("Lists table is empty");
+   if (!boardIds.length) {
+      throw new Error("Boards table is empty");
    }
 
    const tasks = [];
 
    for (let i = 0; i < 30; i++) {
       const userId = userIds[Math.floor(Math.random() * userIds.length)].id;
-      const listId =
+      const boardId =
          i % 6 === 0
             ? null
-            : listIds[Math.floor(Math.random() * listIds.length)].id;
+            : boardIds[Math.floor(Math.random() * boardIds.length)].id;
 
       tasks.push({
          id: nanoid(25),
          userId,
-         listId,
+         boardId,
          description: `Task ${i}`,
          priority: "optional"
       });

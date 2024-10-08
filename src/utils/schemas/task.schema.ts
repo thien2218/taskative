@@ -55,6 +55,6 @@ export const UpdateTaskSchema = pipe(
    )
 );
 
-export const AddToListSchema = object({
+export const AddToBoardSchema = object({
    taskIds: array(string())
 });

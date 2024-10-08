@@ -28,13 +28,17 @@ export const profilesTable = sqliteTable("profiles", {
       .default(sql`(unixepoch())`)
 });
 
-export const listsTable = sqliteTable("lists", {
+export const boardsTable = sqliteTable("boards", {
    id: text("id").primaryKey(),
    userId: text("user_id")
       .notNull()
       .references(() => usersTable.id),
    name: text("name").notNull().unique(),
    description: text("description"),
+   statuses: text("statuses", { mode: "json" })
+      .$type<string[]>()
+      .default(["pending", "on-going", "completed", "hiatus"])
+      .notNull(),
    createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -48,11 +52,40 @@ export const tasksTable = sqliteTable("tasks", {
    userId: text("user_id")
       .notNull()
       .references(() => usersTable.id),
-   listId: text("list_id").references(() => listsTable.id),
+   boardId: text("board_id").references(() => boardsTable.id),
    description: text("description").notNull(),
-   status: text("status").notNull().default("pending"),
+   status: text("status").notNull(),
    priority: text("priority").notNull(),
    note: text("note"),
+   createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+   updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`)
+});
+
+export const notesTable = sqliteTable("notes", {
+   id: text("id").primaryKey(),
+   userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id),
+   folderId: text("folder_id").references(() => foldersTable.id),
+   content: text("content").notNull(),
+   createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+   updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`)
+});
+
+export const foldersTable = sqliteTable("folders", {
+   id: text("id").primaryKey(),
+   userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id),
+   name: text("name").notNull().unique(),
    createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),

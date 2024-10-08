@@ -1,28 +1,28 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { ListService } from "../list.service";
+import { BoardService } from "../board.service";
 import { DatabaseModule } from "database/database.module";
 import { DatabaseService } from "database/database.service";
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { nanoid } from "nanoid";
-import { createListStub, paginationStub, selectListStub } from "utils/stubs";
+import { createBoardStub, paginationStub, selectBoardStub } from "utils/stubs";
 
 jest.mock("database/database.service");
 jest.mock("nanoid");
 
-describe("ListService", () => {
-   let service: ListService;
+describe("BoardService", () => {
+   let service: BoardService;
    let dbService: DatabaseService;
 
-   const listId = "listId";
+   const boardId = "boardId";
    const userId = "userId";
 
    beforeEach(async () => {
       const module: TestingModule = await Test.createTestingModule({
          imports: [DatabaseModule],
-         providers: [ListService]
+         providers: [BoardService]
       }).compile();
 
-      service = module.get<ListService>(ListService);
+      service = module.get<BoardService>(BoardService);
       dbService = module.get<DatabaseService>(DatabaseService);
    });
 
@@ -31,25 +31,25 @@ describe("ListService", () => {
          expect(service.create).toBeDefined();
       });
 
-      it("should raise an exception if the list already exists", async () => {
+      it("should raise an exception if the board already exists", async () => {
          jest.spyOn(dbService.builder, "run").mockRejectedValueOnce({
             message: "SQLITE_CONSTRAINT: UNIQUE constraint failed: lists.name"
          });
 
-         await expect(service.create(userId, createListStub())).rejects.toThrow(
-            BadRequestException
-         );
+         await expect(
+            service.create(userId, createBoardStub())
+         ).rejects.toThrow(BadRequestException);
       });
 
-      it("should insert a new list into the database", async () => {
-         (nanoid as jest.Mock).mockReturnValueOnce(listId);
-         await service.create(userId, createListStub());
+      it("should insert a new board into the database", async () => {
+         (nanoid as jest.Mock).mockReturnValueOnce(boardId);
+         await service.create(userId, createBoardStub());
 
          expect(dbService.builder.insert).toHaveBeenCalled();
          expect(dbService.builder.run).toHaveBeenCalledWith({
-            id: listId,
+            id: boardId,
             userId,
-            ...createListStub()
+            ...createBoardStub()
          });
       });
    });
@@ -62,33 +62,33 @@ describe("ListService", () => {
       beforeAll(() => {
          jest.spyOn(dbService.builder, "get").mockResolvedValue({
             userId,
-            ...selectListStub()
+            ...selectBoardStub()
          });
       });
 
       it("should make a select query to the database", async () => {
-         await service.findOne(listId, userId);
+         await service.findOne(boardId, userId);
 
          expect(dbService.builder.select).toHaveBeenCalled();
          expect(dbService.builder.get).toHaveBeenCalledWith({
-            id: listId,
+            id: boardId,
             userId
          });
       });
 
-      it("should raise an exception if the list does not exist", async () => {
+      it("should raise an exception if the board does not exist", async () => {
          jest.spyOn(dbService.builder, "get").mockResolvedValueOnce(undefined);
 
-         await expect(service.findOne(listId, userId)).rejects.toThrow(
+         await expect(service.findOne(boardId, userId)).rejects.toThrow(
             NotFoundException
          );
       });
 
-      it("should return the list if it exists", async () => {
-         const list = await service.findOne(listId, userId);
+      it("should return the board if it exists", async () => {
+         const board = await service.findOne(boardId, userId);
 
-         expect(list).toEqual({
-            ...selectListStub(),
+         expect(board).toEqual({
+            ...selectBoardStub(),
             createdAt: expect.any(Date),
             updatedAt: expect.any(Date)
          });
@@ -103,9 +103,9 @@ describe("ListService", () => {
       beforeAll(() => {
          jest.spyOn(dbService.builder, "all").mockResolvedValue([
             {
-               id: listId,
+               id: boardId,
                userId,
-               ...createListStub(),
+               ...createBoardStub(),
                createdAt: new Date(),
                updatedAt: new Date()
             }
@@ -134,7 +134,7 @@ describe("ListService", () => {
          const lists = await service.findMany(userId, paginationStub());
 
          expect(lists[0]).toEqual({
-            ...selectListStub(),
+            ...selectBoardStub(),
             createdAt: expect.any(Date),
             updatedAt: expect.any(Date)
          });
@@ -152,8 +152,8 @@ describe("ListService", () => {
          });
       });
 
-      it("should call an update statement to the database with the list and user id", async () => {
-         await service.update(listId, userId, createListStub());
+      it("should call an update statement to the database with the board and user id", async () => {
+         await service.update(boardId, userId, createBoardStub());
 
          expect(dbService.builder.update).toHaveBeenCalled();
 
@@ -162,22 +162,22 @@ describe("ListService", () => {
 
          expect(mockUpdate.set).toHaveBeenCalledWith({
             updatedAt: expect.any(Date),
-            ...createListStub()
+            ...createBoardStub()
          });
 
          expect(dbService.builder.run).toHaveBeenCalledWith({
-            id: listId,
+            id: boardId,
             userId
          });
       });
 
-      it("should raise a not found exception if the list does not exist", async () => {
+      it("should raise a not found exception if the board does not exist", async () => {
          (dbService.builder.run as jest.Mock).mockResolvedValueOnce({
             rowsAffected: 0
          });
 
          await expect(
-            service.update(listId, userId, createListStub())
+            service.update(boardId, userId, createBoardStub())
          ).rejects.toThrow(NotFoundException);
       });
    });
@@ -193,22 +193,22 @@ describe("ListService", () => {
          });
       });
 
-      it("should make a delete query to the database with the list and user id", async () => {
-         await service.delete(listId, userId);
+      it("should make a delete query to the database with the board and user id", async () => {
+         await service.delete(boardId, userId);
 
          expect(dbService.builder.delete).toHaveBeenCalled();
          expect(dbService.builder.run).toHaveBeenCalledWith({
-            id: listId,
+            id: boardId,
             userId
          });
       });
 
-      it("should raise a not found exception if the list does not exist", async () => {
+      it("should raise a not found exception if the board does not exist", async () => {
          (dbService.builder.run as jest.Mock).mockResolvedValueOnce({
             rowsAffected: 0
          });
 
-         await expect(service.delete(listId, userId)).rejects.toThrow(
+         await expect(service.delete(boardId, userId)).rejects.toThrow(
             NotFoundException
          );
       });

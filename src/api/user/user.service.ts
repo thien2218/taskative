@@ -43,7 +43,7 @@ export class UserService {
          .catch(this.dbService.handleDbError)
          .then((resultSet) => {
             if (resultSet && !resultSet.rowsAffected) {
-               throw new NotFoundException("List not found");
+               throw new NotFoundException("Board not found");
             }
          });
    }
