@@ -4,23 +4,24 @@ import {
    BadRequestException,
    ArgumentMetadata
 } from "@nestjs/common";
-import { ObjectSchema, parse } from "valibot";
+import { ObjectSchema, safeParse } from "valibot";
 
 @Injectable()
 export class ValibotPipe implements PipeTransform {
    constructor(private readonly schema: ObjectSchema<any, any>) {}
 
    transform(value: any, metadata: ArgumentMetadata) {
-      try {
-         if (metadata.type === "body") {
-            const parsed = parse(this.schema, value);
-            return parsed;
-         }
+      if (metadata.type === "body") {
+         const result = safeParse(this.schema, value);
 
-         return value;
-      } catch (error) {
-         throw new BadRequestException(error);
+         if (result.success) {
+            return result.output;
+         } else {
+            throw new BadRequestException(result.issues[0].message);
+         }
       }
+
+      return value;
    }
 }
 

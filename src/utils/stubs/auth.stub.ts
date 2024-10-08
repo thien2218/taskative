@@ -1,6 +1,6 @@
-import { JwtPayload, LoginDto, SignupDto } from "utils/types";
+import { AuthTokens, JwtPayload, LoginDto, SignupDto } from "utils/types";
 
-export const tokensStub = () => ({
+export const tokensStub = (): AuthTokens => ({
    accessToken: "signedToken",
    refreshToken: "signedToken"
 });
@@ -31,6 +31,6 @@ export const oauthStub = () => ({
    email: "test@gmail.com",
    provider: "google" as "google" | "facebook",
    firstName: "Test",
-   profileImage: "image",
-   lastName: "User"
+   lastName: "User",
+   profileImage: "https://example.com"
 });
