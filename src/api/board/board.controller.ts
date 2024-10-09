@@ -71,7 +71,7 @@ export class BoardController {
       @Param("id") id: string,
       @User() { userId }: UserDto,
       @Body() { taskIds }: { taskIds: string[] }
-   ): Promise<{ totalAddedTasks: number }> {
+   ): Promise<{ message: string; tasksAdded: string[] }> {
       return this.listService.addToBoard(id, userId, taskIds);
    }
 

@@ -60,8 +60,8 @@ importers:
         specifier: ^7.8.1
         version: 7.8.1
       valibot:
-        specifier: ^0.37.0
-        version: 0.37.0(typescript@5.5.4)
+        specifier: ^0.41.0
+        version: 0.41.0(typescript@5.5.4)
     devDependencies:
       '@nestjs/cli':
         specifier: ^10.0.0
@@ -3398,8 +3398,8 @@ packages:
     resolution: {integrity: sha512-kiGUalWN+rgBJ/1OHZsBtU4rXZOfj/7rKQxULKlIzwzQSvMJUUNgPwJEEh7gU6xEVxC0ahoOBvN2YI8GH6FNgA==}
     engines: {node: '>=10.12.0'}
 
-  valibot@0.37.0:
-    resolution: {integrity: sha512-FQz52I8RXgFgOHym3XHYSREbNtkgSjF9prvMFH1nBsRyfL6SfCzoT1GuSDTlbsuPubM7/6Kbw0ZMQb8A+V+VsQ==}
+  valibot@0.41.0:
+    resolution: {integrity: sha512-igDBb8CTYr8YTQlOKgaN9nSS0Be7z+WRuaeYqGf3Cjz3aKmSnqEmYnkfVjzIuumGqfHpa3fLIvMEAfhrpqN8ng==}
     peerDependencies:
       typescript: '>=5'
     peerDependenciesMeta:
@@ -7064,7 +7064,7 @@ snapshots:
       '@types/istanbul-lib-coverage': 2.0.6
       convert-source-map: 2.0.0
 
-  valibot@0.37.0(typescript@5.5.4):
+  valibot@0.41.0(typescript@5.5.4):
     optionalDependencies:
       typescript: 5.5.4
 

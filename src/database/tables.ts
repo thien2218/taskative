@@ -1,6 +1,11 @@
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+type Status = {
+   name: string;
+   color: string;
+};
+
 export const usersTable = sqliteTable("users", {
    id: text("id").primaryKey(),
    email: text("email").notNull().unique(),
@@ -36,8 +41,13 @@ export const boardsTable = sqliteTable("boards", {
    name: text("name").notNull().unique(),
    description: text("description"),
    statuses: text("statuses", { mode: "json" })
-      .$type<string[]>()
-      .default(["pending", "on-going", "completed", "hiatus"])
+      .$type<Status[]>()
+      .default([
+         { name: "pending", color: "#000000" },
+         { name: "on-going", color: "#000000" },
+         { name: "completed", color: "#000000" },
+         { name: "hiatus", color: "#000000" }
+      ])
       .notNull(),
    createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()

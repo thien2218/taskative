@@ -1,4 +1,3 @@
-import { ResultSet } from "@libsql/client/.";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -107,18 +106,20 @@ export class BoardService {
          .update(tasksTable)
          .set({ boardId: id })
          .where(
-            and(
-               inArray(tasksTable.id, sql.placeholder("taskIds")),
-               eq(tasksTable.userId, sql.placeholder("userId"))
-            )
+            and(inArray(tasksTable.id, taskIds), eq(tasksTable.userId, userId))
          )
-         .prepare();
+         .returning({ taskId: tasksTable.id });
 
-      const { rowsAffected } = (await query
-         .run({ taskIds, userId })
-         .catch(this.dbService.handleDbError)) as ResultSet;
+      const validIds = await query.all().catch(this.dbService.handleDbError);
 
-      return { totalAddedTasks: rowsAffected };
+      if (!validIds || !validIds.length) {
+         throw new NotFoundException("Tasks not found");
+      }
+
+      return {
+         message: `${validIds.length}/${taskIds.length} tasks added to board successfully`,
+         tasksAdded: validIds.map(({ taskId }) => taskId)
+      };
    }
 
    async update(id: string, userId: string, updateBoardDto: UpdateBoardDto) {
@@ -126,10 +127,7 @@ export class BoardService {
 
       const query = builder
          .update(boardsTable)
-         .set({
-            ...updateBoardDto,
-            updatedAt: new Date()
-         })
+         .set({ ...updateBoardDto, updatedAt: new Date() })
          .where(
             and(
                eq(boardsTable.id, sql.placeholder("id")),
