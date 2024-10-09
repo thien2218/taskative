@@ -65,7 +65,8 @@ export class TaskService {
             id: sql.placeholder("id"),
             userId: sql.placeholder("userId"),
             description: sql.placeholder("description"),
-            priority: sql.placeholder("priority")
+            priority: sql.placeholder("priority"),
+            status: sql.placeholder("status")
          })
          .prepare();
 
@@ -97,7 +98,7 @@ export class TaskService {
          .run({ id, userId })
          .catch(this.dbService.handleDbError)
          .then((resultSet) => {
-            if (resultSet && !resultSet.rowsAffected) {
+            if (!resultSet || !resultSet.rowsAffected) {
                throw new NotFoundException("Board not found");
             }
          });
@@ -120,7 +121,7 @@ export class TaskService {
          .run({ id, userId })
          .catch(this.dbService.handleDbError)
          .then((resultSet) => {
-            if (resultSet && !resultSet.rowsAffected) {
+            if (!resultSet || !resultSet.rowsAffected) {
                throw new NotFoundException("Board not found");
             }
          });

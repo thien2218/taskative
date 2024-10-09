@@ -4,13 +4,26 @@ import {
    date,
    maxLength,
    minLength,
+   nonEmpty,
    nullable,
    object,
    optional,
+   partial,
    picklist,
    pipe,
+   regex,
    string
 } from "valibot";
+
+export const StatusSchema = pipe(
+   string(),
+   nonEmpty("Task status cannot be empty"),
+   maxLength(30, "Task status cannot exceed 30 characters"),
+   regex(
+      /^[a-zA-Z0-9]+$/,
+      "Task status must be alphanumeric and contain no spaces"
+   )
+);
 
 export const CreateTaskSchema = object({
    description: pipe(
@@ -21,7 +34,8 @@ export const CreateTaskSchema = object({
    priority: optional(
       picklist(["optional", "low", "medium", "high", "important"]),
       "optional"
-   )
+   ),
+   status: StatusSchema
 });
 
 export const SelectTaskSchema = object({
@@ -35,20 +49,12 @@ export const SelectTaskSchema = object({
 });
 
 export const UpdateTaskSchema = pipe(
-   object({
-      description: optional(
-         pipe(
-            string(),
-            minLength(3, "Task description must be at least 3 characters long"),
-            maxLength(120, "Task description cannot exceed 120 characters")
-         )
-      ),
-      status: optional(picklist(["pending", "completed", "hiatus"])),
-      priority: optional(
-         picklist(["optional", "low", "medium", "high", "important"])
-      ),
-      note: optional(string())
-   }),
+   partial(
+      object({
+         ...CreateTaskSchema.entries,
+         note: string()
+      })
+   ),
    check(
       (values) => Object.keys(values).length > 0,
       "At least one field must be provided to update task"

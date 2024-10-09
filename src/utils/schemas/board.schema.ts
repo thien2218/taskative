@@ -1,67 +1,58 @@
 import {
    array,
    check,
-   date,
+   length,
    maxLength,
+   minLength,
    nonEmpty,
-   nullable,
+   number,
    object,
    optional,
+   partial,
    pipe,
-   regex,
-   startsWith,
    string
 } from "valibot";
+import { StatusSchema } from "./task.schema";
 
-export const SelectBoardSchema = object({
-   id: string(),
-   name: string(),
-   description: nullable(string()),
-   createdAt: date(),
-   updatedAt: date()
-});
+const PipelineSchema = pipe(
+   array(
+      object({
+         name: StatusSchema,
+         rgb: pipe(
+            array(
+               pipe(
+                  number(),
+                  check(
+                     (value) => value >= 0 && value <= 255,
+                     "RGB value must be between 0 and 255"
+                  )
+               )
+            ),
+            length(3, "RGB value must have 3 elements")
+         )
+      })
+   ),
+   nonEmpty("Pipeline cannot be empty")
+);
 
 export const CreateBoardSchema = object({
-   name: string(),
-   description: optional(string())
-});
-
-const StatusSchema = object({
    name: pipe(
       string(),
-      nonEmpty("Status name cannot be empty"),
-      maxLength(30, "Status name cannot exceed 30 characters")
+      minLength(3, "Board name must be at least 3 characters"),
+      maxLength(100, "Board name cannot exceed 100 characters")
    ),
-   color: pipe(
-      string(),
-      regex(/^#[0-9A-Fa-f]{6}$/, "Color must be a valid hex code"),
-      startsWith("#", "Color must be a valid hex code")
-   )
+   description: optional(
+      pipe(
+         string(),
+         nonEmpty("Description cannot be empty"),
+         maxLength(1000, "Description cannot exceed 1000 characters")
+      )
+   ),
+   pipeline: optional(PipelineSchema)
 });
 
 export const UpdateBoardSchema = pipe(
-   object({
-      name: optional(
-         pipe(
-            string(),
-            nonEmpty("Board name cannot be empty"),
-            maxLength(100, "Board name cannot exceed 100 characters")
-         )
-      ),
-      description: optional(
-         pipe(
-            string(),
-            nonEmpty("Description cannot be empty"),
-            maxLength(1000, "Description cannot exceed 1000 characters")
-         )
-      ),
-      statuses: optional(
-         pipe(
-            array(StatusSchema),
-            nonEmpty("At least one status must be provided")
-         )
-      )
-   }),
+   partial(CreateBoardSchema),
    check(
       ({ name, description }) => !!name || !!description,
       "At least one field must be provided"

@@ -2,7 +2,6 @@ import {
    CreateBoardSchema,
    CreateTaskSchema,
    LoginSchema,
-   SelectBoardSchema,
    SelectTaskSchema,
    SelectUserSchema,
    SignupSchema,
@@ -47,7 +46,7 @@ export type JwtPayload = {
 export type SelectUserDto = InferOutput<typeof SelectUserSchema>;
 export type UpdateUserDto = InferOutput<typeof UpdateUserSchema>;
 
-export type UserDto = {
+export type TUser = {
    userId: string;
    email: string;
    firstName: string;
@@ -82,6 +81,5 @@ export type UpdateTaskDto = InferOutput<typeof UpdateTaskSchema>;
 /**
  * Board types
  */
-export type SelectBoardDto = InferOutput<typeof SelectBoardSchema>;
 export type CreateBoardDto = InferOutput<typeof CreateBoardSchema>;
 export type UpdateBoardDto = InferOutput<typeof UpdateBoardSchema>;

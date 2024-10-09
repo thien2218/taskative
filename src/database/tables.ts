@@ -3,7 +3,7 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 type Status = {
    name: string;
-   color: string;
+   rgb: number[];
 };
 
 export const usersTable = sqliteTable("users", {
@@ -40,13 +40,13 @@ export const boardsTable = sqliteTable("boards", {
       .references(() => usersTable.id),
    name: text("name").notNull().unique(),
    description: text("description"),
-   statuses: text("statuses", { mode: "json" })
+   pipeline: text("pipeline", { mode: "json" })
       .$type<Status[]>()
       .default([
-         { name: "pending", color: "#000000" },
-         { name: "on-going", color: "#000000" },
-         { name: "completed", color: "#000000" },
-         { name: "hiatus", color: "#000000" }
+         { name: "pending", rgb: [0, 0, 0] },
+         { name: "on-going", rgb: [0, 0, 0] },
+         { name: "completed", rgb: [0, 0, 0] },
+         { name: "hiatus", rgb: [0, 0, 0] }
       ])
       .notNull(),
    createdAt: integer("created_at", { mode: "timestamp" })

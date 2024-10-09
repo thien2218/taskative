@@ -4,7 +4,7 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AuthService } from "../auth.service";
 import { Request } from "express";
-import { JwtPayload, UserDto } from "utils/types";
+import { JwtPayload, TUser } from "utils/types";
 
 @Injectable()
 export class AccessStrategy extends PassportStrategy(Strategy, "access") {
@@ -23,7 +23,7 @@ export class AccessStrategy extends PassportStrategy(Strategy, "access") {
    async validate(
       req: Request,
       { sub, exp, ...rest }: JwtPayload
-   ): Promise<UserDto> {
+   ): Promise<TUser> {
       if (exp * 1000 < Date.now()) {
          const curRefreshToken = req.cookies[
             "taskative_refreshToken"

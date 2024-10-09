@@ -18,7 +18,7 @@ import {
    PaginationQuery,
    SelectTaskDto,
    UpdateTaskDto,
-   UserDto
+   TUser
 } from "utils/types";
 import { User } from "utils/decorators";
 import { CreateTaskSchema, UpdateTaskSchema } from "utils/schemas";
@@ -30,7 +30,7 @@ export class TaskController {
    @Get()
    async findMany(
       @Query(PaginationQueryPipe) pagination: PaginationQuery,
-      @User() { userId }: UserDto
+      @User() { userId }: TUser
    ): Promise<SelectTaskDto[]> {
       return this.taskService.findMany(userId, pagination);
    }
@@ -38,7 +38,7 @@ export class TaskController {
    @Get(":id")
    async findOne(
       @Param("id") id: string,
-      @User() { userId }: UserDto
+      @User() { userId }: TUser
    ): Promise<SelectTaskDto> {
       return this.taskService.findOne(id, userId);
    }
@@ -47,7 +47,7 @@ export class TaskController {
    @Post()
    async create(
       @Body() createTaskDto: CreateTaskDto,
-      @User() { userId }: UserDto
+      @User() { userId }: TUser
    ) {
       return this.taskService.create(userId, createTaskDto);
    }
@@ -58,14 +58,14 @@ export class TaskController {
    async update(
       @Param("id") id: string,
       @Body() updateTaskDto: UpdateTaskDto,
-      @User() { userId }: UserDto
+      @User() { userId }: TUser
    ) {
       return this.taskService.update(id, userId, updateTaskDto);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)
    @Delete(":id")
-   async delete(@Param("id") id: string, @User() { userId }: UserDto) {
+   async delete(@Param("id") id: string, @User() { userId }: TUser) {
       return this.taskService.delete(id, userId);
    }
 }

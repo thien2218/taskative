@@ -11,7 +11,7 @@ import {
 import { AuthService } from "./auth.service";
 import { Public, Unauthenticated, User } from "utils/decorators";
 import { ValibotPipe } from "utils/pipes";
-import { LoginDto, SignupDto, UserDto } from "utils/types";
+import { LoginDto, SignupDto, TUser } from "utils/types";
 import { LoginSchema, SignupSchema } from "utils/schemas";
 import { Response } from "express";
 import { GoogleOAuthGuard } from "./guards/google-oauth.guard";
@@ -64,7 +64,7 @@ export class AuthController {
    @UseGuards(GoogleOAuthGuard)
    @Get("google/callback")
    async googleCallback(
-      @User() user: Omit<UserDto, "userId"> & { sub: string },
+      @User() user: Omit<TUser, "userId"> & { sub: string },
       @Res() res: Response
    ) {
       const { accessToken, refreshToken } =
@@ -81,7 +81,7 @@ export class AuthController {
    }
 
    @Post("logout")
-   async logout(@User() { userId }: UserDto, @Res() res: Response) {
+   async logout(@User() { userId }: TUser, @Res() res: Response) {
       res.clearCookie("taskative_refreshToken");
       await this.authService.logout(userId);
       res.status(HttpStatus.OK).send();

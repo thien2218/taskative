@@ -42,7 +42,7 @@ export class UserService {
          .run({ id })
          .catch(this.dbService.handleDbError)
          .then((resultSet) => {
-            if (resultSet && !resultSet.rowsAffected) {
+            if (!resultSet || !resultSet.rowsAffected) {
                throw new NotFoundException("Board not found");
             }
          });

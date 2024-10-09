@@ -3,41 +3,48 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "database/database.service";
 import { boardsTable, tasksTable } from "database/tables";
-import { SelectBoardSchema, SelectTaskSchema } from "utils/schemas";
 import { CreateBoardDto, PaginationQuery, UpdateBoardDto } from "utils/types";
-import { parse } from "valibot";
 
 @Injectable()
 export class BoardService {
+   private readonly boardColumns = {
+      id: boardsTable.id,
+      name: boardsTable.name,
+      description: boardsTable.description,
+      pipeline: boardsTable.pipeline,
+      createdAt: boardsTable.createdAt,
+      updatedAt: boardsTable.updatedAt
+   };
+
    constructor(private readonly dbService: DatabaseService) {}
 
    async findMany(userId: string, page: PaginationQuery) {
       const builder = this.dbService.builder;
 
       const query = builder
-         .select()
+         .select(this.boardColumns)
          .from(boardsTable)
          .where(eq(boardsTable.userId, sql.placeholder("userId")))
          .limit(sql.placeholder("limit"))
          .offset(sql.placeholder("offset"))
          .prepare();
 
-      const boards = (await query
+      const boards = await query
          .all({ userId, ...page })
-         .catch(this.dbService.handleDbError)) as any[];
+         .catch(this.dbService.handleDbError);
 
-      if (!boards.length) {
+      if (!boards || !boards.length) {
          throw new NotFoundException("No boards found");
       }
 
-      return boards.map((board) => parse(SelectBoardSchema, board));
+      return boards;
    }
 
    async findOne(id: string, userId: string) {
       const builder = this.dbService.builder;
 
       const query = builder
-         .select()
+         .select(this.boardColumns)
          .from(boardsTable)
          .where(
             and(
@@ -53,14 +60,21 @@ export class BoardService {
          throw new NotFoundException("Board not found");
       }
 
-      return parse(SelectBoardSchema, board);
+      return board;
    }
 
    async findTasks(id: string, userId: string) {
       const builder = this.dbService.builder;
 
       const query = builder
-         .select()
+         .select({
+            id: tasksTable.id,
+            description: tasksTable.description,
+            status: tasksTable.status,
+            priority: tasksTable.priority,
+            createdAt: tasksTable.createdAt,
+            updatedAt: tasksTable.updatedAt
+         })
          .from(tasksTable)
          .where(
             and(
@@ -70,11 +84,15 @@ export class BoardService {
          )
          .prepare();
 
-      const tasks = (await query
+      const tasks = await query
          .all({ boardId: id, userId })
-         .catch(this.dbService.handleDbError)) as any[];
+         .catch(this.dbService.handleDbError);
 
-      return tasks.map((task) => parse(SelectTaskSchema, task));
+      if (!tasks || !tasks.length) {
+         throw new NotFoundException("No tasks found");
+      }
+
+      return tasks;
    }
 
    async create(userId: string, createBoardDto: CreateBoardDto) {
@@ -86,16 +104,13 @@ export class BoardService {
             id: sql.placeholder("id"),
             userId: sql.placeholder("userId"),
             name: sql.placeholder("name"),
-            description: sql.placeholder("description")
+            description: sql.placeholder("description"),
+            pipeline: sql.placeholder("pipeline")
          })
          .prepare();
 
       await query
-         .run({
-            id: nanoid(25),
-            userId,
-            ...createBoardDto
-         })
+         .run({ id: nanoid(25), userId, ...createBoardDto })
          .catch(this.dbService.handleDbError);
    }
 
@@ -128,19 +143,14 @@ export class BoardService {
       const query = builder
          .update(boardsTable)
          .set({ ...updateBoardDto, updatedAt: new Date() })
-         .where(
-            and(
-               eq(boardsTable.id, sql.placeholder("id")),
-               eq(boardsTable.userId, sql.placeholder("userId"))
-            )
-         )
+         .where(and(eq(boardsTable.id, id), eq(boardsTable.userId, userId)))
          .prepare();
 
       await query
-         .run({ id, userId })
+         .run()
          .catch(this.dbService.handleDbError)
          .then((resultSet) => {
-            if (resultSet && !resultSet.rowsAffected) {
+            if (!resultSet || !resultSet.rowsAffected) {
                throw new NotFoundException("Board not found");
             }
          });
@@ -163,7 +173,7 @@ export class BoardService {
          .run({ id, userId })
          .catch(this.dbService.handleDbError)
          .then((resultSet) => {
-            if (resultSet && !resultSet.rowsAffected) {
+            if (!resultSet || !resultSet.rowsAffected) {
                throw new NotFoundException("Board not found");
             }
          });
