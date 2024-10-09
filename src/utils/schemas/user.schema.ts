@@ -1,8 +1,6 @@
 import {
    check,
-   date,
    maxLength,
-   nullable,
    object,
    optional,
    pipe,
@@ -10,17 +8,6 @@ import {
    string,
    url
 } from "valibot";
-
-export const SelectUserSchema = object({
-   id: string(),
-   email: string(),
-   profileImage: nullable(string()),
-   provider: string(),
-   firstName: string(),
-   lastName: string(),
-   createdAt: date(),
-   updatedAt: date()
-});
 
 export const UpdateUserSchema = pipe(
    object({

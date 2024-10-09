@@ -2,31 +2,36 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { eq, sql } from "drizzle-orm";
 import { DatabaseService } from "database/database.service";
 import { profilesTable, usersTable } from "database/tables";
-import { SelectUserSchema } from "utils/schemas";
-import { SelectUserDto, UpdateUserDto } from "utils/types";
-import { parse } from "valibot";
+import { UpdateUserDto } from "utils/types";
 
 @Injectable()
 export class UserService {
    constructor(private readonly dbService: DatabaseService) {}
 
-   async findProfile(id: string): Promise<SelectUserDto> {
+   async findProfile(id: string) {
       const builder = this.dbService.builder;
 
       const query = builder
-         .select({ user: usersTable, profile: profilesTable })
+         .select({
+            email: usersTable.email,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName,
+            profileImage: profilesTable.profileImage,
+            createdAt: profilesTable.createdAt,
+            updatedAt: profilesTable.updatedAt
+         })
          .from(usersTable)
          .where(eq(usersTable.id, sql.placeholder("id")))
          .innerJoin(profilesTable, eq(usersTable.id, profilesTable.userId))
          .prepare();
 
-      const data = await query.get({ id });
+      const user = await query.get({ id });
 
-      if (!data) {
+      if (!user) {
          throw new NotFoundException("User not found");
       }
 
-      return parse(SelectUserSchema, { ...data.user, ...data.profile });
+      return user;
    }
 
    async updateProfile(id: string, updateUserDto: UpdateUserDto) {

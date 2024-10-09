@@ -16,14 +16,13 @@ import { PaginationQueryPipe, ValibotPipe } from "utils/pipes";
 import {
    CreateTaskDto,
    PaginationQuery,
-   SelectTaskDto,
    UpdateTaskDto,
    TUser
 } from "utils/types";
 import { User } from "utils/decorators";
 import { CreateTaskSchema, UpdateTaskSchema } from "utils/schemas";
 
-@Controller("task")
+@Controller("board/:boardId/task")
 export class TaskController {
    constructor(private readonly taskService: TaskService) {}
 
@@ -31,25 +30,23 @@ export class TaskController {
    async findMany(
       @Query(PaginationQueryPipe) pagination: PaginationQuery,
       @User() { userId }: TUser
-   ): Promise<SelectTaskDto[]> {
+   ) {
       return this.taskService.findMany(userId, pagination);
    }
 
    @Get(":id")
-   async findOne(
-      @Param("id") id: string,
-      @User() { userId }: TUser
-   ): Promise<SelectTaskDto> {
+   async findOne(@Param("id") id: string, @User() { userId }: TUser) {
       return this.taskService.findOne(id, userId);
    }
 
    @UsePipes(new ValibotPipe(CreateTaskSchema))
    @Post()
    async create(
+      @Param("boardId") boardId: string,
       @Body() createTaskDto: CreateTaskDto,
       @User() { userId }: TUser
    ) {
-      return this.taskService.create(userId, createTaskDto);
+      return this.taskService.create(userId, boardId, createTaskDto);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)
@@ -57,10 +54,11 @@ export class TaskController {
    @Patch(":id")
    async update(
       @Param("id") id: string,
+      @Param("boardId") boardId: string,
       @Body() updateTaskDto: UpdateTaskDto,
       @User() { userId }: TUser
    ) {
-      return this.taskService.update(id, userId, updateTaskDto);
+      return this.taskService.update(id, userId, boardId, updateTaskDto);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)

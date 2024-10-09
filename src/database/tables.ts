@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 
 type Status = {
    name: string;
@@ -33,36 +33,44 @@ export const profilesTable = sqliteTable("profiles", {
       .default(sql`(unixepoch())`)
 });
 
-export const boardsTable = sqliteTable("boards", {
-   id: text("id").primaryKey(),
-   userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id),
-   name: text("name").notNull().unique(),
-   description: text("description"),
-   pipeline: text("pipeline", { mode: "json" })
-      .$type<Status[]>()
-      .default([
-         { name: "pending", rgb: [0, 0, 0] },
-         { name: "on-going", rgb: [0, 0, 0] },
-         { name: "completed", rgb: [0, 0, 0] },
-         { name: "hiatus", rgb: [0, 0, 0] }
-      ])
-      .notNull(),
-   createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-   updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`)
-});
+export const boardsTable = sqliteTable(
+   "boards",
+   {
+      id: text("id").primaryKey(),
+      userId: text("user_id")
+         .notNull()
+         .references(() => usersTable.id),
+      name: text("name").notNull(),
+      description: text("description"),
+      pipeline: text("pipeline", { mode: "json" })
+         .$type<Status[]>()
+         .default([
+            { name: "pending", rgb: [0, 0, 0] },
+            { name: "on-going", rgb: [0, 0, 0] },
+            { name: "completed", rgb: [0, 0, 0] },
+            { name: "hiatus", rgb: [0, 0, 0] }
+         ])
+         .notNull(),
+      createdAt: integer("created_at", { mode: "timestamp" })
+         .notNull()
+         .default(sql`(unixepoch())`),
+      updatedAt: integer("updated_at", { mode: "timestamp" })
+         .notNull()
+         .default(sql`(unixepoch())`)
+   },
+   (table) => ({
+      boardNameUnique: unique("board_name_unique").on(table.userId, table.name)
+   })
+);
 
 export const tasksTable = sqliteTable("tasks", {
    id: text("id").primaryKey(),
    userId: text("user_id")
       .notNull()
       .references(() => usersTable.id),
-   boardId: text("board_id").references(() => boardsTable.id),
+   boardId: text("board_id")
+      .notNull()
+      .references(() => boardsTable.id),
    description: text("description").notNull(),
    status: text("status").notNull(),
    priority: text("priority").notNull(),

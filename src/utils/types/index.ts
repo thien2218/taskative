@@ -2,8 +2,6 @@ import {
    CreateBoardSchema,
    CreateTaskSchema,
    LoginSchema,
-   SelectTaskSchema,
-   SelectUserSchema,
    SignupSchema,
    UpdateBoardSchema,
    UpdateTaskSchema,
@@ -43,7 +41,6 @@ export type JwtPayload = {
 /**
  * User types
  */
-export type SelectUserDto = InferOutput<typeof SelectUserSchema>;
 export type UpdateUserDto = InferOutput<typeof UpdateUserSchema>;
 
 export type TUser = {
@@ -75,7 +72,6 @@ export type OAuthValidateDto = {
  * Task types
  */
 export type CreateTaskDto = InferOutput<typeof CreateTaskSchema>;
-export type SelectTaskDto = InferOutput<typeof SelectTaskSchema>;
 export type UpdateTaskDto = InferOutput<typeof UpdateTaskSchema>;
 
 /**

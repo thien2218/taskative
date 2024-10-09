@@ -8,7 +8,6 @@ import { CreateBoardDto, PaginationQuery, UpdateBoardDto } from "utils/types";
 @Injectable()
 export class BoardService {
    private readonly boardColumns = {
-      id: boardsTable.id,
       name: boardsTable.name,
       description: boardsTable.description,
       pipeline: boardsTable.pipeline,
@@ -22,7 +21,7 @@ export class BoardService {
       const builder = this.dbService.builder;
 
       const query = builder
-         .select(this.boardColumns)
+         .select({ ...this.boardColumns, id: boardsTable.id })
          .from(boardsTable)
          .where(eq(boardsTable.userId, sql.placeholder("userId")))
          .limit(sql.placeholder("limit"))
@@ -97,6 +96,7 @@ export class BoardService {
 
    async create(userId: string, createBoardDto: CreateBoardDto) {
       const builder = this.dbService.builder;
+      const id = nanoid(25);
 
       const query = builder
          .insert(boardsTable)
@@ -110,8 +110,10 @@ export class BoardService {
          .prepare();
 
       await query
-         .run({ id: nanoid(25), userId, ...createBoardDto })
+         .run({ id, userId, ...createBoardDto })
          .catch(this.dbService.handleDbError);
+
+      return { id };
    }
 
    async addToBoard(id: string, userId: string, taskIds: string[]) {

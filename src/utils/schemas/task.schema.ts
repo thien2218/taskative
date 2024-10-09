@@ -1,11 +1,11 @@
 import {
    array,
    check,
-   date,
+   length,
    maxLength,
    minLength,
+   nanoid,
    nonEmpty,
-   nullable,
    object,
    optional,
    partial,
@@ -20,8 +20,8 @@ export const StatusSchema = pipe(
    nonEmpty("Task status cannot be empty"),
    maxLength(30, "Task status cannot exceed 30 characters"),
    regex(
-      /^[a-zA-Z0-9]+$/,
-      "Task status must be alphanumeric and contain no spaces"
+      /^[a-z0-9_-]+$/,
+      "Task status characters must be lowercase alphanumeric and contain no spaces"
    )
 );
 
@@ -36,16 +36,6 @@ export const CreateTaskSchema = object({
       "optional"
    ),
    status: StatusSchema
-});
-
-export const SelectTaskSchema = object({
-   id: string(),
-   description: string(),
-   status: string(),
-   priority: string(),
-   note: nullable(string()),
-   createdAt: date(),
-   updatedAt: date()
 });
 
 export const UpdateTaskSchema = pipe(
