@@ -4,8 +4,8 @@ import * as dotenv from "dotenv";
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 
 export default defineConfig({
-   schema: "database/tables.ts",
-   out: "database/migrations",
+   schema: "./src/database/tables.ts",
+   out: "./src/database/migrations",
    dialect: "sqlite",
    driver: "turso",
    dbCredentials: {

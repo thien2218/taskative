@@ -45,10 +45,10 @@ export const boardsTable = sqliteTable(
       pipeline: text("pipeline", { mode: "json" })
          .$type<Status[]>()
          .default([
+            { name: "hiatus", rgb: [0, 0, 0] },
             { name: "pending", rgb: [0, 0, 0] },
             { name: "on-going", rgb: [0, 0, 0] },
-            { name: "completed", rgb: [0, 0, 0] },
-            { name: "hiatus", rgb: [0, 0, 0] }
+            { name: "completed", rgb: [0, 0, 0] }
          ])
          .notNull(),
       createdAt: integer("created_at", { mode: "timestamp" })
@@ -71,6 +71,9 @@ export const tasksTable = sqliteTable("tasks", {
    boardId: text("board_id")
       .notNull()
       .references(() => boardsTable.id, { onDelete: "cascade" }),
+   listId: text("list_id").references(() => listsTable.id, {
+      onDelete: "set null"
+   }),
    description: text("description").notNull(),
    status: text("status").notNull(),
    priority: text("priority").notNull().default("optional"),
@@ -83,31 +86,18 @@ export const tasksTable = sqliteTable("tasks", {
       .default(sql`(unixepoch())`)
 });
 
-export const notesTable = sqliteTable("notes", {
-   id: text("id").primaryKey(),
-   userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id),
-   folderId: text("folder_id").references(() => foldersTable.id, {
-      onDelete: "set null"
-   }),
-   content: text("content").notNull(),
-   createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-   updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`)
-});
-
-export const foldersTable = sqliteTable(
-   "folders",
+export const listsTable = sqliteTable(
+   "lists",
    {
       id: text("id").primaryKey(),
       userId: text("user_id")
          .notNull()
          .references(() => usersTable.id, { onDelete: "cascade" }),
       name: text("name").notNull(),
+      boardId: text("board_id")
+         .notNull()
+         .references(() => boardsTable.id, { onDelete: "cascade" }),
+      description: text("description"),
       createdAt: integer("created_at", { mode: "timestamp" })
          .notNull()
          .default(sql`(unixepoch())`),
@@ -116,9 +106,6 @@ export const foldersTable = sqliteTable(
          .default(sql`(unixepoch())`)
    },
    (table) => ({
-      folderNameUnique: unique("folder_name_unique").on(
-         table.userId,
-         table.name
-      )
+      listNameUnique: unique("list_name_unique").on(table.userId, table.name)
    })
 );
