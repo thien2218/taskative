@@ -1,9 +1,12 @@
 import {
    CreateBoardSchema,
+   CreateListSchema,
    CreateTaskSchema,
    LoginSchema,
+   PageSchema,
    SignupSchema,
    UpdateBoardSchema,
+   UpdateListSchema,
    UpdateTaskSchema,
    UpdateUserSchema
 } from "../schemas";
@@ -12,10 +15,7 @@ import { InferOutput } from "valibot";
 /**
  * Query types
  */
-export type PaginationQuery = {
-   limit: number;
-   offset: number;
-};
+export type Page = InferOutput<typeof PageSchema>;
 
 /**
  * Auth types
@@ -79,3 +79,9 @@ export type UpdateTaskDto = InferOutput<typeof UpdateTaskSchema>;
  */
 export type CreateBoardDto = InferOutput<typeof CreateBoardSchema>;
 export type UpdateBoardDto = InferOutput<typeof UpdateBoardSchema>;
+
+/**
+ * List types
+ */
+export type CreateListDto = InferOutput<typeof CreateListSchema>;
+export type UpdateListDto = InferOutput<typeof UpdateListSchema>;

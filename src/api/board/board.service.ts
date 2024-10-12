@@ -3,7 +3,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "database/database.service";
 import { boardsTable, tasksTable } from "database/tables";
-import { CreateBoardDto, PaginationQuery, UpdateBoardDto } from "utils/types";
+import { CreateBoardDto, Page, UpdateBoardDto } from "utils/types";
 
 @Injectable()
 export class BoardService {
@@ -17,7 +17,7 @@ export class BoardService {
 
    constructor(private readonly dbService: DatabaseService) {}
 
-   async findMany(userId: string, page: PaginationQuery) {
+   async findMany(userId: string, page: Page) {
       const builder = this.dbService.builder;
 
       const query = builder

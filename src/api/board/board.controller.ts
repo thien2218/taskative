@@ -12,17 +12,13 @@ import {
    UsePipes
 } from "@nestjs/common";
 import { BoardService } from "./board.service";
-import { PaginationQueryPipe, ValibotPipe } from "utils/pipes";
-import {
-   CreateBoardDto,
-   PaginationQuery,
-   UpdateBoardDto,
-   TUser
-} from "utils/types";
+import { ValibotPipe } from "utils/pipes";
+import { CreateBoardDto, Page, UpdateBoardDto, TUser } from "utils/types";
 import { User } from "utils/decorators";
 import {
    AddToBoardSchema,
    CreateBoardSchema,
+   PageSchema,
    UpdateBoardSchema
 } from "utils/schemas";
 
@@ -32,7 +28,7 @@ export class BoardController {
 
    @Get()
    async findMany(
-      @Query(PaginationQueryPipe) page: PaginationQuery,
+      @Query(new ValibotPipe(PageSchema)) page: Page,
       @User() { userId }: TUser
    ) {
       return this.listService.findMany(userId, page);

@@ -12,15 +12,10 @@ import {
    UsePipes
 } from "@nestjs/common";
 import { TaskService } from "./task.service";
-import { PaginationQueryPipe, ValibotPipe } from "utils/pipes";
-import {
-   CreateTaskDto,
-   PaginationQuery,
-   UpdateTaskDto,
-   TUser
-} from "utils/types";
+import { ValibotPipe } from "utils/pipes";
+import { CreateTaskDto, Page, UpdateTaskDto, TUser } from "utils/types";
 import { User } from "utils/decorators";
-import { CreateTaskSchema, UpdateTaskSchema } from "utils/schemas";
+import { CreateTaskSchema, PageSchema, UpdateTaskSchema } from "utils/schemas";
 
 @Controller("board/:boardId/task")
 export class TaskController {
@@ -28,7 +23,7 @@ export class TaskController {
 
    @Get()
    async findMany(
-      @Query(PaginationQueryPipe) pagination: PaginationQuery,
+      @Query(new ValibotPipe(PageSchema)) pagination: Page,
       @User() { userId }: TUser
    ) {
       return this.taskService.findMany(userId, pagination);
