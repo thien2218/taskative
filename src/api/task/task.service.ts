@@ -107,16 +107,10 @@ export class TaskService {
       const query = builder
          .update(tasksTable)
          .set({ ...updateTaskDto, updatedAt })
-         .where(
-            and(
-               eq(tasksTable.id, sql.placeholder("id")),
-               eq(tasksTable.userId, sql.placeholder("userId"))
-            )
-         )
-         .prepare();
+         .where(and(eq(tasksTable.id, id), eq(tasksTable.userId, userId)));
 
       await query
-         .run({ id, userId })
+         .run()
          .catch(this.dbService.handleDbError)
          .then((resultSet) => {
             if (!resultSet || !resultSet.rowsAffected) {

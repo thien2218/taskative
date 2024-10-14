@@ -40,7 +40,7 @@ export const UpdateListSchema = pipe(
    )
 );
 
-export const AddListTasksSchema = pipe(
+export const ListTaskIDsSchema = pipe(
    array(
       pipe(string(), nanoid("Invalid task ID"), length(25, "Invalid task ID")),
       "List of task IDs must be an array"

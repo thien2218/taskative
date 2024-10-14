@@ -14,7 +14,7 @@ import { ValibotPipe } from "utils/pipes";
 import { CreateListDto, Page, TUser, UpdateListDto } from "utils/types";
 import { User } from "utils/decorators";
 import {
-   AddListTasksSchema,
+   ListTaskIDsSchema,
    CreateListSchema,
    PageSchema,
    UpdateListSchema
@@ -52,13 +52,23 @@ export class ListController {
    }
 
    @Post(":id/tasks")
-   @UsePipes(new ValibotPipe(AddListTasksSchema))
+   @UsePipes(new ValibotPipe(ListTaskIDsSchema))
    async addTasks(
       @Param("id") id: string,
-      @Body() addTasksToListDto: string[],
+      @Body() tasksToAdd: string[],
       @User() { userId }: TUser
    ) {
-      return this.listService.addTasks(id, userId, addTasksToListDto);
+      return this.listService.addTasks(id, userId, tasksToAdd);
+   }
+
+   @Delete(":id/tasks")
+   @UsePipes(new ValibotPipe(ListTaskIDsSchema))
+   async removeTasks(
+      @Param("id") id: string,
+      @Body() tasksToRemove: string[],
+      @User() { userId }: TUser
+   ) {
+      return this.listService.removeTasks(id, userId, tasksToRemove);
    }
 
    @Patch(":id")

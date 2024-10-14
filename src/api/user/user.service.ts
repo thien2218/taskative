@@ -40,11 +40,10 @@ export class UserService {
       const query = builder
          .update(profilesTable)
          .set({ ...updateUserDto, updatedAt: new Date() })
-         .where(eq(profilesTable.userId, sql.placeholder("id")))
-         .prepare();
+         .where(eq(profilesTable.userId, id));
 
       await query
-         .run({ id })
+         .run()
          .catch(this.dbService.handleDbError)
          .then((resultSet) => {
             if (!resultSet || !resultSet.rowsAffected) {

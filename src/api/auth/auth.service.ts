@@ -97,12 +97,9 @@ export class AuthService {
       const updateUserQuery = builder
          .update(usersTable)
          .set({ encodedRefreshToken })
-         .where(eq(usersTable.id, sql.placeholder("id")))
-         .prepare();
+         .where(eq(usersTable.id, user.id));
 
-      await updateUserQuery
-         .run({ id: user.id })
-         .catch(this.dbService.handleDbError);
+      await updateUserQuery.run().catch(this.dbService.handleDbError);
 
       return tokens;
    }
@@ -172,10 +169,9 @@ export class AuthService {
          const updateUserQuery = builder
             .update(usersTable)
             .set({ encodedRefreshToken })
-            .where(eq(usersTable.id, sql.placeholder("id")))
-            .prepare();
+            .where(eq(usersTable.id, id));
 
-         await updateUserQuery.run({ id }).catch(this.dbService.handleDbError);
+         await updateUserQuery.run().catch(this.dbService.handleDbError);
       }
 
       return { accessToken, refreshToken };
