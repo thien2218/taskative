@@ -109,3 +109,17 @@ export const listsTable = sqliteTable(
       listNameUnique: unique("list_name_unique").on(table.userId, table.name)
    })
 );
+
+export const notesTable = sqliteTable("notes", {
+   id: text("id").primaryKey(),
+   userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+   content: text("content").notNull(),
+   createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+   updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`)
+});

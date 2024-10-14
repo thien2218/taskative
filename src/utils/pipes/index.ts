@@ -4,11 +4,11 @@ import {
    BadRequestException,
    ArgumentMetadata
 } from "@nestjs/common";
-import { ObjectSchema, safeParse } from "valibot";
+import { GenericSchema, safeParse } from "valibot";
 
 @Injectable()
 export class ValibotPipe implements PipeTransform {
-   constructor(private readonly schema: ObjectSchema<any, any>) {}
+   constructor(private readonly schema: GenericSchema<any, any>) {}
 
    transform(value: any, metadata: ArgumentMetadata) {
       if (metadata.type === "body") {

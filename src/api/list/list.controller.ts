@@ -13,7 +13,12 @@ import { ListService } from "./list.service";
 import { ValibotPipe } from "utils/pipes";
 import { CreateListDto, Page, TUser, UpdateListDto } from "utils/types";
 import { User } from "utils/decorators";
-import { CreateListSchema, PageSchema, UpdateListSchema } from "utils/schemas";
+import {
+   AddListTasksSchema,
+   CreateListSchema,
+   PageSchema,
+   UpdateListSchema
+} from "utils/schemas";
 
 @Controller("list")
 export class ListController {
@@ -23,35 +28,51 @@ export class ListController {
    async findMany(
       @Query(new ValibotPipe(PageSchema)) pagination: Page,
       @User() { userId }: TUser
-   ) {}
+   ) {
+      return this.listService.findMany(userId, pagination);
+   }
 
    @Get(":id")
-   async findOne(@Param("id") id: string, @User() { userId }: TUser) {}
+   async findOne(@Param("id") id: string, @User() { userId }: TUser) {
+      return this.listService.findOne(id, userId);
+   }
 
    @Get(":id/tasks")
-   async findTasks(@Param("id") id: string, @User() { userId }: TUser) {}
+   async findTasksFromList(@Param("id") id: string, @User() { userId }: TUser) {
+      return this.listService.findTasksFromList(id, userId);
+   }
 
    @Post()
    @UsePipes(new ValibotPipe(CreateListSchema))
    async create(
       @Body() createListDto: CreateListDto,
       @User() { userId }: TUser
-   ) {}
+   ) {
+      return this.listService.create(userId, createListDto);
+   }
 
    @Post(":id/tasks")
-   @UsePipes(new ValibotPipe(CreateListSchema))
-   async addTask(
+   @UsePipes(new ValibotPipe(AddListTasksSchema))
+   async addTasks(
+      @Param("id") id: string,
       @Body() addTasksToListDto: string[],
       @User() { userId }: TUser
-   ) {}
+   ) {
+      return this.listService.addTasks(id, userId, addTasksToListDto);
+   }
 
    @Patch(":id")
    @UsePipes(new ValibotPipe(UpdateListSchema))
    async update(
+      @Param("id") id: string,
       @Body() updateListDto: UpdateListDto,
       @User() { userId }: TUser
-   ) {}
+   ) {
+      return this.listService.update(id, userId, updateListDto);
+   }
 
    @Delete(":id")
-   async delete(@Param("id") id: string, @User() { userId }: TUser) {}
+   async delete(@Param("id") id: string, @User() { userId }: TUser) {
+      return this.listService.delete(id, userId);
+   }
 }
