@@ -26,10 +26,10 @@ export class ListController {
 
    @Get()
    async findMany(
-      @Query(new ValibotPipe(PageSchema)) pagination: Page,
+      @Query(new ValibotPipe(PageSchema)) page: Page,
       @User() { userId }: TUser
    ) {
-      return this.listService.findMany(userId, pagination);
+      return this.listService.findMany(userId, page);
    }
 
    @Get(":id")

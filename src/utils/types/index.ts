@@ -1,3 +1,4 @@
+import { NoteContentSchema } from "utils/schemas";
 import {
    CreateBoardSchema,
    CreateListSchema,
@@ -85,3 +86,8 @@ export type UpdateBoardDto = InferOutput<typeof UpdateBoardSchema>;
  */
 export type CreateListDto = InferOutput<typeof CreateListSchema>;
 export type UpdateListDto = InferOutput<typeof UpdateListSchema>;
+
+/**
+ * Note types
+ */
+export type NoteContentDto = InferOutput<typeof NoteContentSchema>;

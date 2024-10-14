@@ -14,6 +14,7 @@ export * from "./user.schema";
 export * from "./task.schema";
 export * from "./board.schema";
 export * from "./list.schema";
+export * from "./note.schema";
 
 export const PageSchema = pipe(
    object({

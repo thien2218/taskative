@@ -9,6 +9,7 @@ import { TaskModule } from "./api/task/task.module";
 import { BoardModule } from "./api/board/board.module";
 import { AppController } from "./app.controller";
 import { ListModule } from "./api/list/list.module";
+import { NoteModule } from "./api/note/note.module";
 
 @Module({
    imports: [
@@ -21,7 +22,8 @@ import { ListModule } from "./api/list/list.module";
       UserModule,
       TaskModule,
       BoardModule,
-      ListModule
+      ListModule,
+      NoteModule
    ],
    providers: [
       {
