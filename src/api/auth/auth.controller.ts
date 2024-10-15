@@ -13,12 +13,23 @@ import { Public, Unauthenticated, User } from "utils/decorators";
 import { ValibotPipe } from "utils/pipes";
 import { LoginDto, SignupDto, TUser } from "utils/types";
 import { LoginSchema, SignupSchema } from "utils/schemas";
-import { Response } from "express";
+import { CookieOptions, Response } from "express";
 import { GoogleOAuthGuard } from "./guards/google-oauth.guard";
+import { ConfigService } from "@nestjs/config";
 
 @Controller("auth")
 export class AuthController {
-   constructor(private readonly authService: AuthService) {}
+   constructor(
+      private readonly authService: AuthService,
+      private readonly configService: ConfigService
+   ) {}
+
+   private readonly cookieOptions: CookieOptions = {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: this.configService.get("NODE_ENV") === "production",
+      maxAge: 1000 * 60 * 60 * 24 * 15 // 15 days
+   };
 
    @Public()
    @UsePipes(new ValibotPipe(SignupSchema))
@@ -27,13 +38,11 @@ export class AuthController {
       const { accessToken, refreshToken } =
          await this.authService.signup(creds);
 
-      res.cookie("taskative_refreshToken", refreshToken, {
-         httpOnly: true,
-         sameSite: "lax",
-         secure: true
-      });
+      res.cookie("taskative_refreshToken", refreshToken, this.cookieOptions);
 
       res.setHeader("Authorization", `Bearer ${accessToken}`);
+      res.setHeader("Location", "/");
+
       res.send();
    }
 
@@ -43,13 +52,11 @@ export class AuthController {
    async login(@Body() creds: LoginDto, @Res() res: Response) {
       const { accessToken, refreshToken } = await this.authService.login(creds);
 
-      res.cookie("taskative_refreshToken", refreshToken, {
-         httpOnly: true,
-         sameSite: "lax",
-         secure: true
-      });
+      res.cookie("taskative_refreshToken", refreshToken, this.cookieOptions);
 
       res.setHeader("Authorization", `Bearer ${accessToken}`);
+      res.setHeader("Location", "/");
+
       res.status(HttpStatus.OK).send();
    }
 
@@ -70,13 +77,11 @@ export class AuthController {
       const { accessToken, refreshToken } =
          await this.authService.generateTokens(user);
 
-      res.cookie("taskative_refreshToken", refreshToken, {
-         httpOnly: true,
-         sameSite: "lax",
-         secure: true
-      });
+      res.cookie("taskative_refreshToken", refreshToken, this.cookieOptions);
 
       res.setHeader("Authorization", `Bearer ${accessToken}`);
+      res.setHeader("Location", "/");
+
       res.send();
    }
 
@@ -84,6 +89,7 @@ export class AuthController {
    async logout(@User() { userId }: TUser, @Res() res: Response) {
       res.clearCookie("taskative_refreshToken");
       await this.authService.logout(userId);
+      res.setHeader("Location", "/login");
       res.status(HttpStatus.OK).send();
    }
 }
