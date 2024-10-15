@@ -113,7 +113,7 @@ export class ListService {
          .values({
             id: sql.placeholder("id"),
             name: sql.placeholder("name"),
-            // description: sql.placeholder("description"),
+            description: sql.placeholder("description"),
             userId: sql.placeholder("userId"),
             boardId: sql.placeholder("boardId")
          })
