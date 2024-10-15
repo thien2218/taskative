@@ -50,9 +50,12 @@ export const boardsTable = sqliteTable(
          .default([
             { name: "hiatus", rgb: [0, 0, 0] },
             { name: "pending", rgb: [0, 0, 0] },
-            { name: "on-going", rgb: [0, 0, 0] },
-            { name: "completed", rgb: [0, 0, 0] }
+            { name: "on-going", rgb: [0, 0, 0] }
          ])
+         .notNull(),
+      completedStatus: text("completed_status", { mode: "json" })
+         .$type<Status>()
+         .default({ name: "completed", rgb: [0, 0, 0] })
          .notNull(),
       createdAt: integer("created_at", { mode: "timestamp" })
          .notNull()

@@ -38,6 +38,13 @@ export const CreateTaskSchema = object({
    status: StatusSchema,
    listId: optional(
       pipe(string(), nanoid("Invalid list ID"), length(25, "Invalid list ID"))
+   ),
+   note: optional(
+      pipe(
+         string(),
+         nonEmpty("Task note cannot be empty"),
+         maxLength(10000, "Task note cannot exceed 10000 characters")
+      )
    )
 });
 

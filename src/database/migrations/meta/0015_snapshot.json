@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ffa6fccf-bd9b-4069-ae51-c4e7b5573f9b",
-  "prevId": "8873c924-a918-4ead-8088-cfa0eecc282f",
+  "id": "548ff7b5-9af6-4c6f-bc3d-25ed84454338",
+  "prevId": "f6f72a04-2ddc-460c-9bd4-97082318e3aa",
   "tables": {
     "boards": {
       "name": "boards",
@@ -41,7 +41,15 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'[{\"name\":\"pending\",\"rgb\":[0,0,0]},{\"name\":\"on-going\",\"rgb\":[0,0,0]},{\"name\":\"completed\",\"rgb\":[0,0,0]},{\"name\":\"hiatus\",\"rgb\":[0,0,0]}]'"
+          "default": "'[{\"name\":\"hiatus\",\"rgb\":[0,0,0]},{\"name\":\"pending\",\"rgb\":[0,0,0]},{\"name\":\"on-going\",\"rgb\":[0,0,0]}]'"
+        },
+        "completed_status": {
+          "name": "completed_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{\"name\":\"completed\",\"rgb\":[0,0,0]}'"
         },
         "created_at": {
           "name": "created_at",
@@ -88,8 +96,8 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "folders": {
-      "name": "folders",
+    "lists": {
+      "name": "lists",
       "columns": {
         "id": {
           "name": "id",
@@ -112,6 +120,20 @@
           "notNull": true,
           "autoincrement": false
         },
+        "board_id": {
+          "name": "board_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -130,8 +152,8 @@
         }
       },
       "indexes": {
-        "folder_name_unique": {
-          "name": "folder_name_unique",
+        "list_name_unique": {
+          "name": "list_name_unique",
           "columns": [
             "user_id",
             "name"
@@ -140,12 +162,25 @@
         }
       },
       "foreignKeys": {
-        "folders_user_id_users_id_fk": {
-          "name": "folders_user_id_users_id_fk",
-          "tableFrom": "folders",
+        "lists_user_id_users_id_fk": {
+          "name": "lists_user_id_users_id_fk",
+          "tableFrom": "lists",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lists_board_id_boards_id_fk": {
+          "name": "lists_board_id_boards_id_fk",
+          "tableFrom": "lists",
+          "tableTo": "boards",
+          "columnsFrom": [
+            "board_id"
           ],
           "columnsTo": [
             "id"
@@ -172,13 +207,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "folder_id": {
-          "name": "folder_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "content": {
@@ -217,20 +245,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "notes_folder_id_folders_id_fk": {
-          "name": "notes_folder_id_folders_id_fk",
-          "tableFrom": "notes",
-          "tableTo": "folders",
-          "columnsFrom": [
-            "folder_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -328,6 +343,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "list_id": {
+          "name": "list_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "description": {
           "name": "description",
           "type": "text",
@@ -347,8 +369,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "'optional'"
+          "autoincrement": false
         },
         "note": {
           "name": "note",
@@ -401,6 +422,19 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "tasks_list_id_lists_id_fk": {
+          "name": "tasks_list_id_lists_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "lists",
+          "columnsFrom": [
+            "list_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -438,13 +472,13 @@
           "notNull": false,
           "autoincrement": false
         },
-        "provider": {
-          "name": "provider",
+        "providers": {
+          "name": "providers",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'email'"
+          "default": "'[\"email\"]'"
         },
         "encoded_refresh_token": {
           "name": "encoded_refresh_token",
