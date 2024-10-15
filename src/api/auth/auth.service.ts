@@ -168,7 +168,11 @@ export class AuthService {
       const builder = this.dbService.builder;
 
       const getUserDataQuery = builder
-         .select({ id: usersTable.id, emailVerified: usersTable.emailVerified })
+         .select({
+            id: usersTable.id,
+            emailVerified: usersTable.emailVerified,
+            providers: usersTable.providers
+         })
          .from(usersTable)
          .where(eq(usersTable.email, sql.placeholder("email")));
 
@@ -177,19 +181,24 @@ export class AuthService {
          .catch(this.dbService.handleDbError);
 
       if (data) {
-         if (!data.emailVerified) {
+         const { id, emailVerified, providers } = data;
+
+         if (!emailVerified || !providers.includes(provider)) {
             const updateUserQuery = builder
                .update(usersTable)
-               .set({ emailVerified: true })
+               .set({
+                  emailVerified: true,
+                  providers: [...providers, provider]
+               })
                .where(eq(usersTable.id, sql.placeholder("id")))
                .prepare();
 
             await updateUserQuery
-               .run({ id: data.id })
+               .run({ id })
                .catch(this.dbService.handleDbError);
          }
 
-         return { sub: data.id, email, ...rest };
+         return { sub: id, email, ...rest };
       }
 
       const id = nanoid(25);
@@ -198,7 +207,12 @@ export class AuthService {
          .transaction(async (tx) => {
             await tx
                .insert(usersTable)
-               .values({ id, email, provider, emailVerified: true })
+               .values({
+                  id,
+                  email,
+                  providers: [provider],
+                  emailVerified: true
+               })
                .run();
 
             await tx

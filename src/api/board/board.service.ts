@@ -109,7 +109,7 @@ export class BoardService {
       return { id };
    }
 
-   async addToBoard(id: string, userId: string, taskIds: string[]) {
+   async addTasksToBoard(id: string, userId: string, taskIds: string[]) {
       const query = this.dbService.builder
          .update(tasksTable)
          .set({ boardId: id })

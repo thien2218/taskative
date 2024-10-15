@@ -13,7 +13,7 @@ import { User } from "utils/decorators";
 import { ValibotPipe } from "utils/pipes";
 import { UpdateUserSchema } from "utils/schemas";
 
-@Controller("user")
+@Controller("me")
 export class UserController {
    constructor(private readonly userService: UserService) {}
 

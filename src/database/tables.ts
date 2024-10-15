@@ -13,7 +13,10 @@ export const usersTable = sqliteTable("users", {
       .notNull()
       .default(false),
    encodedPassword: text("encoded_password"),
-   provider: text("provider").notNull().default("email"),
+   providers: text("providers", { mode: "json" })
+      .$type<("email" | "google" | "facebook")[]>()
+      .notNull()
+      .default(["email"]),
    encodedRefreshToken: text("encoded_refresh_token")
 });
 

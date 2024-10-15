@@ -53,6 +53,6 @@ export const UpdateTaskSchema = pipe(
    )
 );
 
-export const AddToBoardSchema = object({
-   taskIds: array(string())
-});
+export const BoardTaskIDsSchema = array(
+   pipe(string(), nanoid("Invalid task ID"), length(25, "Invalid task ID"))
+);

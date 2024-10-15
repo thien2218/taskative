@@ -16,7 +16,7 @@ import { ValibotPipe } from "utils/pipes";
 import { CreateBoardDto, Page, UpdateBoardDto, TUser } from "utils/types";
 import { User } from "utils/decorators";
 import {
-   AddToBoardSchema,
+   BoardTaskIDsSchema,
    CreateBoardSchema,
    PageSchema,
    UpdateBoardSchema
@@ -24,19 +24,19 @@ import {
 
 @Controller("board")
 export class BoardController {
-   constructor(private readonly listService: BoardService) {}
+   constructor(private readonly boardService: BoardService) {}
 
    @Get()
    async findMany(
       @Query(new ValibotPipe(PageSchema)) page: Page,
       @User() { userId }: TUser
    ) {
-      return this.listService.findMany(userId, page);
+      return this.boardService.findMany(userId, page);
    }
 
    @Get(":id")
    async findOne(@Param("id") id: string, @User() { userId }: TUser) {
-      return this.listService.findOne(id, userId);
+      return this.boardService.findOne(id, userId);
    }
 
    @Get(":id/tasks")
@@ -44,7 +44,7 @@ export class BoardController {
       @Param("id") id: string,
       @User() { userId }: TUser
    ) {
-      return this.listService.findTasksFromBoard(id, userId);
+      return this.boardService.findTasksFromBoard(id, userId);
    }
 
    @UsePipes(new ValibotPipe(CreateBoardSchema))
@@ -53,17 +53,17 @@ export class BoardController {
       @User() { userId }: TUser,
       @Body() createBoardDto: CreateBoardDto
    ) {
-      return this.listService.create(userId, createBoardDto);
+      return this.boardService.create(userId, createBoardDto);
    }
 
-   @UsePipes(new ValibotPipe(AddToBoardSchema))
+   @UsePipes(new ValibotPipe(BoardTaskIDsSchema))
    @Post(":id/tasks")
-   async addToBoard(
+   async addTasksToBoard(
       @Param("id") id: string,
       @User() { userId }: TUser,
-      @Body() { taskIds }: { taskIds: string[] }
+      @Body() taskIds: string[]
    ): Promise<{ message: string; tasksAdded: string[] }> {
-      return this.listService.addToBoard(id, userId, taskIds);
+      return this.boardService.addTasksToBoard(id, userId, taskIds);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)
@@ -74,12 +74,12 @@ export class BoardController {
       @User() { userId }: TUser,
       @Body() updateBoardDto: UpdateBoardDto
    ) {
-      return this.listService.update(id, userId, updateBoardDto);
+      return this.boardService.update(id, userId, updateBoardDto);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)
    @Delete(":id")
    async delete(@Param("id") id: string, @User() { userId }: TUser) {
-      return this.listService.delete(id, userId);
+      return this.boardService.delete(id, userId);
    }
 }

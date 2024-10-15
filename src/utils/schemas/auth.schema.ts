@@ -10,16 +10,24 @@ import {
    pipe,
    startsWith,
    string,
+   toLowerCase,
    transform,
    url
 } from "valibot";
 
+const EmailSchema = pipe(
+   string(),
+   email("Invalid email address"),
+   maxLength(63, "Email address is too long"),
+   toLowerCase(),
+   check(
+      (email) => !email.includes("+"),
+      "Email address cannot contain a plus sign"
+   )
+);
+
 export const LoginSchema = object({
-   email: pipe(
-      string(),
-      nonEmpty("Email is required"),
-      email("Invalid email address")
-   ),
+   email: EmailSchema,
    password: pipe(
       string(),
       minLength(6, "Password must be at least 6 characters long"),
@@ -30,21 +38,16 @@ export const LoginSchema = object({
 
 export const SignupSchema = pipe(
    object({
-      email: pipe(
-         string(),
-         nonEmpty("Email is required"),
-         email("Invalid email address"),
-         maxLength(255, "Email address is too long")
-      ),
+      email: EmailSchema,
       firstName: pipe(
          string(),
          nonEmpty("First name is required"),
-         maxLength(32, "First name cannot be longer than 32 characters")
+         maxLength(30, "First name cannot be longer than 30 characters")
       ),
       lastName: pipe(
          string(),
          nonEmpty("Last name is required"),
-         maxLength(32, "Last name cannot be longer than 32 characters")
+         maxLength(30, "Last name cannot be longer than 30 characters")
       ),
       password: pipe(
          string(),
