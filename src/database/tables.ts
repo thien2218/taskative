@@ -50,13 +50,11 @@ export const boardsTable = sqliteTable(
          .default([
             { name: "pending", rgb: [0, 0, 0] },
             { name: "on-going", rgb: [0, 0, 0] },
+            { name: "completed", rgb: [0, 0, 0] },
             { name: "hiatus", rgb: [0, 0, 0] }
          ])
          .notNull(),
-      completedStatus: text("completed_status", { mode: "json" })
-         .$type<Status>()
-         .default({ name: "completed", rgb: [0, 0, 0] })
-         .notNull(),
+      completedIndex: integer("completed_index").default(2).notNull(),
       createdAt: integer("created_at", { mode: "timestamp" })
          .notNull()
          .default(sql`(unixepoch())`),

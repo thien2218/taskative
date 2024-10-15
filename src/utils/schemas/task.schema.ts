@@ -43,7 +43,7 @@ export const CreateTaskSchema = object({
       pipe(
          string(),
          nonEmpty("Task note cannot be empty"),
-         maxLength(10000, "Task note cannot exceed 10000 characters")
+         maxLength(2000, "Task note cannot exceed 2000 characters")
       )
    )
 });

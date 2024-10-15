@@ -98,7 +98,8 @@ export class BoardService {
             userId: sql.placeholder("userId"),
             name: sql.placeholder("name"),
             description: sql.placeholder("description"),
-            pipeline: sql.placeholder("pipeline")
+            pipeline: sql.placeholder("pipeline"),
+            completedIndex: sql.placeholder("completedIndex")
          })
          .prepare();
 

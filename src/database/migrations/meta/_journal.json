@@ -8,6 +8,13 @@
       "when": 1728999261154,
       "tag": "0000_black_domino",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1729003107962,
+      "tag": "0001_massive_scorpion",
+      "breakpoints": true
     }
   ]
 }

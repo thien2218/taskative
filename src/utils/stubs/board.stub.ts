@@ -2,7 +2,8 @@ import { CreateBoardDto } from "utils/types";
 
 export const createBoardStub = (): CreateBoardDto => ({
    name: "test",
-   description: "test description"
+   description: "test description",
+   completedIndex: 0
 });
 
 export const selectBoardStub = () => ({
