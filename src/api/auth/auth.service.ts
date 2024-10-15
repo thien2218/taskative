@@ -5,7 +5,7 @@ import { hash, verify } from "argon2";
 import { eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "database/database.service";
-import { profilesTable, usersTable } from "database/tables";
+import { boardsTable, profilesTable, usersTable } from "database/tables";
 import {
    AuthTokens,
    JwtPayload,
@@ -22,8 +22,13 @@ export class AuthService {
       private readonly configService: ConfigService
    ) {}
 
-   async signup({ email, password, ...rest }: SignupDto): Promise<AuthTokens> {
+   async signup({
+      email,
+      password,
+      ...rest
+   }: SignupDto): Promise<AuthTokens & { boardId: string }> {
       const id = nanoid(25);
+      const boardId = nanoid(25);
       const encodedPassword = await hash(password);
       const tokens = await this.generateTokens({ sub: id, email, ...rest });
       const encodedRefreshToken = await hash(tokens.refreshToken);
@@ -44,10 +49,15 @@ export class AuthService {
                .insert(profilesTable)
                .values({ userId: id, ...rest })
                .run();
+
+            await tx
+               .insert(boardsTable)
+               .values({ id: boardId, name: "My Task Board", userId: id })
+               .run();
          })
          .catch(this.dbService.handleDbError);
 
-      return tokens;
+      return { ...tokens, boardId };
    }
 
    async login({ email, password }: LoginDto): Promise<AuthTokens> {

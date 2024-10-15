@@ -35,15 +35,13 @@ export class AuthController {
    @UsePipes(new ValibotPipe(SignupSchema))
    @Post("signup")
    async signup(@Body() creds: SignupDto, @Res() res: Response) {
-      const { accessToken, refreshToken } =
+      const { accessToken, refreshToken, boardId } =
          await this.authService.signup(creds);
 
       res.cookie("taskative_refreshToken", refreshToken, this.cookieOptions);
-
-      res.setHeader("Authorization", `Bearer ${accessToken}`);
       res.setHeader("Location", "/");
 
-      res.send();
+      res.send({ message: "User created successfully!", accessToken, boardId });
    }
 
    @Unauthenticated()
@@ -53,11 +51,12 @@ export class AuthController {
       const { accessToken, refreshToken } = await this.authService.login(creds);
 
       res.cookie("taskative_refreshToken", refreshToken, this.cookieOptions);
-
-      res.setHeader("Authorization", `Bearer ${accessToken}`);
       res.setHeader("Location", "/");
 
-      res.status(HttpStatus.OK).send();
+      res.status(HttpStatus.OK).send({
+         message: "User logged in successfully!",
+         accessToken
+      });
    }
 
    @Unauthenticated()
@@ -78,11 +77,12 @@ export class AuthController {
          await this.authService.generateTokens(user);
 
       res.cookie("taskative_refreshToken", refreshToken, this.cookieOptions);
-
-      res.setHeader("Authorization", `Bearer ${accessToken}`);
       res.setHeader("Location", "/");
 
-      res.send();
+      res.send({
+         message: "User logged in with Google successfully!",
+         accessToken
+      });
    }
 
    @Post("logout")
@@ -90,6 +90,8 @@ export class AuthController {
       res.clearCookie("taskative_refreshToken");
       await this.authService.logout(userId);
       res.setHeader("Location", "/login");
-      res.status(HttpStatus.OK).send();
+      res.status(HttpStatus.OK).send({
+         message: "User logged out successfully!"
+      });
    }
 }
