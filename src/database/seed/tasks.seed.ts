@@ -24,17 +24,15 @@ const seedTasks = async () => {
 
    for (let i = 0; i < 30; i++) {
       const userId = userIds[Math.floor(Math.random() * userIds.length)].id;
-      const boardId =
-         i % 6 === 0
-            ? null
-            : boardIds[Math.floor(Math.random() * boardIds.length)].id;
+      const boardId = boardIds[Math.floor(Math.random() * boardIds.length)].id;
 
       tasks.push({
          id: nanoid(25),
          userId,
          boardId,
          description: `Task ${i}`,
-         priority: "optional"
+         priority: "optional",
+         status: "pending"
       });
    }
 

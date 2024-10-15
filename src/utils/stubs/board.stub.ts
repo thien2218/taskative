@@ -1,11 +1,11 @@
-import { CreateBoardDto, SelectBoardDto } from "utils/types";
+import { CreateBoardDto } from "utils/types";
 
 export const createBoardStub = (): CreateBoardDto => ({
    name: "test",
    description: "test description"
 });
 
-export const selectBoardStub = (): SelectBoardDto => ({
+export const selectBoardStub = () => ({
    id: "boardId",
    name: "test",
    description: "test description",

@@ -7,16 +7,18 @@ import { Page } from "utils/types";
 
 @Injectable()
 export class NoteService {
+   private readonly noteColumns = {
+      id: notesTable.id,
+      content: notesTable.content,
+      createdAt: notesTable.createdAt,
+      updatedAt: notesTable.updatedAt
+   };
+
    constructor(private readonly dbService: DatabaseService) {}
 
    async findMany(userId: string, page: Page) {
       const query = this.dbService.builder
-         .select({
-            id: notesTable.id,
-            content: notesTable.content,
-            createdAt: notesTable.createdAt,
-            updatedAt: notesTable.updatedAt
-         })
+         .select(this.noteColumns)
          .from(notesTable)
          .where(eq(notesTable.userId, sql.placeholder("userId")))
          .orderBy(notesTable.updatedAt)
@@ -37,12 +39,7 @@ export class NoteService {
 
    async findOne(id: string, userId: string) {
       const query = this.dbService.builder
-         .select({
-            id: notesTable.id,
-            content: notesTable.content,
-            createdAt: notesTable.createdAt,
-            updatedAt: notesTable.updatedAt
-         })
+         .select(this.noteColumns)
          .from(notesTable)
          .where(
             and(

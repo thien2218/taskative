@@ -22,17 +22,13 @@ export class AuthService {
       private readonly configService: ConfigService
    ) {}
 
-   /* ======================================== */
-   /* ======================================== */
-   /* ======================================== */
    async signup({ email, password, ...rest }: SignupDto): Promise<AuthTokens> {
-      const builder = this.dbService.builder;
       const id = nanoid(25);
       const encodedPassword = await hash(password);
       const tokens = await this.generateTokens({ sub: id, email, ...rest });
       const encodedRefreshToken = await hash(tokens.refreshToken);
 
-      await builder
+      await this.dbService.builder
          .transaction(async (tx) => {
             await tx
                .insert(usersTable)
@@ -54,9 +50,6 @@ export class AuthService {
       return tokens;
    }
 
-   /* ======================================== */
-   /* ======================================== */
-   /* ======================================== */
    async login({ email, password }: LoginDto): Promise<AuthTokens> {
       const builder = this.dbService.builder;
 
@@ -104,9 +97,6 @@ export class AuthService {
       return tokens;
    }
 
-   /* ======================================== */
-   /* ======================================== */
-   /* ======================================== */
    async logout(id: string) {
       const builder = this.dbService.builder;
 
@@ -119,9 +109,6 @@ export class AuthService {
       await query.run({ id }).catch(this.dbService.handleDbError);
    }
 
-   /* ======================================== */
-   /* ======================================== */
-   /* ======================================== */
    async refresh(
       id: string,
       curRefreshToken: string
@@ -177,9 +164,6 @@ export class AuthService {
       return { accessToken, refreshToken };
    }
 
-   /* ======================================== */
-   /* ======================================== */
-   /* ======================================== */
    async validateOAuthUser({ email, provider, ...rest }: OAuthValidateDto) {
       const builder = this.dbService.builder;
 
@@ -227,9 +211,6 @@ export class AuthService {
       return { sub: id, email, ...rest };
    }
 
-   /* ======================================== */
-   /* ======================================== */
-   /* ======================================== */
    async generateTokens(payload: Omit<JwtPayload, "exp">): Promise<AuthTokens> {
       const [accessToken, refreshToken] = await Promise.all([
          this.jwtService.signAsync(payload, {

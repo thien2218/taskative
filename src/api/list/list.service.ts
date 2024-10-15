@@ -18,9 +18,7 @@ export class ListService {
    constructor(private readonly dbService: DatabaseService) {}
 
    async findMany(userId: string, page: Page) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .select(this.listColumns)
          .from(listsTable)
          .where(eq(usersTable.id, sql.placeholder("userId")))
@@ -40,9 +38,7 @@ export class ListService {
    }
 
    async findOne(id: string, userId: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .select(this.listColumns)
          .from(listsTable)
          .where(
@@ -65,9 +61,7 @@ export class ListService {
    }
 
    async findTasksFromList(id: string, userId: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .select({
             id: tasksTable.id,
             description: tasksTable.description,
@@ -98,10 +92,9 @@ export class ListService {
    }
 
    async create(userId: string, createListDto: CreateListDto) {
-      const builder = this.dbService.builder;
       const id = nanoid(25);
 
-      const query = builder
+      const query = this.dbService.builder
          .insert(listsTable)
          .values({
             id: sql.placeholder("id"),
@@ -121,9 +114,7 @@ export class ListService {
    }
 
    async update(id: string, userId: string, updateListDto: UpdateListDto) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .update(listsTable)
          .set(updateListDto)
          .where(and(eq(listsTable.id, id), eq(usersTable.id, userId)));
@@ -139,9 +130,7 @@ export class ListService {
    }
 
    async addTasks(id: string, userId: string, tasksToAdd: string[]) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .update(tasksTable)
          .set({ listId: id })
          .where(
@@ -163,9 +152,7 @@ export class ListService {
    }
 
    async removeTasks(id: string, userId: string, tasksToRemove: string[]) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .update(tasksTable)
          .set({ listId: null })
          .where(
@@ -189,9 +176,7 @@ export class ListService {
    }
 
    async delete(id: string, userId: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .delete(listsTable)
          .where(and(eq(listsTable.id, id), eq(usersTable.id, userId)));
 

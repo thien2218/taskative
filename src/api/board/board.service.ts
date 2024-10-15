@@ -18,9 +18,7 @@ export class BoardService {
    constructor(private readonly dbService: DatabaseService) {}
 
    async findMany(userId: string, page: Page) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .select({ ...this.boardColumns, id: boardsTable.id })
          .from(boardsTable)
          .where(eq(boardsTable.userId, sql.placeholder("userId")))
@@ -40,9 +38,7 @@ export class BoardService {
    }
 
    async findOne(id: string, userId: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .select(this.boardColumns)
          .from(boardsTable)
          .where(
@@ -62,10 +58,8 @@ export class BoardService {
       return board;
    }
 
-   async findTasks(id: string, userId: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+   async findTasksFromBoard(id: string, userId: string) {
+      const query = this.dbService.builder
          .select({
             id: tasksTable.id,
             description: tasksTable.description,
@@ -95,10 +89,9 @@ export class BoardService {
    }
 
    async create(userId: string, createBoardDto: CreateBoardDto) {
-      const builder = this.dbService.builder;
       const id = nanoid(25);
 
-      const query = builder
+      const query = this.dbService.builder
          .insert(boardsTable)
          .values({
             id: sql.placeholder("id"),
@@ -117,9 +110,7 @@ export class BoardService {
    }
 
    async addToBoard(id: string, userId: string, taskIds: string[]) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .update(tasksTable)
          .set({ boardId: id })
          .where(
@@ -140,9 +131,7 @@ export class BoardService {
    }
 
    async update(id: string, userId: string, updateBoardDto: UpdateBoardDto) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .update(boardsTable)
          .set({ ...updateBoardDto, updatedAt: new Date() })
          .where(and(eq(boardsTable.id, id), eq(boardsTable.userId, userId)))
@@ -159,9 +148,7 @@ export class BoardService {
    }
 
    async delete(id: string, userId: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .delete(boardsTable)
          .where(
             and(

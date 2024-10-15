@@ -9,9 +9,7 @@ export class UserService {
    constructor(private readonly dbService: DatabaseService) {}
 
    async findProfile(id: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .select({
             email: usersTable.email,
             firstName: profilesTable.firstName,
@@ -35,9 +33,7 @@ export class UserService {
    }
 
    async updateProfile(id: string, updateUserDto: UpdateUserDto) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .update(profilesTable)
          .set({ ...updateUserDto, updatedAt: new Date() })
          .where(eq(profilesTable.userId, id));

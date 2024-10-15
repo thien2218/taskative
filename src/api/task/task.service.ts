@@ -22,9 +22,7 @@ export class TaskService {
    constructor(private readonly dbService: DatabaseService) {}
 
    async findMany(userId: string, page: Page) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .select({ ...this.taskColumns, id: tasksTable.id })
          .from(tasksTable)
          .where(eq(tasksTable.userId, sql.placeholder("userId")))
@@ -44,9 +42,7 @@ export class TaskService {
    }
 
    async findOne(id: string, userId: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .select({ ...this.taskColumns, note: tasksTable.note })
          .from(tasksTable)
          .where(
@@ -67,12 +63,11 @@ export class TaskService {
    }
 
    async create(userId: string, boardId: string, createTaskDto: CreateTaskDto) {
-      const builder = this.dbService.builder;
       const id = nanoid(25);
 
       await this.validateStatus(boardId, createTaskDto.status);
 
-      const query = builder
+      const query = this.dbService.builder
          .insert(tasksTable)
          .values({
             id: sql.placeholder("id"),
@@ -97,16 +92,13 @@ export class TaskService {
       boardId: string,
       updateTaskDto: UpdateTaskDto
    ) {
-      const builder = this.dbService.builder;
-      const updatedAt = new Date();
-
       if (updateTaskDto.status) {
          await this.validateStatus(boardId, updateTaskDto.status);
       }
 
-      const query = builder
+      const query = this.dbService.builder
          .update(tasksTable)
-         .set({ ...updateTaskDto, updatedAt })
+         .set({ ...updateTaskDto, updatedAt: new Date() })
          .where(and(eq(tasksTable.id, id), eq(tasksTable.userId, userId)));
 
       await query
@@ -120,9 +112,7 @@ export class TaskService {
    }
 
    async delete(id: string, userId: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .delete(tasksTable)
          .where(
             and(
@@ -143,9 +133,7 @@ export class TaskService {
    }
 
    private async validateStatus(boardId: string, status: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
+      const query = this.dbService.builder
          .select({ pipeline: boardsTable.pipeline })
          .from(boardsTable)
          .where(eq(boardsTable.id, sql.placeholder("boardId")))

@@ -1,6 +1,6 @@
-import { SelectUserDto, UpdateUserDto } from "utils/types";
+import { UpdateUserDto } from "utils/types";
 
-export const selectUserStub = (): SelectUserDto => ({
+export const selectUserStub = () => ({
    id: "userId",
    email: "john@gmail.com",
    firstName: "John",

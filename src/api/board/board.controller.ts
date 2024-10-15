@@ -40,8 +40,11 @@ export class BoardController {
    }
 
    @Get(":id/tasks")
-   async findTasks(@Param("id") id: string, @User() { userId }: TUser) {
-      return this.listService.findTasks(id, userId);
+   async findTasksFromBoard(
+      @Param("id") id: string,
+      @User() { userId }: TUser
+   ) {
+      return this.listService.findTasksFromBoard(id, userId);
    }
 
    @UsePipes(new ValibotPipe(CreateBoardSchema))

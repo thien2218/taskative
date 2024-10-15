@@ -1,11 +1,12 @@
-import { CreateTaskDto, SelectTaskDto } from "utils/types";
+import { CreateTaskDto } from "utils/types";
 
 export const createTaskStub = (): CreateTaskDto => ({
    description: "Task 1",
-   priority: "medium"
+   priority: "medium",
+   status: "pending"
 });
 
-export const selectTaskStub = (): SelectTaskDto => ({
+export const selectTaskStub = () => ({
    id: "taskId",
    description: "Task 1",
    priority: "medium",
