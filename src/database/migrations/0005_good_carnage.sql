@@ -1,1 +1,0 @@
-ALTER TABLE `tasks` ADD `updated_at` integer DEFAULT (unixepoch()) NOT NULL;

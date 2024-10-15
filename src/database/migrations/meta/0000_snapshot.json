@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f6f72a04-2ddc-460c-9bd4-97082318e3aa",
-  "prevId": "d22186df-9c4b-4702-973b-94b6c61a44df",
+  "id": "00f9e6b8-9cf4-4a27-923d-bd8d9d1c9452",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "boards": {
       "name": "boards",
@@ -41,7 +41,15 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'[{\"name\":\"hiatus\",\"rgb\":[0,0,0]},{\"name\":\"pending\",\"rgb\":[0,0,0]},{\"name\":\"on-going\",\"rgb\":[0,0,0]},{\"name\":\"completed\",\"rgb\":[0,0,0]}]'"
+          "default": "'[{\"name\":\"pending\",\"rgb\":[0,0,0]},{\"name\":\"on-going\",\"rgb\":[0,0,0]},{\"name\":\"hiatus\",\"rgb\":[0,0,0]}]'"
+        },
+        "completed_status": {
+          "name": "completed_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{\"name\":\"completed\",\"rgb\":[0,0,0]}'"
         },
         "created_at": {
           "name": "created_at",
@@ -361,8 +369,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "'optional'"
+          "autoincrement": false
         },
         "note": {
           "name": "note",

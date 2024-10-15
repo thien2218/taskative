@@ -48,9 +48,9 @@ export const boardsTable = sqliteTable(
       pipeline: text("pipeline", { mode: "json" })
          .$type<Status[]>()
          .default([
-            { name: "hiatus", rgb: [0, 0, 0] },
             { name: "pending", rgb: [0, 0, 0] },
-            { name: "on-going", rgb: [0, 0, 0] }
+            { name: "on-going", rgb: [0, 0, 0] },
+            { name: "hiatus", rgb: [0, 0, 0] }
          ])
          .notNull(),
       completedStatus: text("completed_status", { mode: "json" })
