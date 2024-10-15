@@ -23,8 +23,8 @@ export class TaskController {
 
    @Get()
    async findMany(
-      @Query(new ValibotPipe(PageSchema)) pagination: Page,
-      @User() { userId }: TUser
+      @User() { userId }: TUser,
+      @Query(new ValibotPipe(PageSchema)) pagination: Page
    ) {
       return this.taskService.findMany(userId, pagination);
    }

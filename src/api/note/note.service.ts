@@ -76,7 +76,7 @@ export class NoteService {
          .run({ id, userId, content })
          .catch(this.dbService.handleDbError);
 
-      return { id };
+      return { message: "Note created successfully", id };
    }
 
    async update(id: string, userId: string, content: string) {

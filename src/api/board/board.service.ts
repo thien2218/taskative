@@ -106,7 +106,7 @@ export class BoardService {
          .run({ id, userId, ...createBoardDto })
          .catch(this.dbService.handleDbError);
 
-      return { id };
+      return { message: "Board created successfully", id };
    }
 
    async addTasksToBoard(id: string, userId: string, taskIds: string[]) {

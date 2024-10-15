@@ -29,7 +29,7 @@ CREATE TABLE `tasks` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
 	`board_id` text NOT NULL,
-   `list_id` text NOT NULL,
+   `list_id` text,
 	`description` text NOT NULL,
 	`status` text NOT NULL,
 	`priority` text DEFAULT 'optional' NOT NULL,

@@ -73,6 +73,7 @@ export class TaskService {
             id: sql.placeholder("id"),
             userId: sql.placeholder("userId"),
             boardId: sql.placeholder("boardId"),
+            listId: sql.placeholder("listId"),
             description: sql.placeholder("description"),
             priority: sql.placeholder("priority"),
             status: sql.placeholder("status")
@@ -80,10 +81,10 @@ export class TaskService {
          .prepare();
 
       await query
-         .run({ id, userId, ...createTaskDto })
+         .run({ id, boardId, userId, ...createTaskDto })
          .catch(this.dbService.handleDbError);
 
-      return { id };
+      return { message: "Task created successfully", id };
    }
 
    async update(

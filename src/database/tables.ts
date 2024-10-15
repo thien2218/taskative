@@ -79,7 +79,7 @@ export const tasksTable = sqliteTable("tasks", {
    }),
    description: text("description").notNull(),
    status: text("status").notNull(),
-   priority: text("priority").notNull().default("optional"),
+   priority: text("priority").notNull(),
    note: text("note"),
    createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()

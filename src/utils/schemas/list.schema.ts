@@ -18,11 +18,6 @@ export const CreateListSchema = object({
       minLength(3, "List name must be at least 3 characters long"),
       maxLength(100, "List name must be at most 100 characters long")
    ),
-   boardId: pipe(
-      string(),
-      nanoid("Invalid board ID"),
-      length(25, "Invalid board ID")
-   ),
    description: optional(
       pipe(
          string(),

@@ -17,17 +17,22 @@ export class ListService {
 
    constructor(private readonly dbService: DatabaseService) {}
 
-   async findMany(userId: string, page: Page) {
+   async findMany(boardId: string, userId: string, page: Page) {
       const query = this.dbService.builder
          .select(this.listColumns)
          .from(listsTable)
-         .where(eq(usersTable.id, sql.placeholder("userId")))
+         .where(
+            and(
+               eq(listsTable.boardId, sql.placeholder("boardId")),
+               eq(usersTable.id, sql.placeholder("userId"))
+            )
+         )
          .limit(sql.placeholder("limit"))
          .offset(sql.placeholder("offset"))
          .prepare();
 
       const lists = await query
-         .all({ userId, ...page })
+         .all({ boardId, userId, ...page })
          .catch(this.dbService.handleDbError);
 
       if (!lists || !lists.length) {
@@ -37,20 +42,21 @@ export class ListService {
       return lists;
    }
 
-   async findOne(id: string, userId: string) {
+   async findOne(id: string, boardId: string, userId: string) {
       const query = this.dbService.builder
          .select(this.listColumns)
          .from(listsTable)
          .where(
             and(
                eq(listsTable.id, sql.placeholder("id")),
+               eq(listsTable.boardId, sql.placeholder("boardId")),
                eq(usersTable.id, sql.placeholder("userId"))
             )
          )
          .prepare();
 
       const list = await query
-         .get({ id, userId })
+         .get({ id, boardId, userId })
          .catch(this.dbService.handleDbError);
 
       if (!list) {
@@ -60,7 +66,12 @@ export class ListService {
       return list;
    }
 
-   async findTasksFromList(id: string, userId: string) {
+   async findTasksFromList(
+      id: string,
+      boardId: string,
+      userId: string,
+      page: Page
+   ) {
       const query = this.dbService.builder
          .select({
             id: tasksTable.id,
@@ -75,13 +86,16 @@ export class ListService {
          .where(
             and(
                eq(tasksTable.listId, sql.placeholder("id")),
-               eq(usersTable.id, sql.placeholder("userId"))
+               eq(tasksTable.boardId, sql.placeholder("boardId")),
+               eq(tasksTable.userId, sql.placeholder("userId"))
             )
          )
+         .limit(sql.placeholder("limit"))
+         .offset(sql.placeholder("offset"))
          .prepare();
 
       const tasks = await query
-         .all({ id, userId })
+         .all({ id, boardId, userId, ...page })
          .catch(this.dbService.handleDbError);
 
       if (!tasks || !tasks.length) {
@@ -91,7 +105,7 @@ export class ListService {
       return tasks;
    }
 
-   async create(userId: string, createListDto: CreateListDto) {
+   async create(boardId: string, userId: string, createListDto: CreateListDto) {
       const id = nanoid(25);
 
       const query = this.dbService.builder
@@ -107,17 +121,28 @@ export class ListService {
          .prepare();
 
       await query
-         .execute({ id, userId, ...createListDto })
+         .execute({ id, userId, boardId, ...createListDto })
          .catch(this.dbService.handleDbError);
 
-      return id;
+      return { message: "List created successfully", id };
    }
 
-   async update(id: string, userId: string, updateListDto: UpdateListDto) {
+   async update(
+      id: string,
+      boardId: string,
+      userId: string,
+      updateListDto: UpdateListDto
+   ) {
       const query = this.dbService.builder
          .update(listsTable)
          .set(updateListDto)
-         .where(and(eq(listsTable.id, id), eq(usersTable.id, userId)));
+         .where(
+            and(
+               eq(listsTable.id, id),
+               eq(listsTable.boardId, boardId),
+               eq(usersTable.id, userId)
+            )
+         );
 
       await query
          .run()
@@ -129,13 +154,19 @@ export class ListService {
          });
    }
 
-   async addTasks(id: string, userId: string, tasksToAdd: string[]) {
+   async addTasks(
+      id: string,
+      boardId: string,
+      userId: string,
+      tasksToAdd: string[]
+   ) {
       const query = this.dbService.builder
          .update(tasksTable)
          .set({ listId: id })
          .where(
             and(
                eq(tasksTable.listId, id),
+               eq(tasksTable.boardId, boardId),
                eq(tasksTable.userId, userId),
                inArray(tasksTable.id, tasksToAdd)
             )
@@ -151,21 +182,27 @@ export class ListService {
       return addedTasks.map(({ id }) => id);
    }
 
-   async removeTasks(id: string, userId: string, tasksToRemove: string[]) {
+   async removeTasks(
+      id: string,
+      boardId: string,
+      userId: string,
+      tasksToRemove: string[]
+   ) {
       const query = this.dbService.builder
          .update(tasksTable)
          .set({ listId: null })
          .where(
             and(
-               eq(tasksTable.listId, id),
-               eq(tasksTable.userId, userId),
-               inArray(tasksTable.id, tasksToRemove)
+               eq(tasksTable.listId, sql.placeholder("id")),
+               eq(tasksTable.boardId, sql.placeholder("boardId")),
+               eq(tasksTable.userId, sql.placeholder("userId")),
+               inArray(tasksTable.id, sql.placeholder("tasksToRemove"))
             )
          )
          .returning({ id: tasksTable.id });
 
       const removedTasks = await query
-         .all()
+         .all({ id, boardId, userId, tasksToRemove })
          .catch(this.dbService.handleDbError);
 
       if (!removedTasks || !removedTasks.length) {
@@ -175,13 +212,20 @@ export class ListService {
       return removedTasks.map(({ id }) => id);
    }
 
-   async delete(id: string, userId: string) {
+   async delete(id: string, boardId: string, userId: string) {
       const query = this.dbService.builder
          .delete(listsTable)
-         .where(and(eq(listsTable.id, id), eq(usersTable.id, userId)));
+         .where(
+            and(
+               eq(listsTable.id, sql.placeholder("id")),
+               eq(listsTable.boardId, sql.placeholder("boardId")),
+               eq(usersTable.id, sql.placeholder("userId"))
+            )
+         )
+         .prepare();
 
       await query
-         .run()
+         .run({ id, boardId, userId })
          .catch(this.dbService.handleDbError)
          .then((resultSet) => {
             if (!resultSet || !resultSet.rowsAffected) {

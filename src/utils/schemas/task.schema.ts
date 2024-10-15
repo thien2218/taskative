@@ -31,13 +31,14 @@ export const CreateTaskSchema = object({
       minLength(3, "Task description must be at least 3 characters long"),
       maxLength(120, "Task description cannot exceed 120 characters")
    ),
-   priority: optional(
-      picklist(
-         ["optional", "low", "medium", "high", "important"],
-         "Task priority must be one of: optional, low, medium, high, important"
-      )
+   priority: picklist(
+      ["optional", "low", "medium", "high", "important"],
+      "Task priority must be one of: optional, low, medium, high, important"
    ),
-   status: StatusSchema
+   status: StatusSchema,
+   listId: optional(
+      pipe(string(), nanoid("Invalid list ID"), length(25, "Invalid list ID"))
+   )
 });
 
 export const UpdateTaskSchema = pipe(
