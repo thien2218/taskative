@@ -15,7 +15,12 @@ import { TaskService } from "./task.service";
 import { ValibotPipe } from "utils/pipes";
 import { CreateTaskDto, Page, UpdateTaskDto, TUser } from "utils/types";
 import { User } from "utils/decorators";
-import { CreateTaskSchema, PageSchema, UpdateTaskSchema } from "utils/schemas";
+import {
+   CreateTaskSchema,
+   PageSchema,
+   TaskIDsSchema,
+   UpdateTaskSchema
+} from "utils/schemas";
 
 @Controller("board/:boardId/task")
 export class TaskController {
@@ -43,6 +48,16 @@ export class TaskController {
       @User() { userId }: TUser
    ) {
       return this.taskService.create(boardId, userId, createTaskDto);
+   }
+
+   @UsePipes(new ValibotPipe(TaskIDsSchema))
+   @Post("move")
+   async moveTasksToBoard(
+      @Param("boardId") id: string,
+      @User() { userId }: TUser,
+      @Body() taskIds: string[]
+   ) {
+      return this.taskService.moveTasksToBoard(id, userId, taskIds);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)

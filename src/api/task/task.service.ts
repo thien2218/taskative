@@ -3,7 +3,7 @@ import {
    Injectable,
    NotFoundException
 } from "@nestjs/common";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "database/database.service";
 import { tasksTable } from "database/tables";
@@ -51,6 +51,35 @@ export class TaskService {
       await query.run().catch(this.dbService.handleDbError);
 
       return { message: "Task created successfully", id };
+   }
+
+   async moveTasksToBoard(
+      boardId: string,
+      userId: string,
+      tasksToMove: string[]
+   ) {
+      const query = this.dbService.builder
+         .update(tasksTable)
+         .set({ boardId })
+         .where(
+            and(
+               ne(tasksTable.boardId, boardId),
+               eq(tasksTable.userId, userId),
+               inArray(tasksTable.id, tasksToMove)
+            )
+         )
+         .returning({ id: tasksTable.id });
+
+      const movedTasks = await query.all().catch(this.dbService.handleDbError);
+
+      if (!movedTasks || !movedTasks.length) {
+         throw new NotFoundException("No tasks found");
+      }
+
+      return {
+         message: "Tasks moved successfully",
+         movedTasks: movedTasks.map((task) => task.id)
+      };
    }
 
    async update(

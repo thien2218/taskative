@@ -1,10 +1,7 @@
 import {
-   array,
    check,
-   length,
    maxLength,
    minLength,
-   nanoid,
    object,
    optional,
    partial,
@@ -33,12 +30,4 @@ export const UpdateListSchema = pipe(
       (v) => Object.keys(v).length > 0,
       "At least one field must be provided to update a list"
    )
-);
-
-export const ListTaskIDsSchema = pipe(
-   array(
-      pipe(string(), nanoid("Invalid task ID"), length(25, "Invalid task ID")),
-      "List of task IDs must be an array"
-   ),
-   minLength(1, "At least one task ID must be provided")
 );

@@ -14,10 +14,10 @@ import { ValibotPipe } from "utils/pipes";
 import { CreateListDto, Page, TUser, UpdateListDto } from "utils/types";
 import { User } from "utils/decorators";
 import {
-   ListTaskIDsSchema,
    CreateListSchema,
    PageSchema,
-   UpdateListSchema
+   UpdateListSchema,
+   TaskIDsSchema
 } from "utils/schemas";
 
 @Controller("board/:boardId/list")
@@ -63,7 +63,7 @@ export class ListController {
    }
 
    @Post(":id/tasks")
-   @UsePipes(new ValibotPipe(ListTaskIDsSchema))
+   @UsePipes(new ValibotPipe(TaskIDsSchema))
    async addTasks(
       @Param("id") id: string,
       @Param("boardId") boardId: string,
@@ -74,7 +74,7 @@ export class ListController {
    }
 
    @Delete(":id/tasks")
-   @UsePipes(new ValibotPipe(ListTaskIDsSchema))
+   @UsePipes(new ValibotPipe(TaskIDsSchema))
    async removeTasks(
       @Param("id") id: string,
       @Param("boardId") boardId: string,
