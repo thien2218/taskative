@@ -23,10 +23,11 @@ export class TaskController {
 
    @Get()
    async findMany(
+      @Param("boardId") boardId: string,
       @User() { userId }: TUser,
-      @Query(new ValibotPipe(PageSchema)) pagination: Page
+      @Query(new ValibotPipe(PageSchema)) page: Page
    ) {
-      return this.taskService.findMany(userId, pagination);
+      return this.taskService.findMany(boardId, userId, page);
    }
 
    @Get(":id")
@@ -41,7 +42,7 @@ export class TaskController {
       @Body() createTaskDto: CreateTaskDto,
       @User() { userId }: TUser
    ) {
-      return this.taskService.create(userId, boardId, createTaskDto);
+      return this.taskService.create(boardId, userId, createTaskDto);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)
@@ -53,7 +54,7 @@ export class TaskController {
       @Body() updateTaskDto: UpdateTaskDto,
       @User() { userId }: TUser
    ) {
-      return this.taskService.update(id, userId, boardId, updateTaskDto);
+      return this.taskService.update(id, boardId, userId, updateTaskDto);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)

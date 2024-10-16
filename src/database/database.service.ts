@@ -1,29 +1,58 @@
-import { createClient } from "@libsql/client";
-import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
-import { BadRequestException, Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { LibSQLDatabase } from "drizzle-orm/libsql";
+import {
+   BadRequestException,
+   Injectable,
+   InternalServerErrorException
+} from "@nestjs/common";
+import * as queryModule from "./queries";
+
+type omitted = "findTasksQueryConstructor";
+type SQLError = { fields?: string[]; code: string };
+
+const { default: builder, ...preparedQuery } = queryModule;
 
 @Injectable()
 export class DatabaseService {
    private db: LibSQLDatabase;
-
-   constructor(private readonly configService: ConfigService) {}
+   prepared: Omit<typeof preparedQuery, omitted>;
 
    onModuleInit() {
-      const client = createClient({
-         url: this.configService.get("TURSO_DATABASE_URL") as string,
-         authToken: this.configService.get("TURSO_AUTH_TOKEN") as string
-      });
-
-      this.db = drizzle(client, { logger: true });
+      this.prepared = preparedQuery;
+      this.db = builder;
    }
 
    get builder() {
       return this.db;
    }
 
-   handleDbError(err: any) {
-      console.log(err);
-      throw new BadRequestException(err.message);
+   handleDbError({ message }: { message: string }) {
+      console.log(message);
+
+      if (message.includes("SQLITE_CONSTRAINT")) {
+         const chunks = message.split(": ");
+         const msg = chunks[1];
+         const error: SQLError = { code: chunks[chunks.length - 1] };
+
+         if (message.includes("UNIQUE")) {
+            const fields = message
+               .split(": ")[2]
+               .split(", ")
+               .map((f) => f);
+
+            error.fields = fields;
+         }
+
+         throw new BadRequestException({
+            state: "error",
+            message: msg,
+            error
+         });
+      }
+
+      throw new InternalServerErrorException({
+         state: "error",
+         message,
+         error: { code: "DB_ERROR" }
+      });
    }
 }

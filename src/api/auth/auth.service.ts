@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { hash, verify } from "argon2";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "database/database.service";
 import { boardsTable, profilesTable, usersTable } from "database/tables";
@@ -61,20 +61,7 @@ export class AuthService {
    }
 
    async login({ email, password }: LoginDto): Promise<AuthTokens> {
-      const builder = this.dbService.builder;
-
-      const query = builder
-         .select({
-            id: usersTable.id,
-            encodedPassword: usersTable.encodedPassword,
-            profileImage: profilesTable.profileImage,
-            firstName: profilesTable.firstName,
-            lastName: profilesTable.lastName
-         })
-         .from(usersTable)
-         .where(eq(usersTable.email, sql.placeholder("email")))
-         .innerJoin(profilesTable, eq(usersTable.id, profilesTable.userId))
-         .prepare();
+      const query = this.dbService.prepared.getUserByEmailQuery;
 
       const user = await query
          .get({ email })
@@ -97,7 +84,7 @@ export class AuthService {
       const tokens = await this.generateTokens(payload);
       const encodedRefreshToken = await hash(tokens.refreshToken);
 
-      const updateUserQuery = builder
+      const updateUserQuery = this.dbService.builder
          .update(usersTable)
          .set({ encodedRefreshToken })
          .where(eq(usersTable.id, user.id));
@@ -108,14 +95,7 @@ export class AuthService {
    }
 
    async logout(id: string) {
-      const builder = this.dbService.builder;
-
-      const query = builder
-         .update(usersTable)
-         .set({ encodedRefreshToken: null })
-         .where(eq(usersTable.id, sql.placeholder("id")))
-         .prepare();
-
+      const query = this.dbService.prepared.logUserOutQuery;
       await query.run({ id }).catch(this.dbService.handleDbError);
    }
 
@@ -123,13 +103,7 @@ export class AuthService {
       id: string,
       curRefreshToken: string
    ): Promise<{ accessToken: string; refreshToken: string | null }> {
-      const builder = this.dbService.builder;
-
-      const getUserQuery = builder
-         .select({ encodedRefreshToken: usersTable.encodedRefreshToken })
-         .from(usersTable)
-         .where(eq(usersTable.id, sql.placeholder("id")))
-         .prepare();
+      const getUserQuery = this.dbService.prepared.getUserRefreshTokenQuery;
 
       const data = await getUserQuery
          .get({ id })
@@ -163,7 +137,7 @@ export class AuthService {
 
          const encodedRefreshToken = await hash(refreshToken);
 
-         const updateUserQuery = builder
+         const updateUserQuery = this.dbService.builder
             .update(usersTable)
             .set({ encodedRefreshToken })
             .where(eq(usersTable.id, id));
@@ -177,14 +151,7 @@ export class AuthService {
    async validateOAuthUser({ email, provider, ...rest }: OAuthValidateDto) {
       const builder = this.dbService.builder;
 
-      const getUserDataQuery = builder
-         .select({
-            id: usersTable.id,
-            emailVerified: usersTable.emailVerified,
-            providers: usersTable.providers
-         })
-         .from(usersTable)
-         .where(eq(usersTable.email, sql.placeholder("email")));
+      const getUserDataQuery = this.dbService.prepared.validateOAuthUserQuery;
 
       const data = await getUserDataQuery
          .get({ email })
@@ -200,12 +167,9 @@ export class AuthService {
                   emailVerified: true,
                   providers: [...providers, provider]
                })
-               .where(eq(usersTable.id, sql.placeholder("id")))
-               .prepare();
+               .where(eq(usersTable.id, id));
 
-            await updateUserQuery
-               .run({ id })
-               .catch(this.dbService.handleDbError);
+            await updateUserQuery.run().catch(this.dbService.handleDbError);
          }
 
          return { sub: id, email, ...rest };
@@ -213,7 +177,7 @@ export class AuthService {
 
       const id = nanoid(25);
 
-      await this.dbService.builder
+      await builder
          .transaction(async (tx) => {
             await tx
                .insert(usersTable)

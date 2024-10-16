@@ -16,7 +16,6 @@ import { ValibotPipe } from "utils/pipes";
 import { CreateBoardDto, Page, UpdateBoardDto, TUser } from "utils/types";
 import { User } from "utils/decorators";
 import {
-   BoardTaskIDsSchema,
    CreateBoardSchema,
    PageSchema,
    UpdateBoardSchema
@@ -39,14 +38,6 @@ export class BoardController {
       return this.boardService.findOne(id, userId);
    }
 
-   @Get(":id/tasks")
-   async findTasksFromBoard(
-      @Param("id") id: string,
-      @User() { userId }: TUser
-   ) {
-      return this.boardService.findTasksFromBoard(id, userId);
-   }
-
    @UsePipes(new ValibotPipe(CreateBoardSchema))
    @Post()
    async create(
@@ -54,16 +45,6 @@ export class BoardController {
       @Body() createBoardDto: CreateBoardDto
    ) {
       return this.boardService.create(userId, createBoardDto);
-   }
-
-   @UsePipes(new ValibotPipe(BoardTaskIDsSchema))
-   @Post(":id/tasks")
-   async addTasksToBoard(
-      @Param("id") id: string,
-      @User() { userId }: TUser,
-      @Body() taskIds: string[]
-   ): Promise<{ message: string; tasksAdded: string[] }> {
-      return this.boardService.addTasksToBoard(id, userId, taskIds);
    }
 
    @HttpCode(HttpStatus.NO_CONTENT)

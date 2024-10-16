@@ -60,7 +60,3 @@ export const UpdateTaskSchema = pipe(
       "At least one field must be provided to update task"
    )
 );
-
-export const BoardTaskIDsSchema = array(
-   pipe(string(), nanoid("Invalid task ID"), length(25, "Invalid task ID"))
-);

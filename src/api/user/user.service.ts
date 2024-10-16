@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { DatabaseService } from "database/database.service";
-import { profilesTable, usersTable } from "database/tables";
+import { profilesTable } from "database/tables";
 import { UpdateUserDto } from "utils/types";
 
 @Injectable()
@@ -9,27 +9,15 @@ export class UserService {
    constructor(private readonly dbService: DatabaseService) {}
 
    async findProfile(id: string) {
-      const query = this.dbService.builder
-         .select({
-            email: usersTable.email,
-            firstName: profilesTable.firstName,
-            lastName: profilesTable.lastName,
-            profileImage: profilesTable.profileImage,
-            createdAt: profilesTable.createdAt,
-            updatedAt: profilesTable.updatedAt
-         })
-         .from(usersTable)
-         .where(eq(usersTable.id, sql.placeholder("id")))
-         .innerJoin(profilesTable, eq(usersTable.id, profilesTable.userId))
-         .prepare();
+      const query = this.dbService.prepared.findUserProfileQuery;
 
-      const user = await query.get({ id });
+      const profile = await query.get({ id });
 
-      if (!user) {
+      if (!profile) {
          throw new NotFoundException("User not found");
       }
 
-      return user;
+      return profile;
    }
 
    async updateProfile(id: string, updateUserDto: UpdateUserDto) {

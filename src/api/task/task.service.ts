@@ -3,35 +3,21 @@ import {
    Injectable,
    NotFoundException
 } from "@nestjs/common";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { DatabaseService } from "database/database.service";
-import { boardsTable, tasksTable } from "database/tables";
+import { tasksTable } from "database/tables";
 import { CreateTaskDto, Page, UpdateTaskDto } from "utils/types";
 
 @Injectable()
 export class TaskService {
-   private readonly taskColumns = {
-      description: tasksTable.description,
-      priority: tasksTable.priority,
-      status: tasksTable.status,
-      createdAt: tasksTable.createdAt,
-      updatedAt: tasksTable.updatedAt
-   };
-
    constructor(private readonly dbService: DatabaseService) {}
 
-   async findMany(userId: string, page: Page) {
-      const query = this.dbService.builder
-         .select({ ...this.taskColumns, id: tasksTable.id })
-         .from(tasksTable)
-         .where(eq(tasksTable.userId, sql.placeholder("userId")))
-         .limit(sql.placeholder("limit"))
-         .offset(sql.placeholder("offset"))
-         .prepare();
+   async findMany(boardId: string, userId: string, page: Page) {
+      const query = this.dbService.prepared.findTasksQuery;
 
       const tasks = await query
-         .all({ userId, ...page })
+         .all({ boardId, userId, ...page })
          .catch(this.dbService.handleDbError);
 
       if (!tasks || !tasks.length) {
@@ -42,16 +28,7 @@ export class TaskService {
    }
 
    async findOne(id: string, userId: string) {
-      const query = this.dbService.builder
-         .select({ ...this.taskColumns, note: tasksTable.note })
-         .from(tasksTable)
-         .where(
-            and(
-               eq(tasksTable.id, sql.placeholder("id")),
-               eq(tasksTable.userId, sql.placeholder("userId"))
-            )
-         )
-         .prepare();
+      const query = this.dbService.prepared.findTaskQuery;
 
       const task = await query.get({ id, userId });
 
@@ -62,39 +39,28 @@ export class TaskService {
       return task;
    }
 
-   async create(userId: string, boardId: string, createTaskDto: CreateTaskDto) {
+   async create(boardId: string, userId: string, createTaskDto: CreateTaskDto) {
       const id = nanoid(25);
 
-      await this.validateStatus(boardId, createTaskDto.status);
+      await this.validateStatus(boardId, userId, createTaskDto.status);
 
       const query = this.dbService.builder
          .insert(tasksTable)
-         .values({
-            id: sql.placeholder("id"),
-            userId: sql.placeholder("userId"),
-            boardId: sql.placeholder("boardId"),
-            listId: sql.placeholder("listId"),
-            description: sql.placeholder("description"),
-            priority: sql.placeholder("priority"),
-            status: sql.placeholder("status")
-         })
-         .prepare();
+         .values({ id, userId, boardId, ...createTaskDto });
 
-      await query
-         .run({ id, boardId, userId, ...createTaskDto })
-         .catch(this.dbService.handleDbError);
+      await query.run().catch(this.dbService.handleDbError);
 
       return { message: "Task created successfully", id };
    }
 
    async update(
       id: string,
-      userId: string,
       boardId: string,
+      userId: string,
       updateTaskDto: UpdateTaskDto
    ) {
       if (updateTaskDto.status) {
-         await this.validateStatus(boardId, updateTaskDto.status);
+         await this.validateStatus(boardId, userId, updateTaskDto.status);
       }
 
       const query = this.dbService.builder
@@ -113,15 +79,7 @@ export class TaskService {
    }
 
    async delete(id: string, userId: string) {
-      const query = this.dbService.builder
-         .delete(tasksTable)
-         .where(
-            and(
-               eq(tasksTable.id, sql.placeholder("id")),
-               eq(tasksTable.userId, sql.placeholder("userId"))
-            )
-         )
-         .prepare();
+      const query = this.dbService.prepared.deleteTaskQuery;
 
       await query
          .run({ id, userId })
@@ -133,15 +91,15 @@ export class TaskService {
          });
    }
 
-   private async validateStatus(boardId: string, status: string) {
-      const query = this.dbService.builder
-         .select({ pipeline: boardsTable.pipeline })
-         .from(boardsTable)
-         .where(eq(boardsTable.id, sql.placeholder("boardId")))
-         .prepare();
+   private async validateStatus(
+      boardId: string,
+      userId: string,
+      status: string
+   ) {
+      const query = this.dbService.prepared.getBoardPipelineQuery;
 
       const data = await query
-         .get({ boardId })
+         .get({ boardId, userId })
          .catch(this.dbService.handleDbError);
 
       if (!data) {

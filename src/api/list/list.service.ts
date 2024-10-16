@@ -1,35 +1,16 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { DatabaseService } from "database/database.service";
 import { listsTable, tasksTable, usersTable } from "database/tables";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { CreateListDto, Page, UpdateListDto } from "utils/types";
 
 @Injectable()
 export class ListService {
-   private readonly listColumns = {
-      id: listsTable.id,
-      name: listsTable.name,
-      description: listsTable.description,
-      createdAt: listsTable.createdAt,
-      updatedAt: listsTable.updatedAt
-   };
-
    constructor(private readonly dbService: DatabaseService) {}
 
    async findMany(boardId: string, userId: string, page: Page) {
-      const query = this.dbService.builder
-         .select(this.listColumns)
-         .from(listsTable)
-         .where(
-            and(
-               eq(listsTable.boardId, sql.placeholder("boardId")),
-               eq(usersTable.id, sql.placeholder("userId"))
-            )
-         )
-         .limit(sql.placeholder("limit"))
-         .offset(sql.placeholder("offset"))
-         .prepare();
+      const query = this.dbService.prepared.findListsQuery;
 
       const lists = await query
          .all({ boardId, userId, ...page })
@@ -43,17 +24,7 @@ export class ListService {
    }
 
    async findOne(id: string, boardId: string, userId: string) {
-      const query = this.dbService.builder
-         .select(this.listColumns)
-         .from(listsTable)
-         .where(
-            and(
-               eq(listsTable.id, sql.placeholder("id")),
-               eq(listsTable.boardId, sql.placeholder("boardId")),
-               eq(usersTable.id, sql.placeholder("userId"))
-            )
-         )
-         .prepare();
+      const query = this.dbService.prepared.findListQuery;
 
       const list = await query
          .get({ id, boardId, userId })
@@ -72,27 +43,7 @@ export class ListService {
       userId: string,
       page: Page
    ) {
-      const query = this.dbService.builder
-         .select({
-            id: tasksTable.id,
-            description: tasksTable.description,
-            status: tasksTable.status,
-            priority: tasksTable.priority,
-            note: tasksTable.note,
-            createdAt: tasksTable.createdAt,
-            updatedAt: tasksTable.updatedAt
-         })
-         .from(tasksTable)
-         .where(
-            and(
-               eq(tasksTable.listId, sql.placeholder("id")),
-               eq(tasksTable.boardId, sql.placeholder("boardId")),
-               eq(tasksTable.userId, sql.placeholder("userId"))
-            )
-         )
-         .limit(sql.placeholder("limit"))
-         .offset(sql.placeholder("offset"))
-         .prepare();
+      const query = this.dbService.prepared.findTasksFromListQuery;
 
       const tasks = await query
          .all({ id, boardId, userId, ...page })
@@ -110,19 +61,9 @@ export class ListService {
 
       const query = this.dbService.builder
          .insert(listsTable)
-         .values({
-            id: sql.placeholder("id"),
-            name: sql.placeholder("name"),
-            description: sql.placeholder("description"),
-            userId: sql.placeholder("userId"),
-            boardId: sql.placeholder("boardId")
-         })
-         .returning({ id: listsTable.id })
-         .prepare();
+         .values({ id, userId, boardId, ...createListDto });
 
-      await query
-         .execute({ id, userId, boardId, ...createListDto })
-         .catch(this.dbService.handleDbError);
+      await query.run().catch(this.dbService.handleDbError);
 
       return { message: "List created successfully", id };
    }
@@ -188,18 +129,7 @@ export class ListService {
       userId: string,
       tasksToRemove: string[]
    ) {
-      const query = this.dbService.builder
-         .update(tasksTable)
-         .set({ listId: null })
-         .where(
-            and(
-               eq(tasksTable.listId, sql.placeholder("id")),
-               eq(tasksTable.boardId, sql.placeholder("boardId")),
-               eq(tasksTable.userId, sql.placeholder("userId")),
-               inArray(tasksTable.id, sql.placeholder("tasksToRemove"))
-            )
-         )
-         .returning({ id: tasksTable.id });
+      const query = this.dbService.prepared.removeTasksFromListQuery;
 
       const removedTasks = await query
          .all({ id, boardId, userId, tasksToRemove })
@@ -213,16 +143,7 @@ export class ListService {
    }
 
    async delete(id: string, boardId: string, userId: string) {
-      const query = this.dbService.builder
-         .delete(listsTable)
-         .where(
-            and(
-               eq(listsTable.id, sql.placeholder("id")),
-               eq(listsTable.boardId, sql.placeholder("boardId")),
-               eq(usersTable.id, sql.placeholder("userId"))
-            )
-         )
-         .prepare();
+      const query = this.dbService.prepared.deleteListQuery;
 
       await query
          .run({ id, boardId, userId })
