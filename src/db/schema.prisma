@@ -1,6 +1,6 @@
 datasource db {
    provider = "sqlite"
-   url      = "file:./dev.db"
+   url      = env("DATABASE_URL")
 }
 
 generator kysely {
@@ -10,4 +10,89 @@ generator kysely {
    camelCase = true
 }
 
-// IMPORTANT: Ensure that table models always map to a table name that is lowercase and snake_case and is plural
+// IMPORTANT: Table models must map to a plural, snake_case table name.
+// IMPORTANT: All model fields must be snake_case.
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  password_hash       String
+  first_name          String?
+  last_name           String?
+  username            String?   @unique
+  profile_image_url   String?
+  token_version       Int       @default(0)
+  groups              Group[]
+  tasks               Task[]
+  reminders           Reminder[]
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  user_id     String
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name        String
+  color       String?
+  tasks       Task[]
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("groups")
+}
+
+model Task {
+  id                String     @id @default(cuid())
+  user_id           String
+  user              User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  group_id          String?
+  group             Group?     @relation(fields: [group_id], references: [id], onDelete: SetNull)
+  title             String
+  note              String?
+  priority          Int?
+  effort            Int?
+  deadline          DateTime?
+  repeat_interval   String?
+  remind_at         DateTime?
+  status            String     @default("pending")
+  subtasks          Subtask[]
+  reminders         Reminder[]
+  created_at        DateTime   @default(now())
+  updated_at        DateTime   @updatedAt
+
+  @@index([user_id, status, deadline])
+  @@index([user_id, priority, deadline])
+  @@index([title])
+  @@map("tasks")
+}
+
+model Subtask {
+  id          String   @id @default(cuid())
+  task_id     String
+  task        Task     @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  title       String
+  status      String   @default("pending")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("subtasks")
+}
+
+model Reminder {
+  id                String    @id @default(cuid())
+  task_id           String
+  task              Task      @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  user_id           String
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  remind_at         DateTime
+  repeat_interval   String?
+  last_sent_at      DateTime?
+  status            String    @default("scheduled")
+  created_at        DateTime  @default(now())
+
+  @@index([user_id, remind_at])
+  @@map("reminders")
+}
