@@ -1,0 +1,29 @@
+{
+  "name": "backend",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "db:migrate:dev": "npx prisma migrate dev --create-only --schema ./src/db/schema.prisma",
+    "db:apply": "npx prisma migrate dev --schema ./src/db/schema.prisma",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.7.2",
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.2.0",
+    "hono": "^4.9.0",
+    "kysely": "^0.28.4",
+    "kysely-d1": "^0.4.0",
+    "nanoid": "^5.1.5",
+    "prisma-kysely": "^1.8.0",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250810.0",
+    "prisma": "^6.13.0",
+    "vitest": "^3.2.4",
+    "wrangler": "^4.4.0"
+  }
+}
