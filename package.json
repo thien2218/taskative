@@ -7,6 +7,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "db:migrate:dev": "npx prisma migrate dev --create-only --schema ./src/db/schema.prisma",
     "db:apply": "npx prisma migrate dev --schema ./src/db/schema.prisma",
+    "db:seed": "tsx src/db/seed.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -21,7 +22,9 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250810.0",
+    "@types/better-sqlite3": "^7.6.13",
     "prisma": "^6.13.0",
+    "tsx": "^4.19.2",
     "vitest": "^3.2.4",
     "wrangler": "^4.4.0"
   }

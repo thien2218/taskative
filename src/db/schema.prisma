@@ -14,7 +14,7 @@ generator kysely {
 // IMPORTANT: All model fields must be snake_case.
 
 model User {
-  id                String     @id @default(cuid())
+  id                String     @id
   email             String     @unique
   password_hash     String
   first_name        String?
@@ -32,7 +32,7 @@ model User {
 }
 
 model Group {
-  id         String   @id @default(cuid())
+  id         String   @id
   user_id    String
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   name       String
@@ -45,7 +45,7 @@ model Group {
 }
 
 model Task {
-  id              String     @id @default(cuid())
+  id              String     @id
   user_id         String
   user            User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
   group_id        String?
@@ -70,7 +70,7 @@ model Task {
 }
 
 model Subtask {
-  id         String   @id @default(cuid())
+  id         String   @id
   task_id    String
   task       Task     @relation(fields: [task_id], references: [id], onDelete: Cascade)
   title      String
@@ -82,7 +82,7 @@ model Subtask {
 }
 
 model Reminder {
-  id              String    @id @default(cuid())
+  id              String    @id
   task_id         String
   task            Task      @relation(fields: [task_id], references: [id], onDelete: Cascade)
   user_id         String
