@@ -1,11 +1,27 @@
-import { createHash } from "crypto";
+import bcrypt from "bcryptjs";
 import { Kysely, SqliteDialect, CamelCasePlugin } from "kysely";
 import Database from "better-sqlite3";
+import { existsSync, readdirSync } from "fs";
+import { join } from "path";
 import type { DB } from "./types.js";
 
-// Initialize the database connection
-const dbPath =
-  "./.wrangler/state/v3/d1/miniflare-D1DatabaseObject/41775cb85df58286f0f6501fa9323837e4bc6aeb03c98aeabe4a4d0e43a11759.sqlite";
+// Initialize the database connection (read from env with safe fallback)
+function resolveDatabasePath(): string {
+  const envUrl = process.env.DATABASE_URL?.trim();
+  if (envUrl && envUrl.length > 0) {
+    // Prisma uses a "file:" URL for sqlite; better-sqlite3 expects a path
+    return envUrl.replace(/^file:/, "");
+  }
+  const d1Dir = "./.wrangler/state/v3/d1/miniflare-D1DatabaseObject";
+  if (existsSync(d1Dir)) {
+    const candidate = readdirSync(d1Dir).find((f) => f.endsWith(".sqlite"));
+    if (candidate) return join(d1Dir, candidate);
+  }
+  // Fallback to empty string if no database path is found to throw an error and signal that the path is invalid
+  return "";
+}
+
+const dbPath = resolveDatabasePath();
 console.log(`🔗 Connecting to database: ${dbPath}`);
 
 const db = new Kysely<DB>({
@@ -17,7 +33,9 @@ const db = new Kysely<DB>({
 
 // Helper function to create deterministic password hashes for demo data
 function createDemoPasswordHash(password: string): string {
-  return createHash("sha256").update(password).digest("hex");
+  // Use bcrypt for demo to mirror production hashing
+  const SALT_ROUNDS = 10;
+  return bcrypt.hashSync(password, SALT_ROUNDS);
 }
 
 // Demo data definitions
@@ -41,56 +59,38 @@ export async function seedDemoData() {
       return;
     }
 
-    // 1. Insert demo user (idempotent using ON CONFLICT DO NOTHING equivalent)
-    const existingUser = await db
-      .selectFrom("users")
-      .select("id")
-      .where("email", "=", DEMO_USER_EMAIL)
-      .executeTakeFirst();
-
-    if (!existingUser) {
-      await db
-        .insertInto("users")
-        .values({
-          id: DEMO_USER_ID,
-          email: DEMO_USER_EMAIL,
-          username: "demouser",
-          passwordHash: createDemoPasswordHash("demo123"),
-          firstName: "Demo",
-          lastName: "User",
-          tokenVersion: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-        .execute();
-      console.log("✓ Demo user created");
-    } else {
-      console.log("✓ Demo user already exists");
-    }
+    // 1. Insert demo user (idempotent via ON CONFLICT DO NOTHING)
+    await db
+      .insertInto("users")
+      .values({
+        id: DEMO_USER_ID,
+        email: DEMO_USER_EMAIL,
+        username: "demouser",
+        passwordHash: createDemoPasswordHash("demo123"),
+        firstName: "Demo",
+        lastName: "User",
+        tokenVersion: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .onConflict((oc) => oc.column("email").doNothing())
+      .execute();
+    console.log("✓ Ensured demo user exists");
 
     // 2. Insert demo group (idempotent)
-    const existingGroup = await db
-      .selectFrom("groups")
-      .select("id")
-      .where("id", "=", DEMO_GROUP_ID)
-      .executeTakeFirst();
-
-    if (!existingGroup) {
-      await db
-        .insertInto("groups")
-        .values({
-          id: DEMO_GROUP_ID,
-          userId: DEMO_USER_ID,
-          name: "Personal Projects",
-          color: "#3B82F6",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-        .execute();
-      console.log("✓ Demo group created");
-    } else {
-      console.log("✓ Demo group already exists");
-    }
+    await db
+      .insertInto("groups")
+      .values({
+        id: DEMO_GROUP_ID,
+        userId: DEMO_USER_ID,
+        name: "Personal Projects",
+        color: "#3B82F6",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .onConflict((oc) => oc.column("id").doNothing())
+      .execute();
+    console.log("✓ Ensured demo group exists");
 
     // 3. Insert demo tasks (idempotent)
     const demoTasks = [
@@ -126,26 +126,17 @@ export async function seedDemoData() {
     ];
 
     for (const taskData of demoTasks) {
-      const existingTask = await db
-        .selectFrom("tasks")
-        .select("id")
-        .where("id", "=", taskData.id)
-        .executeTakeFirst();
-
-      if (!existingTask) {
-        await db
-          .insertInto("tasks")
-          .values({
-            ...taskData,
-            userId: DEMO_USER_ID,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })
-          .execute();
-        console.log(`✓ Demo task "${taskData.title}" created`);
-      } else {
-        console.log(`✓ Demo task "${taskData.title}" already exists`);
-      }
+      await db
+        .insertInto("tasks")
+        .values({
+          ...taskData,
+          userId: DEMO_USER_ID,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .onConflict((oc) => oc.column("id").doNothing())
+        .execute();
+      console.log(`✓ Ensured task "${taskData.title}" exists`);
     }
 
     // 4. Insert demo subtasks (idempotent)
@@ -183,25 +174,16 @@ export async function seedDemoData() {
     ];
 
     for (const subtaskData of demoSubtasks) {
-      const existingSubtask = await db
-        .selectFrom("subtasks")
-        .select("id")
-        .where("id", "=", subtaskData.id)
-        .executeTakeFirst();
-
-      if (!existingSubtask) {
-        await db
-          .insertInto("subtasks")
-          .values({
-            ...subtaskData,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })
-          .execute();
-        console.log(`✓ Demo subtask "${subtaskData.title}" created`);
-      } else {
-        console.log(`✓ Demo subtask "${subtaskData.title}" already exists`);
-      }
+      await db
+        .insertInto("subtasks")
+        .values({
+          ...subtaskData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .onConflict((oc) => oc.column("id").doNothing())
+        .execute();
+      console.log(`✓ Ensured subtask "${subtaskData.title}" exists`);
     }
 
     // 5. Insert demo reminder (idempotent)
@@ -213,24 +195,15 @@ export async function seedDemoData() {
       status: "scheduled",
     };
 
-    const existingReminder = await db
-      .selectFrom("reminders")
-      .select("id")
-      .where("id", "=", demoReminder.id)
-      .executeTakeFirst();
-
-    if (!existingReminder) {
-      await db
-        .insertInto("reminders")
-        .values({
-          ...demoReminder,
-          createdAt: new Date().toISOString(),
-        })
-        .execute();
-      console.log("✓ Demo reminder created");
-    } else {
-      console.log("✓ Demo reminder already exists");
-    }
+    await db
+      .insertInto("reminders")
+      .values({
+        ...demoReminder,
+        createdAt: new Date().toISOString(),
+      })
+      .onConflict((oc) => oc.column("id").doNothing())
+      .execute();
+    console.log("✓ Ensured demo reminder exists");
 
     console.log("🎉 Seed process completed successfully!");
 

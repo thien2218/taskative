@@ -5,8 +5,9 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
-    "db:migrate:dev": "npx prisma migrate dev --create-only --schema ./src/db/schema.prisma",
-    "db:apply": "npx prisma migrate dev --schema ./src/db/schema.prisma",
+    "db:migrate:create": "npx prisma migrate dev --create-only --schema ./src/db/schema.prisma",
+    "db:migrate:apply": "npx prisma migrate dev --schema ./src/db/schema.prisma",
+    "db:migrate:reset": "rm -rf .wrangler/state && npx prisma migrate reset --force --skip-seed --schema ./src/db/schema.prisma && npx prisma generate --schema ./src/db/schema.prisma",
     "db:seed": "tsx src/db/seed.ts",
     "test": "vitest run"
   },
