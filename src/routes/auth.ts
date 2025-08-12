@@ -1,9 +1,8 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { setCookie } from "hono/cookie";
 import { createDatabase } from "../db";
 import { AuthService } from "../services/auth";
-import { signJWT, generateRefreshToken } from "../utils/jwt";
+import { signJWT, generateRefreshToken, setRefreshTokenCookie } from "../utils/jwt";
 import { registerSchema, loginSchema } from "../validators/auth";
 import type { AppEnv } from "../types";
 
@@ -50,12 +49,7 @@ auth.post("/register", zValidator("json", registerSchema), async (c) => {
 
     // Generate and set refresh token cookie
     const refreshToken = generateRefreshToken();
-    setCookie(c, "refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
+    setRefreshTokenCookie(c, refreshToken);
 
     return c.json(
       {
@@ -103,12 +97,7 @@ auth.post("/login", zValidator("json", loginSchema), async (c) => {
 
     // Generate and set refresh token cookie
     const refreshToken = generateRefreshToken();
-    setCookie(c, "refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
+    setRefreshTokenCookie(c, refreshToken);
 
     return c.json({
       success: true,
