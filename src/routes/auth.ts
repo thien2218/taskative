@@ -21,7 +21,7 @@ auth.post("/register", zValidator("json", registerSchema), async (c) => {
   const cookieConfig = getRefreshTokenCookieConfig(c.env);
   setCookie(c, "refreshToken", result.refreshToken, cookieConfig);
 
-  return c.json({ success: true, token: result.token }, 201);
+  return c.json({ success: true, accessToken: result.accessToken }, 201);
 });
 
 // POST /v1/auth/login
@@ -37,7 +37,7 @@ auth.post("/login", zValidator("json", loginSchema), async (c) => {
   const cookieConfig = getRefreshTokenCookieConfig(c.env);
   setCookie(c, "refreshToken", result.refreshToken, cookieConfig);
 
-  return c.json({ success: true, token: result.token });
+  return c.json({ success: true, accessToken: result.accessToken });
 });
 
 export default auth;

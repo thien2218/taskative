@@ -16,36 +16,48 @@ export interface RefreshTokenPayload {
   type: "refresh";
 }
 
-export async function signJWT(
-  payload: JWTPayload,
-  secret: string,
-  env: AppEnv["Bindings"],
-): Promise<string> {
-  const config = getAuthConfig(env);
-  return sign(
-    {
-      ...payload,
-      exp: Math.floor(Date.now() / 1000) + config.JWT_EXPIRES_IN,
-      iat: Math.floor(Date.now() / 1000),
-    },
-    secret,
-  );
+export interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
 }
 
-export async function signRefreshToken(
-  payload: RefreshTokenPayload,
-  secret: string,
+/**
+ * Generate both access and refresh tokens with consistent timestamps
+ * This ensures both tokens share the same iat (issued at) timestamp
+ */
+export async function generateTokenPair(
+  payload: JWTPayload,
   env: AppEnv["Bindings"],
-): Promise<string> {
+): Promise<TokenPair> {
   const config = getAuthConfig(env);
-  return sign(
-    {
-      ...payload,
-      exp: Math.floor(Date.now() / 1000) + config.REFRESH_TOKEN_EXPIRES_IN,
-      iat: Math.floor(Date.now() / 1000),
-    },
-    secret,
-  );
+  const secret = env.JWT_SECRET;
+  const now = Math.floor(Date.now() / 1000);
+
+  // Generate both tokens in parallel with consistent timestamps
+  const [accessToken, refreshToken] = await Promise.all([
+    // Access token with user data
+    sign(
+      {
+        ...payload,
+        exp: now + config.JWT_EXPIRES_IN,
+        iat: now,
+      },
+      secret,
+    ),
+    // Refresh token with minimal payload
+    sign(
+      {
+        userId: payload.userId,
+        tokenVersion: payload.tokenVersion,
+        type: "refresh",
+        exp: now + config.REFRESH_TOKEN_EXPIRES_IN,
+        iat: now,
+      },
+      secret,
+    ),
+  ]);
+
+  return { accessToken, refreshToken };
 }
 
 /**

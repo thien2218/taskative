@@ -1,12 +1,12 @@
 import bcrypt from "bcryptjs";
 import { createDatabase } from "../db";
-import { signJWT, signRefreshToken } from "../utils/jwt";
+import { generateTokenPair } from "../utils/jwt";
 import type { AppEnv } from "../types";
 import { LoginRequest, RegisterRequest } from "../validators/auth";
 
 export interface AuthResult {
   success: true;
-  token: string;
+  accessToken: string;
   refreshToken: string;
 }
 
@@ -27,14 +27,29 @@ export class AuthService {
     const db = createDatabase(env);
     const { email, password } = data;
 
-    // Check if user already exists
-    const existingUser = await db
-      .selectFrom("users")
-      .select("id")
-      .where("email", "=", email)
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 11);
+
+    // Generate user ID
+    const userId = crypto.randomUUID();
+
+    // Optimistic insert with conflict handling - eliminates race condition
+    const insertedUser = await db
+      .insertInto("users")
+      .values({
+        id: userId,
+        email,
+        passwordHash,
+        tokenVersion: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .onConflict((oc) => oc.column("email").doNothing())
+      .returning(["id", "email", "tokenVersion"])
       .executeTakeFirst();
 
-    if (existingUser) {
+    // If no user returned, email already exists
+    if (!insertedUser) {
       return {
         success: false,
         error: "Registration failed",
@@ -42,32 +57,20 @@ export class AuthService {
       };
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 11);
+    // Generate both tokens with consistent timestamps
+    const payload = {
+      userId: insertedUser.id,
+      email: insertedUser.email,
+      tokenVersion: insertedUser.tokenVersion,
+    };
 
-    // Generate user ID
-    const userId = crypto.randomUUID();
+    const tokens = await generateTokenPair(payload, env);
 
-    // Create user
-    await db
-      .insertInto("users")
-      .values({
-        id: userId,
-        email,
-        passwordHash,
-        updatedAt: new Date().toISOString(),
-      })
-      .execute();
-
-    // Generate tokens
-    const token = await signJWT({ userId, email, tokenVersion: 0 }, env.JWT_SECRET, env);
-    const refreshToken = await signRefreshToken(
-      { userId, tokenVersion: 0, type: "refresh" },
-      env.JWT_SECRET,
-      env,
-    );
-
-    return { success: true, token, refreshToken };
+    return {
+      success: true,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
 
   /**
@@ -103,18 +106,19 @@ export class AuthService {
       };
     }
 
-    // Generate tokens
-    const token = await signJWT(
-      { userId: user.id, email: user.email, tokenVersion: user.tokenVersion },
-      env.JWT_SECRET,
-      env,
-    );
-    const refreshToken = await signRefreshToken(
-      { userId: user.id, tokenVersion: user.tokenVersion, type: "refresh" },
-      env.JWT_SECRET,
-      env,
-    );
+    // Generate both tokens with consistent timestamps
+    const payload = {
+      userId: user.id,
+      email: user.email,
+      tokenVersion: user.tokenVersion,
+    };
 
-    return { success: true, token, refreshToken };
+    const tokens = await generateTokenPair(payload, env);
+
+    return {
+      success: true,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
 }
