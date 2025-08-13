@@ -2,12 +2,12 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { AuthService } from "../services/auth";
 import { setCookie, deleteCookie } from "hono/cookie";
-import { getSessionCookieConfig } from "../config/auth";
 import { authMiddleware } from "../middlewares/auth";
 import { publicRoute } from "../middlewares/public";
 import { authRateLimit } from "../middlewares/rate-limiter";
 import { registerSchema, loginSchema } from "../validators/auth";
 import type { AppEnv } from "../types";
+import { SessionService } from "../services/session";
 
 const auth = new Hono<AppEnv>();
 
@@ -20,14 +20,16 @@ auth.post(
   async (c) => {
     const data = c.req.valid("json");
     const authService = new AuthService(c.env);
+    const sessionService = new SessionService(c.env);
+
     const result = await authService.register(data);
 
     if (!result.success) {
       return c.json({ error: result.error }, result.status as any);
     }
 
-    const cookieConfig = getSessionCookieConfig(c.env);
-    setCookie(c, "session", result.sessionToken, cookieConfig);
+    const cookieConfig = sessionService.getSessionCookieConfig();
+    setCookie(c, cookieConfig.name, result.sessionToken, cookieConfig.options);
 
     return c.json({ success: true }, 201);
   },
@@ -37,14 +39,16 @@ auth.post(
 auth.post("/login", publicRoute, authRateLimit, zValidator("json", loginSchema), async (c) => {
   const data = c.req.valid("json");
   const authService = new AuthService(c.env);
+  const sessionService = new SessionService(c.env);
+
   const result = await authService.login(data);
 
   if (!result.success) {
     return c.json({ error: result.error }, result.status as any);
   }
 
-  const cookieConfig = getSessionCookieConfig(c.env);
-  setCookie(c, "session", result.sessionToken, cookieConfig);
+  const cookieConfig = sessionService.getSessionCookieConfig();
+  setCookie(c, cookieConfig.name, result.sessionToken, cookieConfig.options);
 
   return c.json({ success: true });
 });
@@ -64,7 +68,9 @@ auth.post("/logout", authMiddleware, async (c) => {
     return c.json({ error: "Logout failed" }, 500);
   }
 
-  deleteCookie(c, "session", { httpOnly: true, secure: true, sameSite: "Strict" });
+  const sessionService = new SessionService(c.env);
+  const cookieConfig = sessionService.getSessionCookieConfig();
+  deleteCookie(c, cookieConfig.name, cookieConfig.options);
 
   return c.json({ success: true });
 });

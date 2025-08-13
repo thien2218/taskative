@@ -12,6 +12,7 @@ import type { Kysely } from "kysely";
 import { sign, verify } from "hono/jwt";
 
 export class SessionService {
+  private readonly environment: string;
   private readonly db: Kysely<DB>;
   private readonly kv: KVNamespace;
   private readonly jwtSecret: string;
@@ -20,10 +21,12 @@ export class SessionService {
     this.db = createDatabase(env.DB);
     this.kv = env.SESSION_KV;
     this.jwtSecret = env.JWT_SECRET;
+    this.environment = env.ENVIRONMENT;
   }
 
   private readonly SESSION_TTL = 20 * 60;
   private readonly SESSION_KV_TTL = 60 * 60;
+  private readonly SESSION_NAME = "taskative_session";
 
   /**
    * Generate session JWT token with 20-minute expiration
@@ -193,5 +196,20 @@ export class SessionService {
       console.error("SessionService.revoke error:", error);
       return false;
     }
+  }
+
+  /**
+   * Get session cookie configuration
+   */
+  getSessionCookieConfig() {
+    return {
+      name: this.SESSION_NAME,
+      options: {
+        httpOnly: true,
+        secure: this.environment === "production",
+        sameSite: "Strict" as const,
+        maxAge: this.SESSION_TTL + 5 * 60, // 5 minutes buffer
+      },
+    };
   }
 }

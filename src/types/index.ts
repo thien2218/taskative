@@ -8,7 +8,7 @@ export interface Bindings {
   DB: D1Database;
   SESSION_KV: KVNamespace;
   JWT_SECRET: string;
-  ENVIRONMENT?: string;
+  ENVIRONMENT: string;
   NODE_ENV?: string;
 }
 
