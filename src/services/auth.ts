@@ -1,8 +1,7 @@
 import bcrypt from "bcryptjs";
 import { createDatabase } from "../db";
 import { SessionService } from "./session";
-import { getAuthConfig } from "../config/auth";
-import type { AppEnv } from "../types";
+import type { Bindings } from "../types";
 import { LoginRequest, RegisterRequest } from "../validators/auth";
 
 export interface AuthResult {
@@ -17,12 +16,10 @@ export interface AuthError {
 }
 
 export class AuthService {
-  private readonly env: AppEnv["Bindings"];
   private readonly db: ReturnType<typeof createDatabase>;
   private readonly sessions: SessionService;
 
-  constructor(env: AppEnv["Bindings"]) {
-    this.env = env;
+  constructor(env: Bindings) {
     this.db = createDatabase(env.DB);
     this.sessions = new SessionService(env);
   }
@@ -61,14 +58,9 @@ export class AuthService {
       };
     }
 
-    // Create session with 7-day expiration
-    const config = getAuthConfig(this.env);
-    const sessionExpiresAt = new Date(Date.now() + config.SESSION_DB_EXPIRES_IN * 1000);
-
     const sessionResult = await this.sessions.create({
       userId: insertedUser.id,
       email: insertedUser.email,
-      expiresAt: sessionExpiresAt,
     });
 
     if (!sessionResult.success) {
@@ -121,14 +113,9 @@ export class AuthService {
       };
     }
 
-    // Create session with 7-day expiration
-    const config = getAuthConfig(this.env);
-    const sessionExpiresAt = new Date(Date.now() + config.SESSION_DB_EXPIRES_IN * 1000);
-
     const sessionResult = await this.sessions.create({
       userId: user.id,
       email: user.email,
-      expiresAt: sessionExpiresAt,
     });
 
     if (!sessionResult.success) {

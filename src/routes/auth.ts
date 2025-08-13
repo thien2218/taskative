@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { AuthService } from "../services/auth";
-import { SessionService } from "../services/session";
+import { setCookie, deleteCookie } from "hono/cookie";
+import { getSessionCookieConfig } from "../config/auth";
 import { authMiddleware } from "../middlewares/auth";
 import { publicRoute } from "../middlewares/public";
 import { authRateLimit } from "../middlewares/rate-limiter";
@@ -19,14 +20,14 @@ auth.post(
   async (c) => {
     const data = c.req.valid("json");
     const authService = new AuthService(c.env);
-    const sessionService = new SessionService(c.env);
     const result = await authService.register(data);
 
     if (!result.success) {
       return c.json({ error: result.error }, result.status as any);
     }
 
-    sessionService.setTokenCookie(c, result.sessionToken);
+    const cookieConfig = getSessionCookieConfig(c.env);
+    setCookie(c, "session", result.sessionToken, cookieConfig);
 
     return c.json({ success: true }, 201);
   },
@@ -36,14 +37,14 @@ auth.post(
 auth.post("/login", publicRoute, authRateLimit, zValidator("json", loginSchema), async (c) => {
   const data = c.req.valid("json");
   const authService = new AuthService(c.env);
-  const sessionService = new SessionService(c.env);
   const result = await authService.login(data);
 
   if (!result.success) {
     return c.json({ error: result.error }, result.status as any);
   }
 
-  sessionService.setTokenCookie(c, result.sessionToken);
+  const cookieConfig = getSessionCookieConfig(c.env);
+  setCookie(c, "session", result.sessionToken, cookieConfig);
 
   return c.json({ success: true });
 });
@@ -57,14 +58,13 @@ auth.post("/logout", authMiddleware, async (c) => {
   }
 
   const authService = new AuthService(c.env);
-  const sessionService = new SessionService(c.env);
   const success = await authService.logout(user.sessionId);
 
   if (!success) {
     return c.json({ error: "Logout failed" }, 500);
   }
 
-  sessionService.clearTokenCookie(c);
+  deleteCookie(c, "session", { httpOnly: true, secure: true, sameSite: "Strict" });
 
   return c.json({ success: true });
 });

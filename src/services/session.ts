@@ -1,11 +1,8 @@
 import { createDatabase } from "../db";
-import type { AppEnv } from "../types";
+import type { Bindings } from "../types";
 import type { Session, DB } from "../db/types";
 import type { Kysely } from "kysely";
 import { sign, verify } from "hono/jwt";
-import { setCookie, getCookie, deleteCookie } from "hono/cookie";
-import { getSessionCookieConfig } from "../config/auth";
-import type { Context } from "hono";
 
 export interface SessionPayload {
   sessionId: string;
@@ -24,7 +21,6 @@ export interface SessionJWTPayload {
 export interface CreateSessionRequest {
   userId: string;
   email: string;
-  expiresAt: Date;
 }
 
 export interface SessionResult {
@@ -42,22 +38,21 @@ export class SessionService {
   private readonly kv: KVNamespace;
   private readonly jwtSecret: string;
 
-  constructor(env: AppEnv["Bindings"]) {
+  constructor(env: Bindings) {
     this.db = createDatabase(env.DB);
     this.kv = env.SESSION_KV;
     this.jwtSecret = env.JWT_SECRET;
   }
 
-  private static readonly SESSION_TTL = 20 * 60;
-  private static readonly SESSION_KV_TTL = 60 * 60;
-  private static readonly SESSION_COOKIE_NAME = "session";
+  private readonly SESSION_TTL = 20 * 60;
+  private readonly SESSION_KV_TTL = 60 * 60;
 
   /**
    * Generate session JWT token with 20-minute expiration
    */
   async generateToken(sessionPayload: SessionPayload): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
-    const expiresIn = SessionService.SESSION_TTL;
+    const expiresIn = this.SESSION_TTL;
 
     return sign(
       {
@@ -84,36 +79,13 @@ export class SessionService {
     }
   }
 
-  /**
-   * Helper function to set session token cookie
-   */
-  setTokenCookie(c: Context, sessionToken: string): void {
-    const cookieConfig = getSessionCookieConfig(c.env);
-    setCookie(c, SessionService.SESSION_COOKIE_NAME, sessionToken, cookieConfig);
-  }
-
-  /**
-   * Helper function to clear session token cookie
-   */
-  clearTokenCookie(c: Context): void {
-    deleteCookie(c, SessionService.SESSION_COOKIE_NAME, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict",
-    });
-  }
-
-  /**
-   * Helper function to get session token from cookie
-   */
-  getTokenFromCookie(c: Context): string | undefined {
-    return getCookie(c, SessionService.SESSION_COOKIE_NAME);
-  }
+  // Cookie handling is delegated to routers/middlewares
   /**
    * Create a new session in D1 and cache it in KV
    */
   async create(data: CreateSessionRequest): Promise<SessionResult | SessionError> {
     const sessionId = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + this.SESSION_TTL * 1000);
 
     try {
       // Create session in D1
@@ -122,7 +94,7 @@ export class SessionService {
         .values({
           id: sessionId,
           userId: data.userId,
-          expiresAt: data.expiresAt.toISOString(),
+          expiresAt: expiresAt.toISOString(),
           revokedAt: null,
         })
         .returning(["id", "userId", "status", "createdAt", "expiresAt", "revokedAt"])
@@ -144,8 +116,7 @@ export class SessionService {
         expiresAt: session.expiresAt,
       });
 
-      const ttlSeconds = SessionService.SESSION_KV_TTL;
-      await this.kv.put(kvKey, kvValue, { expirationTtl: ttlSeconds });
+      await this.kv.put(kvKey, kvValue, { expirationTtl: this.SESSION_KV_TTL });
 
       return { success: true, session: session as unknown as Session };
     } catch (error) {
@@ -202,8 +173,8 @@ export class SessionService {
           status: session.status,
           expiresAt: session.expiresAt,
         });
-        const ttlSeconds = SessionService.SESSION_KV_TTL;
-        await this.kv.put(kvKey, kvValue, { expirationTtl: ttlSeconds });
+
+        await this.kv.put(kvKey, kvValue, { expirationTtl: this.SESSION_KV_TTL });
 
         return {
           sessionId: session.id,
