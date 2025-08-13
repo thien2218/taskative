@@ -18,13 +18,15 @@ auth.post(
   zValidator("json", registerSchema),
   async (c) => {
     const data = c.req.valid("json");
-    const result = await AuthService.register(data, c.env);
+    const authService = new AuthService(c.env);
+    const sessionService = new SessionService(c.env);
+    const result = await authService.register(data);
 
     if (!result.success) {
       return c.json({ error: result.error }, result.status as any);
     }
 
-    SessionService.setTokenCookie(c, result.sessionToken);
+    sessionService.setTokenCookie(c, result.sessionToken);
 
     return c.json({ success: true }, 201);
   },
@@ -33,13 +35,15 @@ auth.post(
 // POST /v1/auth/login (public with rate limiting)
 auth.post("/login", publicRoute, authRateLimit, zValidator("json", loginSchema), async (c) => {
   const data = c.req.valid("json");
-  const result = await AuthService.login(data, c.env);
+  const authService = new AuthService(c.env);
+  const sessionService = new SessionService(c.env);
+  const result = await authService.login(data);
 
   if (!result.success) {
     return c.json({ error: result.error }, result.status as any);
   }
 
-  SessionService.setTokenCookie(c, result.sessionToken);
+  sessionService.setTokenCookie(c, result.sessionToken);
 
   return c.json({ success: true });
 });
@@ -52,13 +56,15 @@ auth.post("/logout", authMiddleware, async (c) => {
     return c.json({ error: "Not authenticated" }, 401);
   }
 
-  const success = await AuthService.logout(user.sessionId, c.env);
+  const authService = new AuthService(c.env);
+  const sessionService = new SessionService(c.env);
+  const success = await authService.logout(user.sessionId);
 
   if (!success) {
     return c.json({ error: "Logout failed" }, 500);
   }
 
-  SessionService.clearTokenCookie(c);
+  sessionService.clearTokenCookie(c);
 
   return c.json({ success: true });
 });

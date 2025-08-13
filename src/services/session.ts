@@ -1,6 +1,7 @@
 import { createDatabase } from "../db";
 import type { AppEnv } from "../types";
-import type { Session } from "../db/types";
+import type { Session, DB } from "../db/types";
+import type { Kysely } from "kysely";
 import { sign, verify } from "hono/jwt";
 import { setCookie, getCookie, deleteCookie } from "hono/cookie";
 import { getSessionCookieConfig } from "../config/auth";
@@ -37,6 +38,16 @@ export interface SessionError {
 }
 
 export class SessionService {
+  private readonly db: Kysely<DB>;
+  private readonly kv: KVNamespace;
+  private readonly jwtSecret: string;
+
+  constructor(env: AppEnv["Bindings"]) {
+    this.db = createDatabase(env.DB);
+    this.kv = env.SESSION_KV;
+    this.jwtSecret = env.JWT_SECRET;
+  }
+
   private static readonly SESSION_TTL = 20 * 60;
   private static readonly SESSION_KV_TTL = 60 * 60;
   private static readonly SESSION_COOKIE_NAME = "session";
@@ -44,9 +55,9 @@ export class SessionService {
   /**
    * Generate session JWT token with 20-minute expiration
    */
-  static async generateToken(sessionPayload: SessionPayload, secret: string): Promise<string> {
+  async generateToken(sessionPayload: SessionPayload): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
-    const expiresIn = this.SESSION_TTL;
+    const expiresIn = SessionService.SESSION_TTL;
 
     return sign(
       {
@@ -56,16 +67,16 @@ export class SessionService {
         exp: now + expiresIn,
         iat: now,
       },
-      secret,
+      this.jwtSecret,
     );
   }
 
   /**
    * Verify and decode session JWT token
    */
-  static async verifyToken(token: string, secret: string): Promise<SessionJWTPayload | null> {
+  async verifyToken(token: string): Promise<SessionJWTPayload | null> {
     try {
-      const payload = await verify(token, secret);
+      const payload = await verify(token, this.jwtSecret);
       return payload as unknown as SessionJWTPayload;
     } catch (error) {
       console.error("JWT verification error:", error);
@@ -76,16 +87,16 @@ export class SessionService {
   /**
    * Helper function to set session token cookie
    */
-  static setTokenCookie(c: Context, sessionToken: string): void {
+  setTokenCookie(c: Context, sessionToken: string): void {
     const cookieConfig = getSessionCookieConfig(c.env);
-    setCookie(c, this.SESSION_COOKIE_NAME, sessionToken, cookieConfig);
+    setCookie(c, SessionService.SESSION_COOKIE_NAME, sessionToken, cookieConfig);
   }
 
   /**
    * Helper function to clear session token cookie
    */
-  static clearTokenCookie(c: Context): void {
-    deleteCookie(c, this.SESSION_COOKIE_NAME, {
+  clearTokenCookie(c: Context): void {
+    deleteCookie(c, SessionService.SESSION_COOKIE_NAME, {
       httpOnly: true,
       secure: true,
       sameSite: "Strict",
@@ -95,22 +106,18 @@ export class SessionService {
   /**
    * Helper function to get session token from cookie
    */
-  static getTokenFromCookie(c: Context): string | undefined {
-    return getCookie(c, this.SESSION_COOKIE_NAME);
+  getTokenFromCookie(c: Context): string | undefined {
+    return getCookie(c, SessionService.SESSION_COOKIE_NAME);
   }
   /**
    * Create a new session in D1 and cache it in KV
    */
-  static async create(
-    data: CreateSessionRequest,
-    env: AppEnv["Bindings"],
-  ): Promise<SessionResult | SessionError> {
-    const db = createDatabase(env.DB);
+  async create(data: CreateSessionRequest): Promise<SessionResult | SessionError> {
     const sessionId = crypto.randomUUID();
 
     try {
       // Create session in D1
-      const session = await db
+      const session = await this.db
         .insertInto("sessions")
         .values({
           id: sessionId,
@@ -137,8 +144,8 @@ export class SessionService {
         expiresAt: session.expiresAt,
       });
 
-      const ttlSeconds = this.SESSION_KV_TTL;
-      await env.SESSION_KV.put(kvKey, kvValue, { expirationTtl: ttlSeconds });
+      const ttlSeconds = SessionService.SESSION_KV_TTL;
+      await this.kv.put(kvKey, kvValue, { expirationTtl: ttlSeconds });
 
       return { success: true, session: session as unknown as Session };
     } catch (error) {
@@ -153,14 +160,11 @@ export class SessionService {
   /**
    * Find session by ID, checking KV first, then D1
    */
-  static async findById(
-    sessionId: string,
-    env: AppEnv["Bindings"],
-  ): Promise<SessionPayload | null> {
+  async findById(sessionId: string): Promise<SessionPayload | null> {
     try {
       // First check KV cache
       const kvKey = `session:${sessionId}`;
-      const kvValue = await env.SESSION_KV.get(kvKey);
+      const kvValue = await this.kv.get(kvKey);
 
       if (kvValue) {
         const sessionData = JSON.parse(kvValue);
@@ -175,8 +179,7 @@ export class SessionService {
       }
 
       // If not in KV or expired, check D1
-      const db = createDatabase(env.DB);
-      const session = await db
+      const session = await this.db
         .selectFrom("sessions")
         .innerJoin("users", "sessions.userId", "users.id")
         .select([
@@ -199,8 +202,8 @@ export class SessionService {
           status: session.status,
           expiresAt: session.expiresAt,
         });
-        const ttlSeconds = this.SESSION_KV_TTL;
-        await env.SESSION_KV.put(kvKey, kvValue, { expirationTtl: ttlSeconds });
+        const ttlSeconds = SessionService.SESSION_KV_TTL;
+        await this.kv.put(kvKey, kvValue, { expirationTtl: ttlSeconds });
 
         return {
           sessionId: session.id,
@@ -219,12 +222,10 @@ export class SessionService {
   /**
    * Revoke session in D1 and remove from KV
    */
-  static async revoke(sessionId: string, env: AppEnv["Bindings"]): Promise<boolean> {
+  async revoke(sessionId: string): Promise<boolean> {
     try {
-      const db = createDatabase(env.DB);
-
       // Revoke session in D1
-      const result = await db
+      const result = await this.db
         .updateTable("sessions")
         .set({
           status: "revoked",
@@ -236,7 +237,7 @@ export class SessionService {
 
       // Remove from KV cache
       const kvKey = `session:${sessionId}`;
-      await env.SESSION_KV.delete(kvKey);
+      await this.kv.delete(kvKey);
 
       return Number(result.numUpdatedRows) > 0;
     } catch (error) {

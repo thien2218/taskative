@@ -14,14 +14,15 @@ import { SessionService } from "../services/session";
  * 6. Otherwise return 401 Unauthorized
  */
 export async function authMiddleware(c: Context<AppEnv>, next: Next) {
-  const sessionToken = SessionService.getTokenFromCookie(c);
+  const sessions = new SessionService(c.env);
+  const sessionToken = sessions.getTokenFromCookie(c);
 
   if (!sessionToken) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
   // Try to verify the current JWT
-  const jwtPayload = await SessionService.verifyToken(sessionToken, c.env.JWT_SECRET);
+  const jwtPayload = await sessions.verifyToken(sessionToken);
 
   if (jwtPayload) {
     // JWT is valid and not expired
@@ -48,15 +49,15 @@ export async function authMiddleware(c: Context<AppEnv>, next: Next) {
     }
 
     // Check if session is still valid
-    const sessionPayload = await SessionService.findById(decodedPayload.sessionId, c.env);
+    const sessionPayload = await sessions.findById(decodedPayload.sessionId);
 
     if (!sessionPayload) {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
     // Session is valid, generate new JWT cookie
-    const newSessionToken = await SessionService.generateToken(sessionPayload, c.env.JWT_SECRET);
-    SessionService.setTokenCookie(c, newSessionToken);
+    const newSessionToken = await sessions.generateToken(sessionPayload);
+    sessions.setTokenCookie(c, newSessionToken);
 
     // Attach user info to context
     c.set("user", {

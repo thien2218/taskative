@@ -17,14 +17,19 @@ export interface AuthError {
 }
 
 export class AuthService {
+  private readonly env: AppEnv["Bindings"];
+  private readonly db: ReturnType<typeof createDatabase>;
+  private readonly sessions: SessionService;
+
+  constructor(env: AppEnv["Bindings"]) {
+    this.env = env;
+    this.db = createDatabase(env.DB);
+    this.sessions = new SessionService(env);
+  }
   /**
    * Register a new user
    */
-  static async register(
-    data: RegisterRequest,
-    env: AppEnv["Bindings"],
-  ): Promise<AuthResult | AuthError> {
-    const db = createDatabase(env.DB);
+  async register(data: RegisterRequest): Promise<AuthResult | AuthError> {
     const { email, password } = data;
 
     // Hash password
@@ -34,7 +39,7 @@ export class AuthService {
     const userId = crypto.randomUUID();
 
     // Optimistic insert with conflict handling - eliminates race condition
-    const insertedUser = await db
+    const insertedUser = await this.db
       .insertInto("users")
       .values({
         id: userId,
@@ -57,17 +62,14 @@ export class AuthService {
     }
 
     // Create session with 7-day expiration
-    const config = getAuthConfig(env);
+    const config = getAuthConfig(this.env);
     const sessionExpiresAt = new Date(Date.now() + config.SESSION_DB_EXPIRES_IN * 1000);
 
-    const sessionResult = await SessionService.create(
-      {
-        userId: insertedUser.id,
-        email: insertedUser.email,
-        expiresAt: sessionExpiresAt,
-      },
-      env,
-    );
+    const sessionResult = await this.sessions.create({
+      userId: insertedUser.id,
+      email: insertedUser.email,
+      expiresAt: sessionExpiresAt,
+    });
 
     if (!sessionResult.success) {
       return {
@@ -78,14 +80,11 @@ export class AuthService {
     }
 
     // Generate session JWT token
-    const sessionToken = await SessionService.generateToken(
-      {
-        sessionId: sessionResult.session.id,
-        userId: insertedUser.id,
-        email: insertedUser.email,
-      },
-      env.JWT_SECRET,
-    );
+    const sessionToken = await this.sessions.generateToken({
+      sessionId: sessionResult.session.id,
+      userId: insertedUser.id,
+      email: insertedUser.email,
+    });
 
     return { success: true, sessionToken };
   }
@@ -93,12 +92,11 @@ export class AuthService {
   /**
    * Login an existing user
    */
-  static async login(data: LoginRequest, env: AppEnv["Bindings"]): Promise<AuthResult | AuthError> {
-    const db = createDatabase(env.DB);
+  async login(data: LoginRequest): Promise<AuthResult | AuthError> {
     const { email, password } = data;
 
     // Find user
-    const user = await db
+    const user = await this.db
       .selectFrom("users")
       .select(["id", "email", "passwordHash"])
       .where("email", "=", email)
@@ -124,17 +122,14 @@ export class AuthService {
     }
 
     // Create session with 7-day expiration
-    const config = getAuthConfig(env);
+    const config = getAuthConfig(this.env);
     const sessionExpiresAt = new Date(Date.now() + config.SESSION_DB_EXPIRES_IN * 1000);
 
-    const sessionResult = await SessionService.create(
-      {
-        userId: user.id,
-        email: user.email,
-        expiresAt: sessionExpiresAt,
-      },
-      env,
-    );
+    const sessionResult = await this.sessions.create({
+      userId: user.id,
+      email: user.email,
+      expiresAt: sessionExpiresAt,
+    });
 
     if (!sessionResult.success) {
       return {
@@ -145,14 +140,11 @@ export class AuthService {
     }
 
     // Generate session JWT token
-    const sessionToken = await SessionService.generateToken(
-      {
-        sessionId: sessionResult.session.id,
-        userId: user.id,
-        email: user.email,
-      },
-      env.JWT_SECRET,
-    );
+    const sessionToken = await this.sessions.generateToken({
+      sessionId: sessionResult.session.id,
+      userId: user.id,
+      email: user.email,
+    });
 
     return { success: true, sessionToken };
   }
@@ -160,7 +152,7 @@ export class AuthService {
   /**
    * Logout user - revoke session
    */
-  static async logout(sessionId: string, env: AppEnv["Bindings"]): Promise<boolean> {
-    return SessionService.revoke(sessionId, env);
+  async logout(sessionId: string): Promise<boolean> {
+    return this.sessions.revoke(sessionId);
   }
 }
