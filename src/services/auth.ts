@@ -13,16 +13,14 @@ export class AuthService {
     this.db = createDatabase(env.DB);
     this.sessions = new SessionService(env);
   }
+
   /**
    * Register a new user
    */
   async register(data: RegisterRequest): Promise<AuthResult | AuthError> {
     const { email, password } = data;
 
-    // Hash password
     const passwordHash = await bcrypt.hash(password, 11);
-
-    // Generate user ID
     const userId = crypto.randomUUID();
 
     // Optimistic insert with conflict handling - eliminates race condition
@@ -61,14 +59,7 @@ export class AuthService {
       };
     }
 
-    // Generate session JWT token
-    const sessionToken = await this.sessions.generateToken({
-      sessionId: sessionResult.session.id,
-      userId: insertedUser.id,
-      email: insertedUser.email,
-    });
-
-    return { success: true, sessionToken };
+    return { success: true, sessionToken: sessionResult.sessionToken };
   }
 
   /**
@@ -116,14 +107,7 @@ export class AuthService {
       };
     }
 
-    // Generate session JWT token
-    const sessionToken = await this.sessions.generateToken({
-      sessionId: sessionResult.session.id,
-      userId: user.id,
-      email: user.email,
-    });
-
-    return { success: true, sessionToken };
+    return { success: true, sessionToken: sessionResult.sessionToken };
   }
 
   /**

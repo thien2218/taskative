@@ -2,7 +2,6 @@ import type { Context, Next } from "hono";
 import type { AppEnv } from "../types";
 import { SessionService } from "../services/session";
 import { getCookie, setCookie } from "hono/cookie";
-import { getSessionCookieConfig } from "../config/auth";
 
 /**
  * Authentication middleware for session-backed JWT cookies
@@ -17,7 +16,7 @@ import { getSessionCookieConfig } from "../config/auth";
  */
 export async function authMiddleware(c: Context<AppEnv>, next: Next) {
   const sessions = new SessionService(c.env);
-  const sessionToken = getCookie(c, "session");
+  const sessionToken = getCookie(c, "taskative_session");
 
   if (!sessionToken) {
     return c.json({ error: "Unauthorized" }, 401);
@@ -59,8 +58,8 @@ export async function authMiddleware(c: Context<AppEnv>, next: Next) {
 
     // Session is valid, generate new JWT cookie
     const newSessionToken = await sessions.generateToken(sessionPayload);
-    const cookieConfig = getSessionCookieConfig(c.env);
-    setCookie(c, "session", newSessionToken, cookieConfig);
+    const cookieConfig = sessions.getSessionCookieConfig();
+    setCookie(c, cookieConfig.name, newSessionToken, cookieConfig.options);
 
     // Attach user info to context
     c.set("user", {

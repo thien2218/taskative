@@ -1,5 +1,3 @@
-import type { Session } from "../db/types";
-
 export interface SessionPayload {
   sessionId: string;
   userId: string;
@@ -21,7 +19,7 @@ export interface CreateSessionRequest {
 
 export interface SessionResult {
   success: true;
-  session: Session;
+  sessionToken: string;
 }
 
 export interface SessionError {

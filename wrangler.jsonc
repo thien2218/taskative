@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "backend",
+  "name": "taskative",
   "main": "src/index.ts",
   "compatibility_date": "2025-08-10",
   "d1_databases": [
@@ -9,12 +9,11 @@
       "database_name": "taskative-db",
       "database_id": "ea0e56bd-3988-4b85-98c9-269ec27c7bee"
     }
-  ]
-  // "compatibility_flags": [
-  //   "nodejs_compat"
-  // ],
-  // "vars": {
-  // }
+  ],
+  // "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "ENVIRONMENT": "production"
+  }
   // "kv_namespaces": [
   //   {
   //     "binding": "MY_KV_NAMESPACE",

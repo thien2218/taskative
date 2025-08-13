@@ -7,7 +7,7 @@ import type {
   SessionResult,
   SessionError,
 } from "../types/session";
-import type { Session, DB } from "../db/types";
+import type { DB } from "../db/types";
 import type { Kysely } from "kysely";
 import { sign, verify } from "hono/jwt";
 
@@ -29,25 +29,6 @@ export class SessionService {
   private readonly SESSION_NAME = "taskative_session";
 
   /**
-   * Generate session JWT token with 20-minute expiration
-   */
-  async generateToken(payload: SessionPayload): Promise<string> {
-    const now = Math.floor(Date.now() / 1000);
-    const expiresIn = this.SESSION_TTL;
-
-    return sign(
-      {
-        sessionId: payload.sessionId,
-        userId: payload.userId,
-        email: payload.email,
-        exp: now + expiresIn,
-        iat: now,
-      },
-      this.jwtSecret,
-    );
-  }
-
-  /**
    * Verify and decode session JWT token
    */
   async verifyToken(token: string): Promise<SessionJWTPayload | null> {
@@ -60,7 +41,6 @@ export class SessionService {
     }
   }
 
-  // Cookie handling is delegated to routers/middlewares
   /**
    * Create a new session in D1 and cache it in KV
    */
@@ -99,7 +79,14 @@ export class SessionService {
 
       await this.kv.put(kvKey, kvValue, { expirationTtl: this.SESSION_KV_TTL });
 
-      return { success: true, session: session as unknown as Session };
+      // Generate a 20-minute JWT tied to this session
+      const sessionToken = await this.generateToken({
+        sessionId: session.id,
+        userId: data.userId,
+        email: data.email,
+      });
+
+      return { success: true, sessionToken };
     } catch (error) {
       console.error("SessionService.create error:", error);
       return {
@@ -211,5 +198,24 @@ export class SessionService {
         maxAge: this.SESSION_TTL + 5 * 60, // 5 minutes buffer
       },
     };
+  }
+
+  /**
+   * Generate session JWT token with 20-minute expiration
+   */
+  async generateToken(payload: SessionPayload): Promise<string> {
+    const now = Math.floor(Date.now() / 1000);
+    const expiresIn = this.SESSION_TTL;
+
+    return sign(
+      {
+        sessionId: payload.sessionId,
+        userId: payload.userId,
+        email: payload.email,
+        exp: now + expiresIn,
+        iat: now,
+      },
+      this.jwtSecret,
+    );
   }
 }
