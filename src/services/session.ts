@@ -1,37 +1,15 @@
 import { createDatabase } from "../db";
 import type { Bindings } from "../types";
+import type {
+  SessionPayload,
+  SessionJWTPayload,
+  CreateSessionRequest,
+  SessionResult,
+  SessionError,
+} from "../types/session";
 import type { Session, DB } from "../db/types";
 import type { Kysely } from "kysely";
 import { sign, verify } from "hono/jwt";
-
-export interface SessionPayload {
-  sessionId: string;
-  userId: string;
-  email: string;
-}
-
-export interface SessionJWTPayload {
-  sessionId: string;
-  userId: string;
-  email: string;
-  exp: number;
-  iat: number;
-}
-
-export interface CreateSessionRequest {
-  userId: string;
-  email: string;
-}
-
-export interface SessionResult {
-  success: true;
-  session: Session;
-}
-
-export interface SessionError {
-  success: false;
-  error: string;
-}
 
 export class SessionService {
   private readonly db: Kysely<DB>;
@@ -50,15 +28,15 @@ export class SessionService {
   /**
    * Generate session JWT token with 20-minute expiration
    */
-  async generateToken(sessionPayload: SessionPayload): Promise<string> {
+  async generateToken(payload: SessionPayload): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = this.SESSION_TTL;
 
     return sign(
       {
-        sessionId: sessionPayload.sessionId,
-        userId: sessionPayload.userId,
-        email: sessionPayload.email,
+        sessionId: payload.sessionId,
+        userId: payload.userId,
+        email: payload.email,
         exp: now + expiresIn,
         iat: now,
       },

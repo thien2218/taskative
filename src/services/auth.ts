@@ -2,18 +2,8 @@ import bcrypt from "bcryptjs";
 import { createDatabase } from "../db";
 import { SessionService } from "./session";
 import type { Bindings } from "../types";
+import type { AuthResult, AuthError } from "../types/auth";
 import { LoginRequest, RegisterRequest } from "../validators/auth";
-
-export interface AuthResult {
-  success: true;
-  sessionToken: string;
-}
-
-export interface AuthError {
-  success: false;
-  error: string;
-  status: number;
-}
 
 export class AuthService {
   private readonly db: ReturnType<typeof createDatabase>;
