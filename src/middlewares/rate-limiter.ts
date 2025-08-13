@@ -1,71 +1,22 @@
 import type { Context, Next } from "hono";
 import type { AppEnv } from "../types";
 
-// In-memory rate limiting store (for demo - in production use Redis or similar)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
 /**
- * Rate limiting middleware for auth endpoints
- * Limits to 5 requests per 15 minutes per IP address
+ * Rate limiting middleware using Cloudflare Rate Limiting binding
+ * Docs: https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
  */
-export function authRateLimit(c: Context<AppEnv>, next: Next) {
-  const clientIP =
-    c.req.header("CF-Connecting-IP") ||
-    c.req.header("X-Forwarded-For") ||
-    c.req.header("X-Real-IP") ||
-    "unknown";
+export async function authRateLimit(c: Context<AppEnv>, next: Next) {
+  // Define a stable key for rate limiting. Prefer a user identifier when available
+  // Fallback to route path to avoid over-limiting by IP (per Cloudflare best practices)
+  const url = new URL(c.req.url);
+  const user = c.get("user");
+  const limiterKey = user?.userId ? `user:${user.userId}` : `path:${url.pathname}`;
 
-  const key = `auth:${clientIP}`;
-  const now = Date.now();
-  const windowMs = 15 * 60 * 1000; // 15 minutes
-  const maxRequests = 5;
+  const { success } = await c.env.AUTH_RATE_LIMITER.limit({ key: limiterKey });
 
-  // Get current rate limit data for this IP
-  const current = rateLimitStore.get(key);
-
-  if (!current || now > current.resetTime) {
-    // New window or expired window
-    rateLimitStore.set(key, {
-      count: 1,
-      resetTime: now + windowMs,
-    });
-    return next();
+  if (!success) {
+    return c.json({ error: "Too many requests" }, 429);
   }
-
-  if (current.count >= maxRequests) {
-    // Rate limit exceeded
-    const resetInSeconds = Math.ceil((current.resetTime - now) / 1000);
-    return c.json(
-      {
-        error: "Too many requests",
-        retryAfter: resetInSeconds,
-      },
-      429,
-      {
-        "Retry-After": resetInSeconds.toString(),
-      },
-    );
-  }
-
-  // Increment counter
-  current.count += 1;
-  rateLimitStore.set(key, current);
 
   return next();
 }
-
-/**
- * Cleanup expired entries from rate limit store
- * Should be called periodically to prevent memory leaks
- */
-export function cleanupRateLimit() {
-  const now = Date.now();
-  for (const [key, value] of rateLimitStore.entries()) {
-    if (now > value.resetTime) {
-      rateLimitStore.delete(key);
-    }
-  }
-}
-
-// Cleanup every 30 minutes
-setInterval(cleanupRateLimit, 30 * 60 * 1000);
