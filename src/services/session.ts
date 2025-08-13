@@ -19,7 +19,7 @@ export class SessionService {
 
   constructor(env: Bindings) {
     this.db = createDatabase(env.DB);
-    this.kv = env.SESSION_KV;
+    this.kv = env.CACHE;
     this.jwtSecret = env.JWT_SECRET;
     this.environment = env.ENVIRONMENT;
   }

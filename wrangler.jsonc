@@ -13,13 +13,13 @@
   // "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "ENVIRONMENT": "production"
-  }
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "28dc6262406240929e6d421a99e4a123"
+    }
+  ]
   // "r2_buckets": [
   //   {
   //     "binding": "MY_BUCKET",
