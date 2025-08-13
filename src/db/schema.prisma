@@ -21,14 +21,28 @@ model User {
   last_name         String?
   username          String?    @unique
   profile_image_url String?
-  token_version     Int        @default(0)
   groups            Group[]
   tasks             Task[]
   reminders         Reminder[]
+  sessions          Session[]
   created_at        DateTime   @default(now())
   updated_at        DateTime   @updatedAt
 
   @@map("users")
+}
+
+model Session {
+  id         String    @id
+  user_id    String
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  status     String    @default("active")
+  created_at DateTime  @default(now())
+  expires_at DateTime
+  revoked_at DateTime?
+
+  @@index([user_id])
+  @@index([expires_at])
+  @@map("sessions")
 }
 
 model Group {

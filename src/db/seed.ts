@@ -69,7 +69,6 @@ export async function seedDemoData() {
         passwordHash: createDemoPasswordHash("demo123"),
         firstName: "Demo",
         lastName: "User",
-        tokenVersion: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })

@@ -1,13 +1,14 @@
 import bcrypt from "bcryptjs";
 import { createDatabase } from "../db";
-import { generateTokenPair } from "../utils/jwt";
+import { generateSessionToken } from "../utils/jwt";
+import { SessionService } from "./session";
+import { getAuthConfig } from "../config/auth";
 import type { AppEnv } from "../types";
 import { LoginRequest, RegisterRequest } from "../validators/auth";
 
 export interface AuthResult {
   success: true;
-  accessToken: string;
-  refreshToken: string;
+  sessionToken: string;
 }
 
 export interface AuthError {
@@ -40,12 +41,11 @@ export class AuthService {
         id: userId,
         email,
         passwordHash,
-        tokenVersion: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
       .onConflict((oc) => oc.column("email").doNothing())
-      .returning(["id", "email", "tokenVersion"])
+      .returning(["id", "email"])
       .executeTakeFirst();
 
     // If no user returned, email already exists
@@ -57,20 +57,38 @@ export class AuthService {
       };
     }
 
-    // Generate both tokens with consistent timestamps
-    const payload = {
-      userId: insertedUser.id,
-      email: insertedUser.email,
-      tokenVersion: insertedUser.tokenVersion,
-    };
+    // Create session with 7-day expiration
+    const config = getAuthConfig(env);
+    const sessionExpiresAt = new Date(Date.now() + config.SESSION_DB_EXPIRES_IN * 1000);
 
-    const tokens = await generateTokenPair(payload, env);
+    const sessionResult = await SessionService.create(
+      {
+        userId: insertedUser.id,
+        email: insertedUser.email,
+        expiresAt: sessionExpiresAt,
+      },
+      env,
+    );
 
-    return {
-      success: true,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-    };
+    if (!sessionResult.success) {
+      return {
+        success: false,
+        error: "Failed to create session",
+        status: 500,
+      };
+    }
+
+    // Generate session JWT token
+    const sessionToken = await generateSessionToken(
+      {
+        sessionId: sessionResult.session.id,
+        userId: insertedUser.id,
+        email: insertedUser.email,
+      },
+      env,
+    );
+
+    return { success: true, sessionToken };
   }
 
   /**
@@ -83,7 +101,7 @@ export class AuthService {
     // Find user
     const user = await db
       .selectFrom("users")
-      .select(["id", "email", "passwordHash", "tokenVersion"])
+      .select(["id", "email", "passwordHash"])
       .where("email", "=", email)
       .executeTakeFirst();
 
@@ -106,19 +124,44 @@ export class AuthService {
       };
     }
 
-    // Generate both tokens with consistent timestamps
-    const payload = {
-      userId: user.id,
-      email: user.email,
-      tokenVersion: user.tokenVersion,
-    };
+    // Create session with 7-day expiration
+    const config = getAuthConfig(env);
+    const sessionExpiresAt = new Date(Date.now() + config.SESSION_DB_EXPIRES_IN * 1000);
 
-    const tokens = await generateTokenPair(payload, env);
+    const sessionResult = await SessionService.create(
+      {
+        userId: user.id,
+        email: user.email,
+        expiresAt: sessionExpiresAt,
+      },
+      env,
+    );
 
-    return {
-      success: true,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-    };
+    if (!sessionResult.success) {
+      return {
+        success: false,
+        error: "Failed to create session",
+        status: 500,
+      };
+    }
+
+    // Generate session JWT token
+    const sessionToken = await generateSessionToken(
+      {
+        sessionId: sessionResult.session.id,
+        userId: user.id,
+        email: user.email,
+      },
+      env,
+    );
+
+    return { success: true, sessionToken };
+  }
+
+  /**
+   * Logout user - revoke session
+   */
+  static async logout(sessionId: string, env: AppEnv["Bindings"]): Promise<boolean> {
+    return SessionService.revoke(sessionId, env);
   }
 }

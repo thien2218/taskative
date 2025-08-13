@@ -1,14 +1,20 @@
-import type { JwtVariables } from "hono/jwt";
+export interface UserContext {
+  userId: string;
+  email: string;
+  sessionId: string;
+}
 
 export interface AppEnv {
   Bindings: {
     DB: D1Database;
+    SESSION_KV: KVNamespace;
     JWT_SECRET: string;
     // Environment detection
     ENVIRONMENT?: string;
     NODE_ENV?: string;
   };
-  Variables: JwtVariables & {
+  Variables: {
+    user?: UserContext;
     isPublic?: boolean;
   };
 }

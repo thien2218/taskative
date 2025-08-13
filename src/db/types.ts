@@ -22,6 +22,14 @@ export type Reminder = {
     status: Generated<string>;
     createdAt: Generated<string>;
 };
+export type Session = {
+    id: string;
+    userId: string;
+    status: Generated<string>;
+    createdAt: Generated<string>;
+    expiresAt: string;
+    revokedAt: string | null;
+};
 export type Subtask = {
     id: string;
     taskId: string;
@@ -53,13 +61,13 @@ export type User = {
     lastName: string | null;
     username: string | null;
     profileImageUrl: string | null;
-    tokenVersion: Generated<number>;
     createdAt: Generated<string>;
     updatedAt: string;
 };
 export type DB = {
     groups: Group;
     reminders: Reminder;
+    sessions: Session;
     subtasks: Subtask;
     tasks: Task;
     users: User;

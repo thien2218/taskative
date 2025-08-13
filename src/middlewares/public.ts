@@ -7,8 +7,3 @@ export const publicRoute = createMiddleware<AppEnv>(async (c, next) => {
   c.set("isPublic", true);
   await next();
 });
-
-// Helper function to check if a route is public
-export const isPublicRoute = (c: any): boolean => {
-  return c.get("isPublic") === true;
-};

@@ -1,74 +1,95 @@
-import { sign } from "hono/jwt";
-import { setCookie } from "hono/cookie";
-import { getAuthConfig, getRefreshTokenCookieConfig } from "../config/auth";
+import { sign, verify } from "hono/jwt";
+import { setCookie, getCookie, deleteCookie } from "hono/cookie";
+import { getSessionCookieConfig } from "../config/auth";
 import type { Context } from "hono";
 import type { AppEnv } from "../types";
+import type { SessionPayload } from "../services/session";
 
-export interface JWTPayload {
+export interface SessionJWTPayload {
+  sessionId: string;
   userId: string;
   email: string;
-  tokenVersion: number;
-}
-
-export interface RefreshTokenPayload {
-  userId: string;
-  tokenVersion: number;
-  type: "refresh";
-}
-
-export interface TokenPair {
-  accessToken: string;
-  refreshToken: string;
+  exp: number;
+  iat: number;
 }
 
 /**
- * Generate both access and refresh tokens with consistent timestamps
- * This ensures both tokens share the same iat (issued at) timestamp
+ * Generate session JWT token with 20-minute expiration
  */
-export async function generateTokenPair(
-  payload: JWTPayload,
+export async function generateSessionToken(
+  sessionPayload: SessionPayload,
   env: AppEnv["Bindings"],
-): Promise<TokenPair> {
-  const config = getAuthConfig(env);
+): Promise<string> {
   const secret = env.JWT_SECRET;
   const now = Math.floor(Date.now() / 1000);
+  const expiresIn = 20 * 60; // 20 minutes in seconds
 
-  // Generate both tokens in parallel with consistent timestamps
-  const [accessToken, refreshToken] = await Promise.all([
-    // Access token with user data
-    sign(
-      {
-        ...payload,
-        exp: now + config.JWT_EXPIRES_IN,
-        iat: now,
-      },
-      secret,
-    ),
-    // Refresh token with minimal payload
-    sign(
-      {
-        userId: payload.userId,
-        tokenVersion: payload.tokenVersion,
-        type: "refresh",
-        exp: now + config.REFRESH_TOKEN_EXPIRES_IN,
-        iat: now,
-      },
-      secret,
-    ),
-  ]);
-
-  return { accessToken, refreshToken };
+  return sign(
+    {
+      sessionId: sessionPayload.sessionId,
+      userId: sessionPayload.userId,
+      email: sessionPayload.email,
+      exp: now + expiresIn,
+      iat: now,
+    },
+    secret,
+  );
 }
 
 /**
- * Helper function to set refresh token cookie
- * Eliminates code duplication between register and login endpoints
+ * Verify and decode session JWT token
  */
-export function setRefreshTokenCookie(
+export async function verifySessionToken(
+  token: string,
+  env: AppEnv["Bindings"],
+): Promise<SessionJWTPayload | null> {
+  try {
+    const secret = env.JWT_SECRET;
+    const payload = await verify(token, secret);
+
+    if (
+      typeof payload === "object" &&
+      payload &&
+      "sessionId" in payload &&
+      "userId" in payload &&
+      "email" in payload
+    ) {
+      return payload as unknown as SessionJWTPayload;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("JWT verification error:", error);
+    return null;
+  }
+}
+
+/**
+ * Helper function to set session token cookie
+ */
+export function setSessionTokenCookie(
   c: Context,
-  refreshToken: string,
+  sessionToken: string,
   env: AppEnv["Bindings"],
 ): void {
-  const cookieConfig = getRefreshTokenCookieConfig(env);
-  setCookie(c, "refreshToken", refreshToken, cookieConfig);
+  const cookieConfig = getSessionCookieConfig(env);
+  setCookie(c, "session", sessionToken, cookieConfig);
+}
+
+/**
+ * Helper function to clear session token cookie
+ */
+export function clearSessionTokenCookie(c: Context): void {
+  deleteCookie(c, "session", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "Strict",
+  });
+}
+
+/**
+ * Helper function to get session token from cookie
+ */
+export function getSessionTokenFromCookie(c: Context): string | undefined {
+  return getCookie(c, "session");
 }
