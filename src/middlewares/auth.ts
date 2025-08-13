@@ -1,11 +1,5 @@
 import type { Context, Next } from "hono";
 import type { AppEnv } from "../types";
-import {
-  getSessionTokenFromCookie,
-  verifySessionToken,
-  generateSessionToken,
-  setSessionTokenCookie,
-} from "../utils/jwt";
 import { SessionService } from "../services/session";
 
 /**
@@ -20,14 +14,14 @@ import { SessionService } from "../services/session";
  * 6. Otherwise return 401 Unauthorized
  */
 export async function authMiddleware(c: Context<AppEnv>, next: Next) {
-  const sessionToken = getSessionTokenFromCookie(c);
+  const sessionToken = SessionService.getTokenFromCookie(c);
 
   if (!sessionToken) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
   // Try to verify the current JWT
-  const jwtPayload = await verifySessionToken(sessionToken, c.env);
+  const jwtPayload = await SessionService.verifyToken(sessionToken, c.env.JWT_SECRET);
 
   if (jwtPayload) {
     // JWT is valid and not expired
@@ -61,8 +55,8 @@ export async function authMiddleware(c: Context<AppEnv>, next: Next) {
     }
 
     // Session is valid, generate new JWT cookie
-    const newSessionToken = await generateSessionToken(sessionPayload, c.env);
-    setSessionTokenCookie(c, newSessionToken, c.env);
+    const newSessionToken = await SessionService.generateToken(sessionPayload, c.env.JWT_SECRET);
+    SessionService.setTokenCookie(c, newSessionToken);
 
     // Attach user info to context
     c.set("user", {
@@ -76,32 +70,4 @@ export async function authMiddleware(c: Context<AppEnv>, next: Next) {
     console.error("Auth middleware renewal error:", error);
     return c.json({ error: "Unauthorized" }, 401);
   }
-}
-
-/**
- * Optional authentication middleware - does not return 401 if no auth
- * Used for endpoints that work with or without authentication
- */
-export async function optionalAuthMiddleware(c: Context<AppEnv>, next: Next) {
-  const sessionToken = getSessionTokenFromCookie(c);
-
-  if (!sessionToken) {
-    return next();
-  }
-
-  // Try to verify the current JWT
-  const jwtPayload = await verifySessionToken(sessionToken, c.env);
-
-  if (jwtPayload) {
-    // JWT is valid and not expired
-    c.set("user", {
-      userId: jwtPayload.userId,
-      email: jwtPayload.email,
-      sessionId: jwtPayload.sessionId,
-    });
-    return next();
-  }
-
-  // For optional auth, don't try renewal - just continue without user
-  return next();
 }

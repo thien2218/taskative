@@ -10,8 +10,7 @@ export interface AppEnv {
     SESSION_KV: KVNamespace;
     JWT_SECRET: string;
     // Environment detection
-    ENVIRONMENT?: string;
-    NODE_ENV?: string;
+    ENVIRONMENT: string;
   };
   Variables: {
     user?: UserContext;

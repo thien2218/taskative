@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import { createDatabase } from "../db";
-import { generateSessionToken } from "../utils/jwt";
 import { SessionService } from "./session";
 import { getAuthConfig } from "../config/auth";
 import type { AppEnv } from "../types";
@@ -25,7 +24,7 @@ export class AuthService {
     data: RegisterRequest,
     env: AppEnv["Bindings"],
   ): Promise<AuthResult | AuthError> {
-    const db = createDatabase(env);
+    const db = createDatabase(env.DB);
     const { email, password } = data;
 
     // Hash password
@@ -79,13 +78,13 @@ export class AuthService {
     }
 
     // Generate session JWT token
-    const sessionToken = await generateSessionToken(
+    const sessionToken = await SessionService.generateToken(
       {
         sessionId: sessionResult.session.id,
         userId: insertedUser.id,
         email: insertedUser.email,
       },
-      env,
+      env.JWT_SECRET,
     );
 
     return { success: true, sessionToken };
@@ -95,7 +94,7 @@ export class AuthService {
    * Login an existing user
    */
   static async login(data: LoginRequest, env: AppEnv["Bindings"]): Promise<AuthResult | AuthError> {
-    const db = createDatabase(env);
+    const db = createDatabase(env.DB);
     const { email, password } = data;
 
     // Find user
@@ -146,13 +145,13 @@ export class AuthService {
     }
 
     // Generate session JWT token
-    const sessionToken = await generateSessionToken(
+    const sessionToken = await SessionService.generateToken(
       {
         sessionId: sessionResult.session.id,
         userId: user.id,
         email: user.email,
       },
-      env,
+      env.JWT_SECRET,
     );
 
     return { success: true, sessionToken };

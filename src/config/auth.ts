@@ -11,11 +11,8 @@ export function getAuthConfig(env: AppEnv["Bindings"]) {
     (!env.ENVIRONMENT && !env.NODE_ENV);
 
   return {
-    // Session JWT token expiration (20 minutes)
     SESSION_JWT_EXPIRES_IN: 20 * 60, // 20 minutes in seconds
-    // Session database expiration (longer than JWT for renewal)
-    SESSION_DB_EXPIRES_IN: 60 * 60 * 24 * 7, // 7 days in seconds
-    // Environment info
+    SESSION_DB_EXPIRES_IN: 60 * 60 * 24 * 15, // 15 days in seconds
     IS_DEVELOPMENT: isdev,
   } as const;
 }
@@ -27,8 +24,8 @@ export function getSessionCookieConfig(env: AppEnv["Bindings"]) {
   const authConfig = getAuthConfig(env);
   return {
     httpOnly: true,
-    secure: !authConfig.IS_DEVELOPMENT, // false for dev, true for prod
+    secure: !authConfig.IS_DEVELOPMENT,
     sameSite: "Strict" as const,
-    maxAge: authConfig.SESSION_JWT_EXPIRES_IN, // 20 minutes
+    maxAge: authConfig.SESSION_JWT_EXPIRES_IN + 5 * 60, // 5 minutes buffer
   };
 }

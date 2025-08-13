@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { AuthService } from "../services/auth";
-import { setSessionTokenCookie, clearSessionTokenCookie } from "../utils/jwt";
+import { SessionService } from "../services/session";
 import { authMiddleware } from "../middlewares/auth";
 import { publicRoute } from "../middlewares/public";
 import { authRateLimit } from "../middlewares/rate-limiter";
@@ -24,8 +24,7 @@ auth.post(
       return c.json({ error: result.error }, result.status as any);
     }
 
-    // Set session token cookie
-    setSessionTokenCookie(c, result.sessionToken, c.env);
+    SessionService.setTokenCookie(c, result.sessionToken);
 
     return c.json({ success: true }, 201);
   },
@@ -40,8 +39,7 @@ auth.post("/login", publicRoute, authRateLimit, zValidator("json", loginSchema),
     return c.json({ error: result.error }, result.status as any);
   }
 
-  // Set session token cookie
-  setSessionTokenCookie(c, result.sessionToken, c.env);
+  SessionService.setTokenCookie(c, result.sessionToken);
 
   return c.json({ success: true });
 });
@@ -54,15 +52,13 @@ auth.post("/logout", authMiddleware, async (c) => {
     return c.json({ error: "Not authenticated" }, 401);
   }
 
-  // Revoke session
   const success = await AuthService.logout(user.sessionId, c.env);
 
   if (!success) {
     return c.json({ error: "Logout failed" }, 500);
   }
 
-  // Clear session token cookie
-  clearSessionTokenCookie(c);
+  SessionService.clearTokenCookie(c);
 
   return c.json({ success: true });
 });

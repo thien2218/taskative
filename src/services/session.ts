@@ -1,11 +1,23 @@
 import { createDatabase } from "../db";
 import type { AppEnv } from "../types";
 import type { Session } from "../db/types";
+import { sign, verify } from "hono/jwt";
+import { setCookie, getCookie, deleteCookie } from "hono/cookie";
+import { getSessionCookieConfig } from "../config/auth";
+import type { Context } from "hono";
 
 export interface SessionPayload {
   sessionId: string;
   userId: string;
   email: string;
+}
+
+export interface SessionJWTPayload {
+  sessionId: string;
+  userId: string;
+  email: string;
+  exp: number;
+  iat: number;
 }
 
 export interface CreateSessionRequest {
@@ -25,6 +37,67 @@ export interface SessionError {
 }
 
 export class SessionService {
+  private static readonly SESSION_TTL = 20 * 60;
+  private static readonly SESSION_KV_TTL = 60 * 60;
+  private static readonly SESSION_COOKIE_NAME = "session";
+
+  /**
+   * Generate session JWT token with 20-minute expiration
+   */
+  static async generateToken(sessionPayload: SessionPayload, secret: string): Promise<string> {
+    const now = Math.floor(Date.now() / 1000);
+    const expiresIn = this.SESSION_TTL;
+
+    return sign(
+      {
+        sessionId: sessionPayload.sessionId,
+        userId: sessionPayload.userId,
+        email: sessionPayload.email,
+        exp: now + expiresIn,
+        iat: now,
+      },
+      secret,
+    );
+  }
+
+  /**
+   * Verify and decode session JWT token
+   */
+  static async verifyToken(token: string, secret: string): Promise<SessionJWTPayload | null> {
+    try {
+      const payload = await verify(token, secret);
+      return payload as unknown as SessionJWTPayload;
+    } catch (error) {
+      console.error("JWT verification error:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Helper function to set session token cookie
+   */
+  static setTokenCookie(c: Context, sessionToken: string): void {
+    const cookieConfig = getSessionCookieConfig(c.env);
+    setCookie(c, this.SESSION_COOKIE_NAME, sessionToken, cookieConfig);
+  }
+
+  /**
+   * Helper function to clear session token cookie
+   */
+  static clearTokenCookie(c: Context): void {
+    deleteCookie(c, this.SESSION_COOKIE_NAME, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+    });
+  }
+
+  /**
+   * Helper function to get session token from cookie
+   */
+  static getTokenFromCookie(c: Context): string | undefined {
+    return getCookie(c, this.SESSION_COOKIE_NAME);
+  }
   /**
    * Create a new session in D1 and cache it in KV
    */
@@ -32,7 +105,7 @@ export class SessionService {
     data: CreateSessionRequest,
     env: AppEnv["Bindings"],
   ): Promise<SessionResult | SessionError> {
-    const db = createDatabase(env);
+    const db = createDatabase(env.DB);
     const sessionId = crypto.randomUUID();
 
     try {
@@ -42,8 +115,6 @@ export class SessionService {
         .values({
           id: sessionId,
           userId: data.userId,
-          status: "active",
-          createdAt: new Date().toISOString(),
           expiresAt: data.expiresAt.toISOString(),
           revokedAt: null,
         })
@@ -66,14 +137,10 @@ export class SessionService {
         expiresAt: session.expiresAt,
       });
 
-      // Calculate TTL in seconds (20 minutes = 1200 seconds)
-      const ttlSeconds = 20 * 60;
+      const ttlSeconds = this.SESSION_KV_TTL;
       await env.SESSION_KV.put(kvKey, kvValue, { expirationTtl: ttlSeconds });
 
-      return {
-        success: true,
-        session,
-      };
+      return { success: true, session: session as unknown as Session };
     } catch (error) {
       console.error("SessionService.create error:", error);
       return {
@@ -108,7 +175,7 @@ export class SessionService {
       }
 
       // If not in KV or expired, check D1
-      const db = createDatabase(env);
+      const db = createDatabase(env.DB);
       const session = await db
         .selectFrom("sessions")
         .innerJoin("users", "sessions.userId", "users.id")
@@ -132,7 +199,7 @@ export class SessionService {
           status: session.status,
           expiresAt: session.expiresAt,
         });
-        const ttlSeconds = 20 * 60;
+        const ttlSeconds = this.SESSION_KV_TTL;
         await env.SESSION_KV.put(kvKey, kvValue, { expirationTtl: ttlSeconds });
 
         return {
@@ -154,7 +221,7 @@ export class SessionService {
    */
   static async revoke(sessionId: string, env: AppEnv["Bindings"]): Promise<boolean> {
     try {
-      const db = createDatabase(env);
+      const db = createDatabase(env.DB);
 
       // Revoke session in D1
       const result = await db
@@ -176,16 +243,5 @@ export class SessionService {
       console.error("SessionService.revoke error:", error);
       return false;
     }
-  }
-
-  /**
-   * Helper to serialize session payload for JWT claims
-   */
-  static serializeForJWT(sessionPayload: SessionPayload): SessionPayload {
-    return {
-      sessionId: sessionPayload.sessionId,
-      userId: sessionPayload.userId,
-      email: sessionPayload.email,
-    };
   }
 }
