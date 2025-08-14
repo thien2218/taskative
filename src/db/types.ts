@@ -12,6 +12,14 @@ export type Group = {
     createdAt: Generated<string>;
     updatedAt: string;
 };
+export type PasswordResetToken = {
+    id: string;
+    userId: string;
+    token: string;
+    expiresAt: string;
+    usedAt: string | null;
+    createdAt: Generated<string>;
+};
 export type Reminder = {
     id: string;
     taskId: string;
@@ -66,6 +74,7 @@ export type User = {
 };
 export type DB = {
     groups: Group;
+    passwordResetTokens: PasswordResetToken;
     reminders: Reminder;
     sessions: Session;
     subtasks: Subtask;

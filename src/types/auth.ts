@@ -8,3 +8,13 @@ export interface AuthError {
   error: string;
   status: number;
 }
+
+export interface PasswordResetResult {
+  success: true;
+}
+
+export interface PasswordResetError {
+  success: false;
+  error: string;
+  status: number;
+}

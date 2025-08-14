@@ -14,19 +14,20 @@ generator kysely {
 // IMPORTANT: All model fields must be snake_case.
 
 model User {
-  id                String     @id
-  email             String     @unique
-  password_hash     String
-  first_name        String?
-  last_name         String?
-  username          String?    @unique
-  profile_image_url String?
-  groups            Group[]
-  tasks             Task[]
-  reminders         Reminder[]
-  sessions          Session[]
-  created_at        DateTime   @default(now())
-  updated_at        DateTime   @updatedAt
+  id                    String               @id
+  email                 String               @unique
+  password_hash         String
+  first_name            String?
+  last_name             String?
+  username              String?              @unique
+  profile_image_url     String?
+  groups                Group[]
+  tasks                 Task[]
+  reminders             Reminder[]
+  sessions              Session[]
+  password_reset_tokens PasswordResetToken[]
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @updatedAt
 
   @@map("users")
 }
@@ -109,4 +110,18 @@ model Reminder {
 
   @@index([user_id, remind_at])
   @@map("reminders")
+}
+
+model PasswordResetToken {
+  id         String    @id
+  user_id    String
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  token      String    @unique
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime  @default(now())
+
+  @@index([token])
+  @@index([user_id])
+  @@map("password_reset_tokens")
 }

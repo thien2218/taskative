@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { authMiddleware } from "./middlewares/auth";
-import { publicRoute } from "./middlewares/public";
+import { authMiddleware, publicRoute } from "./middlewares";
 import { AppEnv } from "./types";
 import auth from "./routes/auth";
 

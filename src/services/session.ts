@@ -186,6 +186,49 @@ export class SessionService {
   }
 
   /**
+   * Revoke all active sessions for a user
+   */
+  async revokeAllUserSessions(userId: string): Promise<boolean> {
+    try {
+      // First get all active sessions for the user
+      const activeSessions = await this.db
+        .selectFrom("sessions")
+        .select(["id"])
+        .where("userId", "=", userId)
+        .where("status", "=", "active")
+        .execute();
+
+      if (activeSessions.length === 0) {
+        return true; // No active sessions to revoke
+      }
+
+      // Update all active sessions to revoked status
+      const result = await this.db
+        .updateTable("sessions")
+        .set({
+          status: "revoked",
+          revokedAt: new Date().toISOString(),
+        })
+        .where("userId", "=", userId)
+        .where("status", "=", "active")
+        .execute();
+
+      // Remove all session keys from KV cache
+      const deletePromises = activeSessions.map((session) => {
+        const kvKey = `session:${session.id}`;
+        return this.kv.delete(kvKey);
+      });
+
+      await Promise.all(deletePromises);
+
+      return true;
+    } catch (error) {
+      console.error("SessionService.revokeAllUserSessions error:", error);
+      return false;
+    }
+  }
+
+  /**
    * Get session cookie configuration
    */
   getSessionCookieConfig() {

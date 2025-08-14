@@ -2,10 +2,13 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { AuthService } from "../services/auth";
 import { setCookie, deleteCookie } from "hono/cookie";
-import { authMiddleware } from "../middlewares/auth";
-import { publicRoute } from "../middlewares/public";
-import { authRateLimit } from "../middlewares/rate-limiter";
-import { registerSchema, loginSchema } from "../validators/auth";
+import { authMiddleware, publicRoute, authRateLimit } from "../middlewares";
+import {
+  registerSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} from "../validators/auth";
 import type { AppEnv } from "../types";
 import { SessionService } from "../services/session";
 
@@ -74,5 +77,50 @@ auth.post("/logout", authMiddleware, async (c) => {
 
   return c.json({ success: true });
 });
+
+// POST /v1/auth/forgot-password (public with rate limiting)
+auth.post(
+  "/forgot-password",
+  publicRoute,
+  authRateLimit,
+  zValidator("json", forgotPasswordSchema),
+  async (c) => {
+    const data = c.req.valid("json");
+    const authService = new AuthService(c.env);
+
+    const result = await authService.forgotPassword(data);
+
+    if (!result.success) {
+      return c.json({ error: result.error }, result.status as any);
+    }
+
+    return c.json({ success: true });
+  },
+);
+
+// POST /v1/auth/reset-password (public with rate limiting)
+auth.post(
+  "/reset-password",
+  publicRoute,
+  authRateLimit,
+  zValidator("json", resetPasswordSchema),
+  async (c) => {
+    const data = c.req.valid("json");
+    const authService = new AuthService(c.env);
+    const sessionService = new SessionService(c.env);
+
+    const result = await authService.resetPassword(data);
+
+    if (!result.success) {
+      return c.json({ error: result.error }, result.status as any);
+    }
+
+    // Clear any existing session cookie for this client
+    const cookieConfig = sessionService.getSessionCookieConfig();
+    deleteCookie(c, cookieConfig.name, cookieConfig.options);
+
+    return c.json({ success: true });
+  },
+);
 
 export default auth;
