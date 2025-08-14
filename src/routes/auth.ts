@@ -88,11 +88,7 @@ auth.post(
     const data = c.req.valid("json");
     const authService = new AuthService(c.env);
 
-    const result = await authService.forgotPassword(data);
-
-    if (!result.success) {
-      return c.json({ error: result.error }, result.status as any);
-    }
+    await authService.forgotPassword(data);
 
     return c.json({ success: true });
   },

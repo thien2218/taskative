@@ -36,7 +36,6 @@ export class AuthService {
         id: userId,
         email,
         passwordHash,
-        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
       .onConflict((oc) => oc.column("email").doNothing())
@@ -162,8 +161,6 @@ export class AuthService {
           userId: user.id,
           token: token,
           expiresAt: expiresAt.toISOString(),
-          usedAt: null,
-          createdAt: new Date().toISOString(),
         })
         .execute();
 

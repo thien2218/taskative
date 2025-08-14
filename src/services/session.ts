@@ -56,7 +56,6 @@ export class SessionService {
           id: sessionId,
           userId: data.userId,
           expiresAt: expiresAt.toISOString(),
-          revokedAt: null,
         })
         .returning(["id", "userId", "status", "createdAt", "expiresAt", "revokedAt"])
         .executeTakeFirst();

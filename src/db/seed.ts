@@ -69,7 +69,6 @@ export async function seedDemoData() {
         passwordHash: createDemoPasswordHash("demo123"),
         firstName: "Demo",
         lastName: "User",
-        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
       .onConflict((oc) => oc.column("email").doNothing())
@@ -84,7 +83,6 @@ export async function seedDemoData() {
         userId: DEMO_USER_ID,
         name: "Personal Projects",
         color: "#3B82F6",
-        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
       .onConflict((oc) => oc.column("id").doNothing())
@@ -130,7 +128,6 @@ export async function seedDemoData() {
         .values({
           ...taskData,
           userId: DEMO_USER_ID,
-          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
         .onConflict((oc) => oc.column("id").doNothing())
@@ -177,7 +174,6 @@ export async function seedDemoData() {
         .insertInto("subtasks")
         .values({
           ...subtaskData,
-          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
         .onConflict((oc) => oc.column("id").doNothing())
@@ -198,7 +194,6 @@ export async function seedDemoData() {
       .insertInto("reminders")
       .values({
         ...demoReminder,
-        createdAt: new Date().toISOString(),
       })
       .onConflict((oc) => oc.column("id").doNothing())
       .execute();
