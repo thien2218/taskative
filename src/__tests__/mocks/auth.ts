@@ -1,5 +1,37 @@
 import { vi } from "vitest";
 
+// Valid payloads
+export const sessionOpts = {
+  httpOnly: true,
+  secure: false,
+  sameSite: "Strict" as const,
+  maxAge: 1800, // 20 minutes + 10 minute buffer
+};
+
+export const authPayload = {
+  // Used for log in and registering
+  email: "john.doe@taskative.com",
+  password: "SecurePassword123!",
+};
+
+export const resetPayload = {
+  // Used for forgot password and resetting
+  forgotPassword: {
+    email: "user@taskative.com",
+  },
+  resetPassword: {
+    token: "valid-reset-token-abc123",
+    newPassword: "NewSecurePassword789!",
+  },
+};
+
+export const requestBaseOpts = {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+};
+
 // AuthService mock
 export const mockAuthService = {
   register: vi.fn(),
@@ -7,13 +39,6 @@ export const mockAuthService = {
   logout: vi.fn(),
   forgotPassword: vi.fn(),
   resetPassword: vi.fn(),
-};
-
-export const sessionOpts = {
-  httpOnly: true,
-  secure: false,
-  sameSite: "Strict" as const,
-  maxAge: 1800, // 20 minutes + 10 minute buffer
 };
 
 // SessionService mock

@@ -12,6 +12,8 @@ import {
   mockDeleteCookie,
   mockGetCookie,
   sessionOpts,
+  authPayload,
+  requestBaseOpts,
 } from "@/__tests__/mocks/auth";
 import { mockCreateDatabase, mockEnv } from "@/__tests__/mocks/env";
 
@@ -23,9 +25,7 @@ vi.mock("@/services/session", () => ({
   SessionService: vi.fn().mockImplementation(() => mockSessionService),
 }));
 vi.mock("bcrypt", () => mockBcrypt);
-
 vi.mock("jsonwebtoken", () => mockJWT);
-
 vi.mock("@/middlewares", () => ({
   authRateLimit: mockAuthRateLimit,
   authMiddleware: mockAuthMiddleware,
@@ -38,13 +38,6 @@ vi.mock("hono/cookie", () => ({
 vi.mock("@/db", () => ({
   createDatabase: mockCreateDatabase,
 }));
-
-const requestBaseOpts = {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-};
 
 describe("POST /v1/auth/register", () => {
   beforeEach(() => {
@@ -148,10 +141,7 @@ describe("POST /v1/auth/register", () => {
       "/v1/auth/register",
       {
         ...requestBaseOpts,
-        body: JSON.stringify({
-          email: "existing@example.com",
-          password: "password123",
-        }),
+        body: JSON.stringify(authPayload),
       },
       mockEnv,
     );
@@ -159,10 +149,7 @@ describe("POST /v1/auth/register", () => {
     expect(response.status).toBe(400);
     const responseData = await response.json();
     expect(responseData).toEqual({ error: "Registration failed" });
-    expect(mockAuthService.register).toHaveBeenCalledWith({
-      email: "existing@example.com",
-      password: "password123",
-    });
+    expect(mockAuthService.register).toHaveBeenCalledWith(authPayload);
   });
 
   it("should return 201 if new user is created, create a new session, get the session token and set the session token in cookie with name 'taskative_session'", async () => {
@@ -183,10 +170,7 @@ describe("POST /v1/auth/register", () => {
       "/v1/auth/register",
       {
         ...requestBaseOpts,
-        body: JSON.stringify({
-          email: "newuser@example.com",
-          password: "password123",
-        }),
+        body: JSON.stringify(authPayload),
       },
       mockEnv,
     );
@@ -196,10 +180,7 @@ describe("POST /v1/auth/register", () => {
     expect(responseData).toEqual({ success: true });
 
     // Verify AuthService.register was called correctly
-    expect(mockAuthService.register).toHaveBeenCalledWith({
-      email: "newuser@example.com",
-      password: "password123",
-    });
+    expect(mockAuthService.register).toHaveBeenCalledWith(authPayload);
 
     // Verify SessionService.getSessionCookieConfig was called
     expect(mockSessionService.getSessionCookieConfig).toHaveBeenCalled();
@@ -306,19 +287,13 @@ describe("POST /v1/auth/login", () => {
       "/v1/auth/login",
       {
         ...requestBaseOpts,
-        body: JSON.stringify({
-          email: "existing@example.com",
-          password: "password123",
-        }),
+        body: JSON.stringify(authPayload),
       },
       mockEnv,
     );
 
     expect(response.status).toBe(200);
-    expect(mockAuthService.login).toHaveBeenCalledWith({
-      email: "existing@example.com",
-      password: "password123",
-    });
+    expect(mockAuthService.login).toHaveBeenCalledWith(authPayload);
   });
 
   it("should return status 401 for invalid login with either email or password with a generic message for security", async () => {
@@ -372,10 +347,7 @@ describe("POST /v1/auth/login", () => {
       "/v1/auth/login",
       {
         ...requestBaseOpts,
-        body: JSON.stringify({
-          email: "user@example.com",
-          password: "correctpassword",
-        }),
+        body: JSON.stringify(authPayload),
       },
       mockEnv,
     );
@@ -385,10 +357,7 @@ describe("POST /v1/auth/login", () => {
     expect(responseData).toEqual({ success: true });
 
     // Verify AuthService.login was called correctly
-    expect(mockAuthService.login).toHaveBeenCalledWith({
-      email: "user@example.com",
-      password: "correctpassword",
-    });
+    expect(mockAuthService.login).toHaveBeenCalledWith(authPayload);
 
     // Verify SessionService.getSessionCookieConfig was called
     expect(mockSessionService.getSessionCookieConfig).toHaveBeenCalled();
