@@ -23,3 +23,17 @@ export interface AppEnv {
     isPublic?: boolean;
   };
 }
+
+export interface AuthEnv {
+  Variables: {
+    user: UserContext;
+    isPublic?: boolean;
+  };
+}
+
+export interface PublicEnv {
+  Variables: {
+    user: undefined;
+    isPublic: true;
+  };
+}

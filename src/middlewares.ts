@@ -1,14 +1,7 @@
-import { createMiddleware } from "hono/factory";
 import type { Context, Next } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
-import type { AppEnv } from "./types";
-import { SessionService } from "./services/session";
-
-// publicRoute
-export const publicRoute = createMiddleware<AppEnv>(async (c, next) => {
-  c.set("isPublic", true);
-  await next();
-});
+import type { AppEnv, AuthEnv } from "@/types";
+import { SessionService } from "@/services/session";
 
 // authRateLimit
 export async function authRateLimit(c: Context<AppEnv>, next: Next) {
@@ -24,7 +17,10 @@ export async function authRateLimit(c: Context<AppEnv>, next: Next) {
 }
 
 // authMiddleware
-export async function authMiddleware(c: Context<AppEnv>, next: Next) {
+export async function authMiddleware(c: Context<AppEnv & AuthEnv>, next: Next) {
+  const isPublic = c.get("isPublic");
+  if (isPublic) next();
+
   const sessions = new SessionService(c.env);
   const sessionToken = getCookie(c, "taskative_session");
 

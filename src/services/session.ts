@@ -1,13 +1,13 @@
-import { createDatabase } from "../db";
-import type { Bindings } from "../types";
+import { createDatabase } from "@/db";
+import type { Bindings } from "@/types";
 import type {
   SessionPayload,
   SessionJWTPayload,
   CreateSessionRequest,
   SessionResult,
   SessionError,
-} from "../types/session";
-import type { DB } from "../db/types";
+} from "@/types/session";
+import type { DB } from "@/db/types";
 import type { Kysely } from "kysely";
 import { sign, verify } from "hono/jwt";
 

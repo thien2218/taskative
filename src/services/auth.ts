@@ -1,14 +1,14 @@
 import bcrypt from "bcryptjs";
-import { createDatabase } from "../db";
-import { SessionService } from "./session";
-import type { Bindings } from "../types";
-import type { AuthResult, AuthError, PasswordResetResult, PasswordResetError } from "../types/auth";
+import { createDatabase } from "@/db";
+import { SessionService } from "@/services/session";
+import type { Bindings } from "@/types";
+import type { AuthResult, AuthError, PasswordResetResult, PasswordResetError } from "@/types/auth";
 import {
   LoginRequest,
   RegisterRequest,
   ForgotPasswordRequest,
   ResetPasswordRequest,
-} from "../validators/auth";
+} from "@/validators/auth";
 
 export class AuthService {
   private readonly db: ReturnType<typeof createDatabase>;

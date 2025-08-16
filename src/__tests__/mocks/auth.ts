@@ -53,7 +53,6 @@ export const mockJWT = {
 };
 
 // Middleware mocks
-export const mockPublicRoute = vi.fn().mockImplementation((c, next) => next());
 export const mockAuthRateLimit = vi.fn().mockImplementation((c, next) => next());
 export const mockAuthMiddleware = vi.fn().mockImplementation((c, next) => {
   c.set("user", {
