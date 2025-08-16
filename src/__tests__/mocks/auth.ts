@@ -9,6 +9,13 @@ export const mockAuthService = {
   resetPassword: vi.fn(),
 };
 
+export const sessionOpts = {
+  httpOnly: true,
+  secure: false,
+  sameSite: "Strict" as const,
+  maxAge: 1800, // 20 minutes + 10 minute buffer
+};
+
 // SessionService mock
 export const mockSessionService = {
   create: vi.fn(),
@@ -17,12 +24,7 @@ export const mockSessionService = {
   revokeAllUserSessions: vi.fn(),
   getSessionCookieConfig: vi.fn().mockReturnValue({
     name: "taskative_session",
-    options: {
-      httpOnly: true,
-      secure: false,
-      sameSite: "Strict" as const,
-      maxAge: 1500, // 25 minutes + 5 minute buffer
-    },
+    options: sessionOpts,
   }),
   generateToken: vi.fn(),
   verifyToken: vi.fn(),

@@ -11,6 +11,7 @@ import {
   mockSetCookie,
   mockDeleteCookie,
   mockGetCookie,
+  sessionOpts,
 } from "@/__tests__/mocks/auth";
 import { mockCreateDatabase, mockEnv } from "@/__tests__/mocks/env";
 
@@ -130,40 +131,6 @@ describe("POST /v1/auth/register", () => {
     expect(response.status).toBe(400);
   });
 
-  it("should return 201 if the user is created", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
-    // Mock successful registration
-    mockAuthService.register.mockResolvedValue({
-      success: true,
-      sessionToken: "mock.jwt.token",
-      status: 201,
-    });
-
-    const response = await app.request(
-      "/v1/auth/register",
-      {
-        ...requestBaseOpts,
-        body: JSON.stringify({
-          email: "newuser@example.com",
-          password: "password123",
-        }),
-      },
-      mockEnv,
-    );
-
-    expect(response.status).toBe(201);
-    const responseData = await response.json();
-    expect(responseData).toEqual({ success: true });
-    expect(mockAuthService.register).toHaveBeenCalledWith({
-      email: "newuser@example.com",
-      password: "password123",
-    });
-  });
-
   it("should return 400 if the user already exists", async () => {
     const { default: authRoutes } = await import("@/routes/auth");
 
@@ -198,50 +165,14 @@ describe("POST /v1/auth/register", () => {
     });
   });
 
-  it("should create a new session and get the session token", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
-    // Mock successful registration with session token
-    const mockSessionToken = "new.session.token.123";
-    mockAuthService.register.mockResolvedValue({
-      success: true,
-      sessionToken: mockSessionToken,
-      status: 201,
-    });
-
-    const response = await app.request(
-      "/v1/auth/register",
-      {
-        ...requestBaseOpts,
-        body: JSON.stringify({
-          email: "sessiontest@example.com",
-          password: "password123",
-        }),
-      },
-      mockEnv,
-    );
-
-    expect(response.status).toBe(201);
-    expect(mockAuthService.register).toHaveBeenCalledWith({
-      email: "sessiontest@example.com",
-      password: "password123",
-    });
-
-    // Verify that SessionService was called to get cookie config
-    expect(mockSessionService.getSessionCookieConfig).toHaveBeenCalled();
-  });
-
-  it("should set the session token in cookie with name 'taskative_session'", async () => {
+  it("should return 201 if new user is created, create a new session, get the session token and set the session token in cookie with name 'taskative_session'", async () => {
     const { default: authRoutes } = await import("@/routes/auth");
 
     const app = new Hono<AppEnv>();
     app.route("/v1/auth", authRoutes);
 
     // Mock successful registration
-    const mockSessionToken = "cookie.test.token.456";
+    const mockSessionToken = "new.user.session.token.123";
     mockAuthService.register.mockResolvedValue({
       success: true,
       sessionToken: mockSessionToken,
@@ -253,7 +184,7 @@ describe("POST /v1/auth/register", () => {
       {
         ...requestBaseOpts,
         body: JSON.stringify({
-          email: "cookietest@example.com",
+          email: "newuser@example.com",
           password: "password123",
         }),
       },
@@ -261,13 +192,213 @@ describe("POST /v1/auth/register", () => {
     );
 
     expect(response.status).toBe(201);
+    const responseData = await response.json();
+    expect(responseData).toEqual({ success: true });
 
-    // Verify that setCookie was called with correct parameters
+    // Verify AuthService.register was called correctly
+    expect(mockAuthService.register).toHaveBeenCalledWith({
+      email: "newuser@example.com",
+      password: "password123",
+    });
+
+    // Verify SessionService.getSessionCookieConfig was called
+    expect(mockSessionService.getSessionCookieConfig).toHaveBeenCalled();
+
+    // Verify setCookie was called with correct parameters
     expect(mockSetCookie).toHaveBeenCalledWith(
       expect.any(Object), // context object
       "taskative_session", // cookie name
       mockSessionToken, // session token
-      { httpOnly: true, secure: false, sameSite: "Strict", maxAge: 1500 },
+      sessionOpts,
+    );
+  });
+});
+
+describe("POST /v1/auth/login", () => {
+  it("should return status 400 for all invalid login payload", async () => {
+    const { default: authRoutes } = await import("@/routes/auth");
+
+    const app = new Hono<AppEnv>();
+    app.route("/v1/auth", authRoutes);
+
+    let response: Response;
+
+    // Empty payload
+    response = await app.request(
+      "/v1/auth/login",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({}),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Invalid email format
+    response = await app.request(
+      "/v1/auth/login",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ email: "invalid_email", password: "password123" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Missing password
+    response = await app.request(
+      "/v1/auth/login",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ email: "test@example.com" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Missing email
+    response = await app.request(
+      "/v1/auth/login",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ password: "password123" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Empty password
+    response = await app.request(
+      "/v1/auth/login",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ email: "test@example.com", password: "" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Empty email
+    response = await app.request(
+      "/v1/auth/login",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ email: "", password: "password123" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("should fetch the user's hashed password with email when the payload is valid", async () => {
+    const { default: authRoutes } = await import("@/routes/auth");
+
+    const app = new Hono<AppEnv>();
+    app.route("/v1/auth", authRoutes);
+
+    // Mock successful login
+    mockAuthService.login.mockResolvedValue({
+      success: true,
+      sessionToken: "login.session.token",
+    });
+
+    const response = await app.request(
+      "/v1/auth/login",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({
+          email: "existing@example.com",
+          password: "password123",
+        }),
+      },
+      mockEnv,
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockAuthService.login).toHaveBeenCalledWith({
+      email: "existing@example.com",
+      password: "password123",
+    });
+  });
+
+  it("should return status 401 for invalid login with either email or password with a generic message for security", async () => {
+    const { default: authRoutes } = await import("@/routes/auth");
+
+    const app = new Hono<AppEnv>();
+    app.route("/v1/auth", authRoutes);
+
+    // Mock login failure (user not found or invalid password)
+    mockAuthService.login.mockResolvedValue({
+      success: false,
+      error: "Authentication failed",
+      status: 401,
+    });
+
+    const response = await app.request(
+      "/v1/auth/login",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({
+          email: "nonexistent@example.com",
+          password: "wrongpassword",
+        }),
+      },
+      mockEnv,
+    );
+
+    expect(response.status).toBe(401);
+    const responseData = await response.json();
+    expect(responseData).toEqual({ error: "Authentication failed" });
+    expect(mockAuthService.login).toHaveBeenCalledWith({
+      email: "nonexistent@example.com",
+      password: "wrongpassword",
+    });
+  });
+
+  it("should return status 200 for valid login, create a new session, get the new session token and set it in the cookie", async () => {
+    const { default: authRoutes } = await import("@/routes/auth");
+
+    const app = new Hono<AppEnv>();
+    app.route("/v1/auth", authRoutes);
+
+    // Mock successful login
+    const mockLoginSessionToken = "valid.login.session.token.456";
+    mockAuthService.login.mockResolvedValue({
+      success: true,
+      sessionToken: mockLoginSessionToken,
+    });
+
+    const response = await app.request(
+      "/v1/auth/login",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({
+          email: "user@example.com",
+          password: "correctpassword",
+        }),
+      },
+      mockEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const responseData = await response.json();
+    expect(responseData).toEqual({ success: true });
+
+    // Verify AuthService.login was called correctly
+    expect(mockAuthService.login).toHaveBeenCalledWith({
+      email: "user@example.com",
+      password: "correctpassword",
+    });
+
+    // Verify SessionService.getSessionCookieConfig was called
+    expect(mockSessionService.getSessionCookieConfig).toHaveBeenCalled();
+
+    // Verify setCookie was called with correct parameters
+    expect(mockSetCookie).toHaveBeenCalledWith(
+      expect.any(Object), // context object
+      "taskative_session", // cookie name
+      mockLoginSessionToken, // session token
+      sessionOpts,
     );
   });
 });
