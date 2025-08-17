@@ -14,8 +14,10 @@ import {
   sessionOpts,
   authPayload,
   requestBaseOpts,
-} from "@/__tests__/mocks/auth";
-import { mockCreateDatabase, mockEnv } from "@/__tests__/mocks/env";
+  resetPayload,
+  mockUnauthMiddleware,
+} from "..//__mocks__/auth";
+import { mockCreateDatabase, mockEnv } from "..//__mocks__/env";
 
 // Mock external dependencies at the top level
 vi.mock("@/services/auth", () => ({
@@ -28,6 +30,7 @@ vi.mock("bcrypt", () => mockBcrypt);
 vi.mock("jsonwebtoken", () => mockJWT);
 vi.mock("@/middlewares", () => ({
   authRateLimit: mockAuthRateLimit,
+  unauthMiddleware: mockUnauthMiddleware,
   authMiddleware: mockAuthMiddleware,
 }));
 vi.mock("hono/cookie", () => ({
@@ -369,5 +372,246 @@ describe("POST /v1/auth/login", () => {
       mockLoginSessionToken, // session token
       sessionOpts,
     );
+  });
+});
+
+describe("POST /v1/auth/logout", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should return 200, call logout and delete the session cookie on success", async () => {
+    const { default: authRoutes } = await import("@/routes/auth");
+
+    const app = new Hono<AppEnv>();
+    app.route("/v1/auth", authRoutes);
+
+    mockAuthService.logout.mockResolvedValue({ success: true });
+
+    const response = await app.request(
+      "/v1/auth/logout",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({}),
+      },
+      mockEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data).toEqual({ success: true });
+
+    expect(mockAuthService.logout).toHaveBeenCalledWith({
+      userId: "mock-user-id",
+      sessionId: "mock-session-id",
+      all: false,
+    });
+
+    expect(mockDeleteCookie).toHaveBeenCalledWith(
+      expect.any(Object),
+      "taskative_session_test",
+      expect.anything(),
+    );
+  });
+
+  it("should revoke all sessions when all=true and delete the session cookie", async () => {
+    const { default: authRoutes } = await import("@/routes/auth");
+
+    const app = new Hono<AppEnv>();
+    app.route("/v1/auth", authRoutes);
+
+    mockAuthService.logout.mockResolvedValue({ success: true });
+
+    const response = await app.request(
+      "/v1/auth/logout",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ all: true }),
+      },
+      mockEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data).toEqual({ success: true });
+
+    expect(mockAuthService.logout).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "mock-user-id", all: true }),
+    );
+
+    expect(mockDeleteCookie).toHaveBeenCalledWith(
+      expect.any(Object),
+      "taskative_session_test",
+      expect.anything(),
+    );
+  });
+});
+
+describe("POST /v1/auth/forgot-password", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should return status 400 for invalid payloads", async () => {
+    const { default: authRoutes } = await import("@/routes/auth");
+
+    const app = new Hono<AppEnv>();
+    app.route("/v1/auth", authRoutes);
+
+    let response: Response;
+
+    // Empty payload
+    response = await app.request(
+      "/v1/auth/forgot-password",
+      { ...requestBaseOpts, body: JSON.stringify({}) },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Invalid email format
+    response = await app.request(
+      "/v1/auth/forgot-password",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ email: "invalid_email" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Missing email
+    response = await app.request(
+      "/v1/auth/forgot-password",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ notEmail: "x" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Empty email
+    response = await app.request(
+      "/v1/auth/forgot-password",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ email: "" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("should return 200 and trigger forgotPassword when payload is valid", async () => {
+    const { default: authRoutes } = await import("@/routes/auth");
+
+    const app = new Hono<AppEnv>();
+    app.route("/v1/auth", authRoutes);
+
+    mockAuthService.forgotPassword.mockResolvedValue({ success: true });
+
+    const response = await app.request(
+      "/v1/auth/forgot-password",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify(resetPayload.forgotPassword),
+      },
+      mockEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data).toEqual({ success: true });
+    expect(mockAuthService.forgotPassword).toHaveBeenCalledWith(resetPayload.forgotPassword);
+  });
+});
+
+describe("POST /v1/auth/reset-password", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should return status 400 for invalid payloads", async () => {
+    const { default: authRoutes } = await import("@/routes/auth");
+
+    const app = new Hono<AppEnv>();
+    app.route("/v1/auth", authRoutes);
+
+    let response: Response;
+
+    // Empty payload
+    response = await app.request(
+      "/v1/auth/reset-password",
+      { ...requestBaseOpts, body: JSON.stringify({}) },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Missing token
+    response = await app.request(
+      "/v1/auth/reset-password",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ newPassword: "Password!123" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Missing newPassword
+    response = await app.request(
+      "/v1/auth/reset-password",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ token: "token-123" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Empty token
+    response = await app.request(
+      "/v1/auth/reset-password",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ token: "", newPassword: "Password!123" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+
+    // Empty newPassword
+    response = await app.request(
+      "/v1/auth/reset-password",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify({ token: "token-123", newPassword: "" }),
+      },
+      mockEnv,
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("should return 200 and reset password when payload is valid", async () => {
+    const { default: authRoutes } = await import("@/routes/auth");
+
+    const app = new Hono<AppEnv>();
+    app.route("/v1/auth", authRoutes);
+
+    mockAuthService.resetPassword.mockResolvedValue({ success: true });
+
+    const response = await app.request(
+      "/v1/auth/reset-password",
+      {
+        ...requestBaseOpts,
+        body: JSON.stringify(resetPayload.resetPassword),
+      },
+      mockEnv,
+    );
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data).toEqual({ success: true });
+    expect(mockAuthService.resetPassword).toHaveBeenCalledWith(resetPayload.resetPassword);
   });
 });
