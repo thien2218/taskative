@@ -41,6 +41,7 @@ export const mockEnv = {
   CACHE: mockKV as any,
   JWT_SECRET: "test-secret",
   ENVIRONMENT: "test",
+  SESSION_NAME: "taskative_session_test",
   AUTH_RATE_LIMITER: {
     limit: vi.fn().mockResolvedValue({ success: true }),
   } as any,

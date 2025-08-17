@@ -1,9 +1,8 @@
 import type { Context, Next } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
-import type { AppEnv, AuthEnv } from "@/types";
+import type { AppEnv, AuthEnv, UnauthEnv } from "@/types";
 import { SessionService } from "@/services/session";
 
-// authRateLimit
 export async function authRateLimit(c: Context<AppEnv>, next: Next) {
   const url = new URL(c.req.url);
   const user = c.get("user");
@@ -16,13 +15,19 @@ export async function authRateLimit(c: Context<AppEnv>, next: Next) {
   return next();
 }
 
-// authMiddleware
-export async function authMiddleware(c: Context<AppEnv & AuthEnv>, next: Next) {
-  const isPublic = c.get("isPublic");
-  if (isPublic) next();
+export async function unauthMiddleware(c: Context<AppEnv & UnauthEnv>, next: Next) {
+  const sessionToken = getCookie(c, c.env.SESSION_NAME);
 
+  if (sessionToken) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  next();
+}
+
+export async function authMiddleware(c: Context<AppEnv & AuthEnv>, next: Next) {
   const sessions = new SessionService(c.env);
-  const sessionToken = getCookie(c, "taskative_session");
+  const sessionToken = getCookie(c, c.env.SESSION_NAME);
 
   if (!sessionToken) {
     return c.json({ error: "Unauthorized" }, 401);
@@ -43,22 +48,27 @@ export async function authMiddleware(c: Context<AppEnv & AuthEnv>, next: Next) {
     if (!base64Payload) {
       return c.json({ error: "Unauthorized" }, 401);
     }
+
     const decodedPayload = JSON.parse(atob(base64Payload.replace(/-/g, "+").replace(/_/g, "/")));
     if (!decodedPayload.sessionId) {
       return c.json({ error: "Unauthorized" }, 401);
     }
+
     const sessionPayload = await sessions.findById(decodedPayload.sessionId);
     if (!sessionPayload) {
       return c.json({ error: "Unauthorized" }, 401);
     }
+
     const newSessionToken = await sessions.generateToken(sessionPayload);
     const cookieConfig = sessions.getSessionCookieConfig();
-    setCookie(c, cookieConfig.name, newSessionToken, cookieConfig.options);
+    setCookie(c, c.env.SESSION_NAME, newSessionToken, cookieConfig);
+
     c.set("user", {
       userId: sessionPayload.userId,
       email: sessionPayload.email,
       sessionId: sessionPayload.sessionId,
     });
+
     return next();
   } catch (error) {
     console.error("Auth middleware renewal error:", error);

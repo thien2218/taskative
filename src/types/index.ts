@@ -14,26 +14,24 @@ export interface Bindings {
   AUTH_RATE_LIMITER: RateLimiter;
   JWT_SECRET: string;
   ENVIRONMENT: string;
+  SESSION_NAME: string;
 }
 
 export interface AppEnv {
   Bindings: Bindings;
   Variables: {
     user?: UserContext;
-    isPublic?: boolean;
   };
 }
 
 export interface AuthEnv {
   Variables: {
     user: UserContext;
-    isPublic?: boolean;
   };
 }
 
-export interface PublicEnv {
+export interface UnauthEnv {
   Variables: {
     user: undefined;
-    isPublic: true;
   };
 }

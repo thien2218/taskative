@@ -26,7 +26,6 @@ export class SessionService {
 
   private readonly SESSION_TTL = 20 * 60;
   private readonly SESSION_KV_TTL = 60 * 60;
-  private readonly SESSION_NAME = "taskative_session";
 
   /**
    * Verify and decode session JWT token
@@ -232,13 +231,10 @@ export class SessionService {
    */
   getSessionCookieConfig() {
     return {
-      name: this.SESSION_NAME,
-      options: {
-        httpOnly: true,
-        secure: this.environment === "production",
-        sameSite: "Strict" as const,
-        maxAge: this.SESSION_TTL + 5 * 60, // 5 minutes buffer
-      },
+      httpOnly: true,
+      secure: this.environment === "production",
+      sameSite: "Strict" as const,
+      maxAge: this.SESSION_TTL + 5 * 60, // 5 minutes buffer
     };
   }
 

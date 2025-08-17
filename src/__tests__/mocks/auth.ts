@@ -47,10 +47,7 @@ export const mockSessionService = {
   findById: vi.fn(),
   revoke: vi.fn(),
   revokeAllUserSessions: vi.fn(),
-  getSessionCookieConfig: vi.fn().mockReturnValue({
-    name: "taskative_session",
-    options: sessionOpts,
-  }),
+  getSessionCookieConfig: vi.fn().mockReturnValue(sessionOpts),
   generateToken: vi.fn(),
   verifyToken: vi.fn(),
 };

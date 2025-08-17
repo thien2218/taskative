@@ -188,7 +188,7 @@ describe("POST /v1/auth/register", () => {
     // Verify setCookie was called with correct parameters
     expect(mockSetCookie).toHaveBeenCalledWith(
       expect.any(Object), // context object
-      "taskative_session", // cookie name
+      "taskative_session_test", // cookie name
       mockSessionToken, // session token
       sessionOpts,
     );
@@ -365,7 +365,7 @@ describe("POST /v1/auth/login", () => {
     // Verify setCookie was called with correct parameters
     expect(mockSetCookie).toHaveBeenCalledWith(
       expect.any(Object), // context object
-      "taskative_session", // cookie name
+      "taskative_session_test", // cookie name
       mockLoginSessionToken, // session token
       sessionOpts,
     );

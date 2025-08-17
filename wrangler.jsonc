@@ -12,7 +12,8 @@
   ],
   // "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "ENVIRONMENT": "production"
+    "ENVIRONMENT": "production",
+    "SESSION_NAME": "taskative_session"
   },
   "kv_namespaces": [
     {
