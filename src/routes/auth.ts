@@ -8,6 +8,7 @@ import {
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  logoutSchema,
 } from "@/validators/auth";
 import type { AppEnv } from "@/types";
 import { SessionService } from "@/services/session";
@@ -57,19 +58,51 @@ auth.post("/login", unauthMiddleware, authRateLimit, zValidator("json", loginSch
 });
 
 // POST /v1/auth/logout (protected)
-auth.post("/logout", authMiddleware, async (c) => {
+auth.post("/logout", authMiddleware, zValidator("json", logoutSchema), async (c) => {
   const user = c.get("user");
+  const data = c.req.valid("json");
+  const { mode = "current", sessionIds } = data;
 
-  const authService = new AuthService(c.env);
-  const success = await authService.logout(user.sessionId);
+  const sessionService = new SessionService(c.env);
+  let success = false;
+  let shouldClearCookie = false;
+
+  switch (mode) {
+    case "current":
+      success = await sessionService.revoke(user.sessionId);
+      shouldClearCookie = true;
+      break;
+
+    case "others":
+      success = await sessionService.revokeOtherSessionsForUser(user.userId, user.sessionId);
+      shouldClearCookie = false; // Keep current session cookie
+      break;
+
+    case "all":
+      success = await sessionService.revokeAllUserSessions(user.userId);
+      shouldClearCookie = true;
+      break;
+
+    case "byIds":
+      const result = await sessionService.revokeSessionsByIds(user.userId, sessionIds!);
+      success = result.success;
+      // Clear cookie if current session is in the list
+      shouldClearCookie = sessionIds!.includes(user.sessionId);
+      break;
+
+    default:
+      return c.json({ error: "Invalid logout mode" }, 400);
+  }
 
   if (!success) {
     return c.json({ error: "Logout failed" }, 500);
   }
 
-  const sessionService = new SessionService(c.env);
-  const cookieConfig = sessionService.getSessionCookieConfig();
-  deleteCookie(c, c.env.SESSION_NAME, cookieConfig);
+  // Clear cookie if required by the mode
+  if (shouldClearCookie) {
+    const cookieConfig = sessionService.getSessionCookieConfig();
+    deleteCookie(c, c.env.SESSION_NAME, cookieConfig);
+  }
 
   return c.json({ success: true });
 });

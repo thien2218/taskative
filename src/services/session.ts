@@ -227,6 +227,111 @@ export class SessionService {
   }
 
   /**
+   * Revoke all active sessions for a user EXCEPT the specified session
+   */
+  async revokeOtherSessionsForUser(userId: string, excludeSessionId: string): Promise<boolean> {
+    try {
+      // First get all active sessions for the user except the excluded one
+      const activeSessions = await this.db
+        .selectFrom("sessions")
+        .select(["id"])
+        .where("userId", "=", userId)
+        .where("status", "=", "active")
+        .where("id", "!=", excludeSessionId)
+        .execute();
+
+      if (activeSessions.length === 0) {
+        return true; // No other sessions to revoke
+      }
+
+      // Update sessions to revoked status
+      await this.db
+        .updateTable("sessions")
+        .set({
+          status: "revoked",
+          revokedAt: new Date().toISOString(),
+        })
+        .where("userId", "=", userId)
+        .where("status", "=", "active")
+        .where("id", "!=", excludeSessionId)
+        .execute();
+
+      // Remove session keys from KV cache
+      const deletePromises = activeSessions.map((session) => {
+        const kvKey = `session:${session.id}`;
+        return this.kv.delete(kvKey);
+      });
+
+      await Promise.all(deletePromises);
+
+      return true;
+    } catch (error) {
+      console.error("SessionService.revokeOtherSessionsForUser error:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Revoke specific sessions by IDs for a user
+   */
+  async revokeSessionsByIds(
+    userId: string,
+    sessionIds: string[],
+  ): Promise<{ success: boolean; revokedCurrentSession?: boolean }> {
+    try {
+      if (sessionIds.length === 0) {
+        return { success: true, revokedCurrentSession: false };
+      }
+
+      // First get the sessions that exist and are active for this user
+      const existingSessions = await this.db
+        .selectFrom("sessions")
+        .select(["id"])
+        .where("userId", "=", userId)
+        .where("status", "=", "active")
+        .where("id", "in", sessionIds)
+        .execute();
+
+      if (existingSessions.length === 0) {
+        return { success: true, revokedCurrentSession: false };
+      }
+
+      const existingSessionIds = existingSessions.map((s) => s.id);
+
+      // Update sessions to revoked status
+      await this.db
+        .updateTable("sessions")
+        .set({
+          status: "revoked",
+          revokedAt: new Date().toISOString(),
+        })
+        .where("userId", "=", userId)
+        .where("status", "=", "active")
+        .where("id", "in", existingSessionIds)
+        .execute();
+
+      // Remove session keys from KV cache
+      const deletePromises = existingSessionIds.map((sessionId) => {
+        const kvKey = `session:${sessionId}`;
+        return this.kv.delete(kvKey);
+      });
+
+      await Promise.all(deletePromises);
+
+      // Check if any of the revoked sessions is the current session
+      // We don't have access to current session here, so we return the IDs
+      // and let the caller determine if current session was included
+      return {
+        success: true,
+        revokedCurrentSession: false, // This will be determined by the route handler
+      };
+    } catch (error) {
+      console.error("SessionService.revokeSessionsByIds error:", error);
+      return { success: false };
+    }
+  }
+
+  /**
    * Get session cookie configuration
    */
   getSessionCookieConfig() {

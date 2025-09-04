@@ -19,7 +19,25 @@ export const resetPasswordSchema = z.object({
   newPassword: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+export const logoutSchema = z.object({
+  mode: z.enum(["current", "others", "all", "byIds"]).optional().default("current"),
+  sessionIds: z.array(z.string()).optional(),
+}).refine(
+  (data) => {
+    // sessionIds is required when mode is "byIds"
+    if (data.mode === "byIds") {
+      return data.sessionIds && data.sessionIds.length > 0;
+    }
+    return true;
+  },
+  {
+    message: "sessionIds is required and must not be empty when mode is 'byIds'",
+    path: ["sessionIds"],
+  }
+);
+
 export type RegisterRequest = z.infer<typeof registerSchema>;
 export type LoginRequest = z.infer<typeof loginSchema>;
 export type ForgotPasswordRequest = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordRequest = z.infer<typeof resetPasswordSchema>;
+export type LogoutRequest = z.infer<typeof logoutSchema>;
