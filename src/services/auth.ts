@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { createDatabase } from "@/db";
-import { SessionService } from "@/services/session";
+import SessionService from "@/services/session";
 import type { Bindings } from "@/types";
 import type { AuthResult, AuthError, PasswordResetResult, PasswordResetError } from "@/types/auth";
 import {
@@ -10,7 +10,7 @@ import {
   ResetPasswordRequest,
 } from "@/validators/auth";
 
-export class AuthService {
+class AuthService {
   private readonly db: ReturnType<typeof createDatabase>;
   private readonly sessionService: SessionService;
   private readonly TOKEN_EXPIRY_MINUTES = 60; // 1 hour expiry for reset tokens
@@ -252,3 +252,5 @@ export class AuthService {
     }
   }
 }
+
+export default AuthService;

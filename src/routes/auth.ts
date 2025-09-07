@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { AuthService } from "@/services/auth";
+import AuthService from "@/services/auth";
 import { setCookie, deleteCookie } from "hono/cookie";
 import { authMiddleware, authRateLimit, unauthMiddleware } from "@/middlewares";
 import {
@@ -11,7 +11,7 @@ import {
   logoutSchema,
 } from "@/validators/auth";
 import type { AppEnv } from "@/types";
-import { SessionService } from "@/services/session";
+import SessionService from "@/services/session";
 
 const auth = new Hono<AppEnv>();
 

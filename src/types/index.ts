@@ -24,14 +24,14 @@ export interface AppEnv {
   };
 }
 
-export interface AuthEnv {
-  Variables: {
+export interface AuthEnv extends AppEnv {
+  Variables: AppEnv["Variables"] & {
     user: UserContext;
   };
 }
 
-export interface UnauthEnv {
-  Variables: {
+export interface UnauthEnv extends AppEnv {
+  Variables: AppEnv["Variables"] & {
     user: undefined;
   };
 }

@@ -1,17 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SessionService } from "@/services/session";
-import { mockEnv, mockDb, mockCreateDatabase, mockKV } from "../__mocks__/env";
+import { mockEnv, mockDb, mockCreateDatabase, mockKV, mockDateFreeze } from "../__mocks__/env";
 import { mockJWT } from "../__mocks__/auth";
-import { createDatabase } from "@/db";
+import SessionService from "@/services/session";
 
 vi.mock("@/db", () => ({
   createDatabase: mockCreateDatabase,
 }));
-
-vi.mock("hono/jwt", () => ({
-  sign: mockJWT.sign,
-  verify: mockJWT.verify,
-}));
+vi.mock("hono/jwt", () => mockJWT);
 
 Object.defineProperty(global, "crypto", {
   value: {
@@ -19,15 +14,18 @@ Object.defineProperty(global, "crypto", {
   },
 });
 
+let sessionService: SessionService;
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const { default: SessionService } = await import("@/services/session");
+  sessionService = new SessionService(mockEnv);
+});
+
 describe("SessionService constructor", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should create a database client instance", () => {
-    const sessionService = new SessionService(mockEnv);
-
-    expect(createDatabase).toHaveBeenCalledWith(mockEnv.DB);
+    expect(mockCreateDatabase).toHaveBeenCalledWith(mockEnv.DB);
     expect(sessionService).toHaveProperty("db");
     expect(sessionService).toHaveProperty("kv");
     expect(sessionService).toHaveProperty("jwtSecret", "test-secret");
@@ -36,18 +34,9 @@ describe("SessionService constructor", () => {
 });
 
 describe("SessionService.verifyToken", () => {
-  let sessionService: SessionService;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionService = new SessionService(mockEnv);
-  });
-
   it("should call the 'verify' helper function from hono/jwt", async () => {
     const token = "valid.jwt.token";
-
     await sessionService.verifyToken(token);
-
     expect(mockJWT.verify).toHaveBeenCalledWith(token, mockEnv.JWT_SECRET);
   });
 
@@ -58,7 +47,7 @@ describe("SessionService.verifyToken", () => {
       userId: "user-id",
       email: "test@example.com",
     };
-    mockJWT.verify.mockResolvedValueOnce(mockPayload);
+    mockJWT.verify.mockResolvedValue(mockPayload);
 
     const result = await sessionService.verifyToken(token);
 
@@ -69,8 +58,6 @@ describe("SessionService.verifyToken", () => {
     const token = "invalid.jwt.token";
     mockJWT.verify.mockRejectedValueOnce(new Error("Invalid token"));
 
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
     const result = await sessionService.verifyToken(token);
 
     expect(result).toBeNull();
@@ -78,13 +65,6 @@ describe("SessionService.verifyToken", () => {
 });
 
 describe("SessionService.create", () => {
-  let sessionService: SessionService;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionService = new SessionService(mockEnv);
-  });
-
   it("should create a new session and store it in the database", async () => {
     const sessionData = {
       id: "mock-uuid",
@@ -94,7 +74,7 @@ describe("SessionService.create", () => {
       expiresAt: expect.any(String),
       revokedAt: null,
     };
-    mockDb.executeTakeFirst.mockResolvedValueOnce(sessionData);
+    mockDb.executeTakeFirst.mockResolvedValue(sessionData);
 
     await sessionService.create({ userId: "user-id", email: "test@example.com" });
 
@@ -116,7 +96,7 @@ describe("SessionService.create", () => {
       expiresAt: expect.any(String),
       revokedAt: null,
     };
-    mockDb.executeTakeFirst.mockResolvedValueOnce(sessionData);
+    mockDb.executeTakeFirst.mockResolvedValue(sessionData);
 
     await sessionService.create({ userId: "user-id", email: "test@example.com" });
 
@@ -140,7 +120,7 @@ describe("SessionService.create", () => {
       expiresAt: expect.any(String),
       revokedAt: null,
     };
-    mockDb.executeTakeFirst.mockResolvedValueOnce(sessionData);
+    mockDb.executeTakeFirst.mockResolvedValue(sessionData);
 
     await sessionService.create({ userId: "user-id", email: "test@example.com" });
 
@@ -156,7 +136,7 @@ describe("SessionService.create", () => {
   });
 
   it("should fail if either of the steps above fail", async () => {
-    mockDb.executeTakeFirst.mockResolvedValueOnce(null);
+    mockDb.executeTakeFirst.mockResolvedValue(null);
 
     vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -177,8 +157,8 @@ describe("SessionService.create", () => {
       expiresAt: expect.any(String),
       revokedAt: null,
     };
-    mockDb.executeTakeFirst.mockResolvedValueOnce(sessionData);
-    mockJWT.sign.mockResolvedValueOnce("mock-jwt-token");
+    mockDb.executeTakeFirst.mockResolvedValue(sessionData);
+    mockJWT.sign.mockResolvedValue("mock-jwt-token");
 
     const result = await sessionService.create({ userId: "user-id", email: "test@example.com" });
 
@@ -190,15 +170,6 @@ describe("SessionService.create", () => {
 });
 
 describe("SessionService.findById", () => {
-  let sessionService: SessionService;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionService = new SessionService(mockEnv);
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-  });
-
   it("should find the session in the cache with ID", async () => {
     const cachedSession = JSON.stringify({
       userId: "user-id",
@@ -206,7 +177,7 @@ describe("SessionService.findById", () => {
       status: "active",
       expiresAt: new Date(Date.now() + 3600000).toISOString(),
     });
-    mockKV.get.mockResolvedValueOnce(cachedSession);
+    mockKV.get.mockResolvedValue(cachedSession);
 
     const result = await sessionService.findById("session-id");
 
@@ -220,8 +191,8 @@ describe("SessionService.findById", () => {
   });
 
   it("should find the session in the database with ID if not exist in the cache", async () => {
-    mockKV.get.mockResolvedValueOnce(null);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockKV.get.mockResolvedValue(null);
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "session-id",
       userId: "user-id",
       email: "test@example.com",
@@ -242,8 +213,8 @@ describe("SessionService.findById", () => {
   });
 
   it("should store the session back in the cache if it's found in the database and return it", async () => {
-    mockKV.get.mockResolvedValueOnce(null);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockKV.get.mockResolvedValue(null);
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "session-id",
       userId: "user-id",
       email: "test@example.com",
@@ -265,8 +236,8 @@ describe("SessionService.findById", () => {
   });
 
   it("should return `null` if session is not found", async () => {
-    mockKV.get.mockResolvedValueOnce(null);
-    mockDb.executeTakeFirst.mockResolvedValueOnce(null);
+    mockKV.get.mockResolvedValue(null);
+    mockDb.executeTakeFirst.mockResolvedValue(null);
 
     const result = await sessionService.findById("nonexistent-session-id");
 
@@ -275,17 +246,8 @@ describe("SessionService.findById", () => {
 });
 
 describe("SessionService.revoke", () => {
-  let sessionService: SessionService;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionService = new SessionService(mockEnv);
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-  });
-
   it("should revoke the session in the database", async () => {
-    mockDb.executeTakeFirst.mockResolvedValueOnce({ numUpdatedRows: 1 });
+    mockDb.executeTakeFirst.mockResolvedValue({ numUpdatedRows: 1 });
 
     await sessionService.revoke("session-id");
 
@@ -299,7 +261,7 @@ describe("SessionService.revoke", () => {
   });
 
   it("should revoke the session in the cache", async () => {
-    mockDb.executeTakeFirst.mockResolvedValueOnce({ numUpdatedRows: 1 });
+    mockDb.executeTakeFirst.mockResolvedValue({ numUpdatedRows: 1 });
 
     await sessionService.revoke("session-id");
 
@@ -315,7 +277,7 @@ describe("SessionService.revoke", () => {
   });
 
   it("should return true when revocation succeeds", async () => {
-    mockDb.executeTakeFirst.mockResolvedValueOnce({ numUpdatedRows: 1 });
+    mockDb.executeTakeFirst.mockResolvedValue({ numUpdatedRows: 1 });
 
     const successResult = await sessionService.revoke("session-id");
 
@@ -323,7 +285,7 @@ describe("SessionService.revoke", () => {
   });
 
   it("should return false when no rows are updated", async () => {
-    mockDb.executeTakeFirst.mockResolvedValueOnce({ numUpdatedRows: 0 });
+    mockDb.executeTakeFirst.mockResolvedValue({ numUpdatedRows: 0 });
 
     const failureResult = await sessionService.revoke("nonexistent-session-id");
 
@@ -332,17 +294,8 @@ describe("SessionService.revoke", () => {
 });
 
 describe("SessionService.revokeAllUserSessions", () => {
-  let sessionService: SessionService;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionService = new SessionService(mockEnv);
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-  });
-
   it("should find all active sessions of a user in the database", async () => {
-    mockDb.execute.mockResolvedValueOnce([{ id: "session-1" }, { id: "session-2" }]);
+    mockDb.execute.mockResolvedValue([{ id: "session-1" }, { id: "session-2" }]);
 
     await sessionService.revokeAllUserSessions("user-id");
 
@@ -353,7 +306,7 @@ describe("SessionService.revokeAllUserSessions", () => {
   });
 
   it("should revoke all those active sessions in the database and cache", async () => {
-    mockDb.execute.mockResolvedValueOnce([{ id: "session-1" }, { id: "session-2" }]);
+    mockDb.execute.mockResolvedValue([{ id: "session-1" }, { id: "session-2" }]);
 
     await sessionService.revokeAllUserSessions("user-id");
 
@@ -370,7 +323,7 @@ describe("SessionService.revokeAllUserSessions", () => {
   });
 
   it("should return true when all sessions are cleared", async () => {
-    mockDb.execute.mockResolvedValueOnce([{ id: "session-1" }, { id: "session-2" }]);
+    mockDb.execute.mockResolvedValue([{ id: "session-1" }, { id: "session-2" }]);
 
     const successResult = await sessionService.revokeAllUserSessions("user-id");
 
@@ -387,17 +340,8 @@ describe("SessionService.revokeAllUserSessions", () => {
 });
 
 describe("SessionService.revokeUserOtherSessions", () => {
-  let sessionService: SessionService;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionService = new SessionService(mockEnv);
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-  });
-
   it("should find all active sessions of a user that is not the current session in the database", async () => {
-    mockDb.execute.mockResolvedValueOnce([{ id: "session-1" }, { id: "session-2" }]);
+    mockDb.execute.mockResolvedValue([{ id: "session-1" }, { id: "session-2" }]);
 
     await sessionService.revokeUserOtherSessions("user-id", "current-session-id");
 
@@ -409,7 +353,7 @@ describe("SessionService.revokeUserOtherSessions", () => {
   });
 
   it("should revoke all those found sessions in the database and cache", async () => {
-    mockDb.execute.mockResolvedValueOnce([{ id: "session-1" }, { id: "session-2" }]);
+    mockDb.execute.mockResolvedValue([{ id: "session-1" }, { id: "session-2" }]);
 
     await sessionService.revokeUserOtherSessions("user-id", "current-session-id");
 
@@ -427,7 +371,7 @@ describe("SessionService.revokeUserOtherSessions", () => {
   });
 
   it("should return true when all other sessions are cleared", async () => {
-    mockDb.execute.mockResolvedValueOnce([{ id: "session-1" }, { id: "session-2" }]);
+    mockDb.execute.mockResolvedValue([{ id: "session-1" }, { id: "session-2" }]);
 
     const successResult = await sessionService.revokeUserOtherSessions(
       "user-id",
@@ -478,13 +422,8 @@ describe("SessionService.getSessionCookieConfig", () => {
 });
 
 describe("SessionService.generateToken", () => {
-  let sessionService: SessionService;
-
   beforeEach(() => {
-    vi.clearAllMocks();
-    sessionService = new SessionService(mockEnv);
-
-    vi.spyOn(Date, "now").mockReturnValue(1000000000000);
+    vi.spyOn(Date, "now").mockReturnValue(mockDateFreeze * 1000);
   });
 
   it("should call the 'sign' helper from hono/jwt", async () => {
@@ -509,8 +448,8 @@ describe("SessionService.generateToken", () => {
         sessionId: "session-id",
         userId: "user-id",
         email: "test@example.com",
-        iat: 1000000000,
-        exp: 1000000000 + 30 * 60,
+        iat: mockDateFreeze,
+        exp: mockDateFreeze + 30 * 60,
       },
       mockEnv.JWT_SECRET,
     );

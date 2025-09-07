@@ -11,7 +11,7 @@ import type { DB } from "@/db/types";
 import type { Kysely } from "kysely";
 import { sign, verify } from "hono/jwt";
 
-export class SessionService {
+class SessionService {
   private readonly environment: string;
   private readonly db: Kysely<DB>;
   private readonly kv: KVNamespace;
@@ -361,3 +361,5 @@ export class SessionService {
     );
   }
 }
+
+export default SessionService;

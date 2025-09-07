@@ -1,15 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { AuthService } from "@/services/auth";
 import { mockEnv, mockDb, mockCreateDatabase } from "../__mocks__/env";
 import { mockBcrypt, mockSessionService } from "../__mocks__/auth";
-import { SessionService } from "@/services/session";
-import { createDatabase } from "@/db";
+import AuthService from "@/services/auth";
 
-vi.mock("bcryptjs", () => ({
-  default: mockBcrypt,
-}));
+vi.mock("bcryptjs", () => ({ default: mockBcrypt }));
 vi.mock("@/services/session", () => ({
-  SessionService: vi.fn().mockImplementation(() => mockSessionService),
+  default: vi.fn().mockImplementation(() => mockSessionService),
 }));
 vi.mock("@/db", () => ({
   createDatabase: mockCreateDatabase,
@@ -27,28 +23,34 @@ Object.defineProperty(global, "crypto", {
   },
 });
 
+let authService: AuthService;
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  vi.spyOn(console, "log").mockImplementation(() => {});
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const { default: AuthService } = await import("@/services/auth");
+  authService = new AuthService(mockEnv);
+});
+
 describe("AuthService constructor", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  it("should create a database client instance and get session service", async () => {
+    const { default: SessionService } = await import("@/services/session");
 
-  it("should create a database client instance and get session service", () => {
-    const authService = new AuthService(mockEnv);
-
-    expect(createDatabase).toHaveBeenCalledWith(mockEnv.DB);
+    expect(mockCreateDatabase).toHaveBeenCalledWith(mockEnv.DB);
     expect(SessionService).toHaveBeenCalledWith(mockEnv);
+    expect(authService).toBeInstanceOf(AuthService);
+    expect(authService).toHaveProperty("register");
+    expect(authService).toHaveProperty("login");
+    expect(authService).toHaveProperty("forgotPassword");
+    expect(authService).toHaveProperty("resetPassword");
   });
 });
 
 describe("AuthService.register", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should hash the password", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({ id: "user-id", email: "test@example.com" });
-    mockSessionService.create.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({ id: "user-id", email: "test@example.com" });
+    mockSessionService.create.mockResolvedValue({
       success: true,
       sessionToken: "session-token",
     });
@@ -59,8 +61,7 @@ describe("AuthService.register", () => {
   });
 
   it("should fail if the user already exists", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce(null);
+    mockDb.executeTakeFirst.mockResolvedValue(null);
 
     const result = await authService.register({
       email: "existing@example.com",
@@ -75,9 +76,8 @@ describe("AuthService.register", () => {
   });
 
   it("should create a new user in the database", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({ id: "user-id", email: "test@example.com" });
-    mockSessionService.create.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({ id: "user-id", email: "test@example.com" });
+    mockSessionService.create.mockResolvedValue({
       success: true,
       sessionToken: "session-token",
     });
@@ -89,15 +89,14 @@ describe("AuthService.register", () => {
       expect.objectContaining({
         id: "mock-uuid",
         email: "test@example.com",
-        passwordHash: "hashed_password_11",
+        passwordHash: "hashed_password123_11",
       }),
     );
   });
 
   it("should fail if the session is not successfully created", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({ id: "user-id", email: "test@example.com" });
-    mockSessionService.create.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({ id: "user-id", email: "test@example.com" });
+    mockSessionService.create.mockResolvedValue({
       success: false,
       error: "Session creation failed",
     });
@@ -115,9 +114,8 @@ describe("AuthService.register", () => {
   });
 
   it("should create a new session and return the session ID on successful registration", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({ id: "user-id", email: "test@example.com" });
-    mockSessionService.create.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({ id: "user-id", email: "test@example.com" });
+    mockSessionService.create.mockResolvedValue({
       success: true,
       sessionToken: "session-token",
     });
@@ -139,18 +137,13 @@ describe("AuthService.register", () => {
 });
 
 describe("AuthService.login", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should fetch user from database using email", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "user-id",
       email: "test@example.com",
       passwordHash: "hashed_password",
     });
-    mockSessionService.create.mockResolvedValueOnce({
+    mockSessionService.create.mockResolvedValue({
       success: true,
       sessionToken: "session-token",
     });
@@ -162,8 +155,7 @@ describe("AuthService.login", () => {
   });
 
   it("should fail and return a generic message if user doesn't exist", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce(null);
+    mockDb.executeTakeFirst.mockResolvedValue(null);
 
     const result = await authService.login({
       email: "nonexistent@example.com",
@@ -178,13 +170,12 @@ describe("AuthService.login", () => {
   });
 
   it("should validate password against the hashed one fetched from database", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "user-id",
       email: "test@example.com",
       passwordHash: "hashed_password",
     });
-    mockSessionService.create.mockResolvedValueOnce({
+    mockSessionService.create.mockResolvedValue({
       success: true,
       sessionToken: "session-token",
     });
@@ -195,13 +186,12 @@ describe("AuthService.login", () => {
   });
 
   it("should fail and return a generic message password is incorrect", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "user-id",
       email: "test@example.com",
       passwordHash: "hashed_password",
     });
-    mockBcrypt.compare.mockResolvedValueOnce(false);
+    mockBcrypt.compare.mockResolvedValue(false);
 
     const result = await authService.login({
       email: "test@example.com",
@@ -216,19 +206,21 @@ describe("AuthService.login", () => {
   });
 
   it("should fail if the session is not successfully created", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "user-id",
       email: "test@example.com",
       passwordHash: "hashed_password",
     });
-    mockBcrypt.compare.mockResolvedValueOnce(true);
-    mockSessionService.create.mockResolvedValueOnce({
+    mockBcrypt.compare.mockResolvedValue(true);
+    mockSessionService.create.mockResolvedValue({
       success: false,
-      error: "Session creation failed",
+      error: "Failed to create session",
     });
 
-    const result = await authService.login({ email: "test@example.com", password: "password123" });
+    const result = await authService.login({
+      email: "test@example.com",
+      password: "password123",
+    });
 
     expect(result).toEqual({
       success: false,
@@ -238,19 +230,21 @@ describe("AuthService.login", () => {
   });
 
   it("should create a new session and return the session ID on successful login", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "user-id",
       email: "test@example.com",
       passwordHash: "hashed_password",
     });
-    mockBcrypt.compare.mockResolvedValueOnce(true);
-    mockSessionService.create.mockResolvedValueOnce({
+    mockBcrypt.compare.mockResolvedValue(true);
+    mockSessionService.create.mockResolvedValue({
       success: true,
       sessionToken: "session-token",
     });
 
-    const result = await authService.login({ email: "test@example.com", password: "password123" });
+    const result = await authService.login({
+      email: "test@example.com",
+      password: "password123",
+    });
 
     expect(mockSessionService.create).toHaveBeenCalledWith({
       userId: "user-id",
@@ -264,16 +258,9 @@ describe("AuthService.login", () => {
 });
 
 describe("AuthService.forgotPassword", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    // Mock console.log to prevent test output pollution
-    vi.spyOn(console, "log").mockImplementation(() => {});
-  });
-
   it("should check in the database if the user exists", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({ id: "user-id", email: "test@example.com" });
-    mockDb.execute.mockResolvedValueOnce(undefined);
+    mockDb.executeTakeFirst.mockResolvedValue({ id: "user-id", email: "test@example.com" });
+    mockDb.execute.mockResolvedValue(undefined);
 
     await authService.forgotPassword({ email: "test@example.com" });
 
@@ -282,8 +269,7 @@ describe("AuthService.forgotPassword", () => {
   });
 
   it("should succeed even when user is not found", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce(null);
+    mockDb.executeTakeFirst.mockResolvedValue(null);
 
     const result = await authService.forgotPassword({ email: "nonexistent@example.com" });
 
@@ -291,9 +277,8 @@ describe("AuthService.forgotPassword", () => {
   });
 
   it("should generate a random short-lived token and store it in the database", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({ id: "user-id", email: "test@example.com" });
-    mockDb.execute.mockResolvedValueOnce(undefined);
+    mockDb.executeTakeFirst.mockResolvedValue({ id: "user-id", email: "test@example.com" });
+    mockDb.execute.mockResolvedValue(undefined);
 
     await authService.forgotPassword({ email: "test@example.com" });
 
@@ -310,9 +295,8 @@ describe("AuthService.forgotPassword", () => {
   });
 
   it("should succeed after the token is stored", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({ id: "user-id", email: "test@example.com" });
-    mockDb.execute.mockResolvedValueOnce(undefined);
+    mockDb.executeTakeFirst.mockResolvedValue({ id: "user-id", email: "test@example.com" });
+    mockDb.execute.mockResolvedValue(undefined);
 
     const result = await authService.forgotPassword({ email: "test@example.com" });
 
@@ -321,13 +305,8 @@ describe("AuthService.forgotPassword", () => {
 });
 
 describe("AuthService.resetPassword", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should get the reset token from the database", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "token-id",
       userId: "user-id",
       expiresAt: new Date(Date.now() + 3600000).toISOString(),
@@ -341,9 +320,7 @@ describe("AuthService.resetPassword", () => {
   });
 
   it("should fail with generic message when token is not found, used or expired", async () => {
-    const authService = new AuthService(mockEnv);
-
-    mockDb.executeTakeFirst.mockResolvedValueOnce(null);
+    mockDb.executeTakeFirst.mockResolvedValue(null);
 
     let result = await authService.resetPassword({
       token: "invalid-token",
@@ -356,14 +333,17 @@ describe("AuthService.resetPassword", () => {
       status: 400,
     });
 
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "token-id",
       userId: "user-id",
       expiresAt: new Date(Date.now() + 3600000).toISOString(),
       usedAt: new Date().toISOString(),
     });
 
-    result = await authService.resetPassword({ token: "used-token", newPassword: "new-password" });
+    result = await authService.resetPassword({
+      token: "used-token",
+      newPassword: "new-password",
+    });
 
     expect(result).toEqual({
       success: false,
@@ -371,7 +351,7 @@ describe("AuthService.resetPassword", () => {
       status: 400,
     });
 
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "token-id",
       userId: "user-id",
       expiresAt: new Date(Date.now() - 3600000).toISOString(),
@@ -391,8 +371,7 @@ describe("AuthService.resetPassword", () => {
   });
 
   it("should hash the new password", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "token-id",
       userId: "user-id",
       expiresAt: new Date(Date.now() + 3600000).toISOString(),
@@ -405,8 +384,7 @@ describe("AuthService.resetPassword", () => {
   });
 
   it("should store the new password and mark the token as used via transaction", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "token-id",
       userId: "user-id",
       expiresAt: new Date(Date.now() + 3600000).toISOString(),
@@ -420,8 +398,7 @@ describe("AuthService.resetPassword", () => {
   });
 
   it("should fail if the database call(s) fail", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "token-id",
       userId: "user-id",
       expiresAt: new Date(Date.now() + 3600000).toISOString(),
@@ -448,8 +425,7 @@ describe("AuthService.resetPassword", () => {
   });
 
   it("should succeed when the process completes", async () => {
-    const authService = new AuthService(mockEnv);
-    mockDb.executeTakeFirst.mockResolvedValueOnce({
+    mockDb.executeTakeFirst.mockResolvedValue({
       id: "token-id",
       userId: "user-id",
       expiresAt: new Date(Date.now() + 3600000).toISOString(),

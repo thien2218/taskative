@@ -91,9 +91,11 @@ export const mockAuthMiddleware = vi.fn().mockImplementation((c, next) => {
 });
 
 // Hono cookie mocks
-export const mockSetCookie = vi.fn();
-export const mockDeleteCookie = vi.fn();
-export const mockGetCookie = vi.fn();
+export const mockCookie = {
+  setCookie: vi.fn(),
+  deleteCookie: vi.fn(),
+  getCookie: vi.fn(),
+};
 
 // Test data mocks
 export const mockUser = {

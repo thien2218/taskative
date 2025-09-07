@@ -15,17 +15,17 @@ export async function authRateLimit(c: Context<AppEnv>, next: Next) {
   return next();
 }
 
-export async function unauthMiddleware(c: Context<AppEnv & UnauthEnv>, next: Next) {
+export async function unauthMiddleware(c: Context<UnauthEnv>, next: Next) {
   const sessionToken = getCookie(c, c.env.SESSION_NAME);
 
   if (sessionToken) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  next();
+  return next();
 }
 
-export async function authMiddleware(c: Context<AppEnv & AuthEnv>, next: Next) {
+export async function authMiddleware(c: Context<AuthEnv>, next: Next) {
   const sessions = new SessionService(c.env);
   const sessionToken = getCookie(c, c.env.SESSION_NAME);
 

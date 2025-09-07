@@ -8,51 +8,45 @@ import {
   mockJWT,
   mockAuthRateLimit,
   mockAuthMiddleware,
-  mockSetCookie,
-  mockDeleteCookie,
-  mockGetCookie,
   sessionOpts,
   authPayload,
   requestBaseOpts,
   resetPayload,
   mockUnauthMiddleware,
-} from "..//__mocks__/auth";
-import { mockCreateDatabase, mockEnv } from "..//__mocks__/env";
+  mockCookie,
+} from "../__mocks__/auth";
+import { mockCreateDatabase, mockEnv } from "../__mocks__/env";
 
-// Mock external dependencies at the top level
 vi.mock("@/services/auth", () => ({
-  AuthService: vi.fn().mockImplementation(() => mockAuthService),
+  default: vi.fn().mockImplementation(() => mockAuthService),
 }));
 vi.mock("@/services/session", () => ({
-  SessionService: vi.fn().mockImplementation(() => mockSessionService),
+  default: vi.fn().mockImplementation(() => mockSessionService),
 }));
-vi.mock("bcrypt", () => mockBcrypt);
+vi.mock("bcrypt", () => ({ default: mockBcrypt }));
 vi.mock("jsonwebtoken", () => mockJWT);
 vi.mock("@/middlewares", () => ({
   authRateLimit: mockAuthRateLimit,
   unauthMiddleware: mockUnauthMiddleware,
   authMiddleware: mockAuthMiddleware,
 }));
-vi.mock("hono/cookie", () => ({
-  setCookie: mockSetCookie,
-  deleteCookie: mockDeleteCookie,
-  getCookie: mockGetCookie,
-}));
+vi.mock("hono/cookie", () => mockCookie);
 vi.mock("@/db", () => ({
   createDatabase: mockCreateDatabase,
 }));
 
+let authRoutes: Hono<AppEnv>;
+let app: Hono<AppEnv>;
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  authRoutes = (await import("@/routes/auth")).default;
+  app = new Hono<AppEnv>();
+  app.route("/v1/auth", authRoutes);
+});
+
 describe("POST /v1/auth/register", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should return 400 if the request is invalid", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
     let response: Response;
 
     response = await app.request(
@@ -127,11 +121,6 @@ describe("POST /v1/auth/register", () => {
   });
 
   it("should return 400 if the user already exists", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
     // Mock registration failure for existing user
     mockAuthService.register.mockResolvedValue({
       success: false,
@@ -155,11 +144,6 @@ describe("POST /v1/auth/register", () => {
   });
 
   it("should return 201 if new user is created, create a new session, get the session token and set the session token in cookie with name 'taskative_session'", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
     // Mock successful registration
     const mockSessionToken = "new.user.session.token.123";
     mockAuthService.register.mockResolvedValue({
@@ -188,7 +172,7 @@ describe("POST /v1/auth/register", () => {
     expect(mockSessionService.getSessionCookieConfig).toHaveBeenCalled();
 
     // Verify setCookie was called with correct parameters
-    expect(mockSetCookie).toHaveBeenCalledWith(
+    expect(mockCookie.setCookie).toHaveBeenCalledWith(
       expect.any(Object), // context object
       "taskative_session_test", // cookie name
       mockSessionToken, // session token
@@ -199,11 +183,6 @@ describe("POST /v1/auth/register", () => {
 
 describe("POST /v1/auth/login", () => {
   it("should return status 400 for all invalid login payload", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
     let response: Response;
 
     // Empty payload
@@ -274,11 +253,6 @@ describe("POST /v1/auth/login", () => {
   });
 
   it("should fetch the user's hashed password with email when the payload is valid", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
     // Mock successful login
     mockAuthService.login.mockResolvedValue({
       success: true,
@@ -299,11 +273,6 @@ describe("POST /v1/auth/login", () => {
   });
 
   it("should return status 401 for invalid login with either email or password with a generic message for security", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
     // Mock login failure (user not found or invalid password)
     mockAuthService.login.mockResolvedValue({
       success: false,
@@ -333,11 +302,6 @@ describe("POST /v1/auth/login", () => {
   });
 
   it("should return status 200 for valid login, create a new session, get the new session token and set it in the cookie", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
     // Mock successful login
     const mockLoginSessionToken = "valid.login.session.token.456";
     mockAuthService.login.mockResolvedValue({
@@ -365,7 +329,7 @@ describe("POST /v1/auth/login", () => {
     expect(mockSessionService.getSessionCookieConfig).toHaveBeenCalled();
 
     // Verify setCookie was called with correct parameters
-    expect(mockSetCookie).toHaveBeenCalledWith(
+    expect(mockCookie.setCookie).toHaveBeenCalledWith(
       expect.any(Object), // context object
       "taskative_session_test", // cookie name
       mockLoginSessionToken, // session token
@@ -375,17 +339,8 @@ describe("POST /v1/auth/login", () => {
 });
 
 describe("POST /v1/auth/logout", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   describe("mode: current (default)", () => {
     it("should revoke current session and delete cookie when no mode specified", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       mockSessionService.revoke.mockResolvedValue(true);
 
       const response = await app.request(
@@ -402,7 +357,7 @@ describe("POST /v1/auth/logout", () => {
       expect(data).toEqual({ success: true });
 
       expect(mockSessionService.revoke).toHaveBeenCalledWith("mock-session-id");
-      expect(mockDeleteCookie).toHaveBeenCalledWith(
+      expect(mockCookie.deleteCookie).toHaveBeenCalledWith(
         expect.any(Object),
         "taskative_session_test",
         expect.anything(),
@@ -410,11 +365,6 @@ describe("POST /v1/auth/logout", () => {
     });
 
     it("should revoke current session and delete cookie when mode is explicitly 'current'", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       mockSessionService.revoke.mockResolvedValue(true);
 
       const response = await app.request(
@@ -431,7 +381,7 @@ describe("POST /v1/auth/logout", () => {
       expect(data).toEqual({ success: true });
 
       expect(mockSessionService.revoke).toHaveBeenCalledWith("mock-session-id");
-      expect(mockDeleteCookie).toHaveBeenCalledWith(
+      expect(mockCookie.deleteCookie).toHaveBeenCalledWith(
         expect.any(Object),
         "taskative_session_test",
         expect.anything(),
@@ -439,11 +389,6 @@ describe("POST /v1/auth/logout", () => {
     });
 
     it("should return 500 when current session revocation fails", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       mockSessionService.revoke.mockResolvedValue(false);
 
       const response = await app.request(
@@ -463,11 +408,6 @@ describe("POST /v1/auth/logout", () => {
 
   describe("mode: others", () => {
     it("should revoke other sessions and NOT delete cookie", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       mockSessionService.revokeUserOtherSessions.mockResolvedValue(true);
 
       const response = await app.request(
@@ -487,15 +427,10 @@ describe("POST /v1/auth/logout", () => {
         "mock-user-id",
         "mock-session-id",
       );
-      expect(mockDeleteCookie).not.toHaveBeenCalled();
+      expect(mockCookie.deleteCookie).not.toHaveBeenCalled();
     });
 
     it("should return 500 when others session revocation fails", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       mockSessionService.revokeUserOtherSessions.mockResolvedValue(false);
 
       const response = await app.request(
@@ -515,11 +450,6 @@ describe("POST /v1/auth/logout", () => {
 
   describe("mode: all", () => {
     it("should revoke all sessions and delete cookie", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       mockSessionService.revokeAllUserSessions.mockResolvedValue(true);
 
       const response = await app.request(
@@ -536,7 +466,7 @@ describe("POST /v1/auth/logout", () => {
       expect(data).toEqual({ success: true });
 
       expect(mockSessionService.revokeAllUserSessions).toHaveBeenCalledWith("mock-user-id");
-      expect(mockDeleteCookie).toHaveBeenCalledWith(
+      expect(mockCookie.deleteCookie).toHaveBeenCalledWith(
         expect.any(Object),
         "taskative_session_test",
         expect.anything(),
@@ -544,11 +474,6 @@ describe("POST /v1/auth/logout", () => {
     });
 
     it("should return 500 when all session revocation fails", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       mockSessionService.revokeAllUserSessions.mockResolvedValue(false);
 
       const response = await app.request(
@@ -568,11 +493,6 @@ describe("POST /v1/auth/logout", () => {
 
   describe("mode: byIds", () => {
     it("should revoke specified sessions and NOT delete cookie when current not included", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       const sessionIds = ["session-1", "session-2"];
       mockSessionService.revokeSessionsByIds.mockResolvedValue({
         success: true,
@@ -596,15 +516,10 @@ describe("POST /v1/auth/logout", () => {
         "mock-user-id",
         sessionIds,
       );
-      expect(mockDeleteCookie).not.toHaveBeenCalled();
+      expect(mockCookie.deleteCookie).not.toHaveBeenCalled();
     });
 
     it("should revoke specified sessions and delete cookie when current is included", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       const sessionIds = ["mock-session-id", "session-2"];
       mockSessionService.revokeSessionsByIds.mockResolvedValue({
         success: true,
@@ -628,7 +543,7 @@ describe("POST /v1/auth/logout", () => {
         "mock-user-id",
         sessionIds,
       );
-      expect(mockDeleteCookie).toHaveBeenCalledWith(
+      expect(mockCookie.deleteCookie).toHaveBeenCalledWith(
         expect.any(Object),
         "taskative_session_test",
         expect.anything(),
@@ -636,11 +551,6 @@ describe("POST /v1/auth/logout", () => {
     });
 
     it("should return 500 when byIds session revocation fails", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       const sessionIds = ["session-1", "session-2"];
       mockSessionService.revokeSessionsByIds.mockResolvedValue({ success: false });
 
@@ -661,11 +571,6 @@ describe("POST /v1/auth/logout", () => {
 
   describe("validation errors", () => {
     it("should return 400 for invalid mode values", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       const response = await app.request(
         "/v1/auth/logout",
         {
@@ -679,11 +584,6 @@ describe("POST /v1/auth/logout", () => {
     });
 
     it("should return 400 for byIds mode without sessionIds", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       const response = await app.request(
         "/v1/auth/logout",
         {
@@ -697,11 +597,6 @@ describe("POST /v1/auth/logout", () => {
     });
 
     it("should return 400 for byIds mode with empty sessionIds array", async () => {
-      const { default: authRoutes } = await import("@/routes/auth");
-
-      const app = new Hono<AppEnv>();
-      app.route("/v1/auth", authRoutes);
-
       const response = await app.request(
         "/v1/auth/logout",
         {
@@ -717,16 +612,7 @@ describe("POST /v1/auth/logout", () => {
 });
 
 describe("POST /v1/auth/forgot-password", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should return status 400 for invalid payloads", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
     let response: Response;
 
     // Empty payload
@@ -772,11 +658,6 @@ describe("POST /v1/auth/forgot-password", () => {
   });
 
   it("should return 200 and trigger forgotPassword when payload is valid", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
     mockAuthService.forgotPassword.mockResolvedValue({ success: true });
 
     const response = await app.request(
@@ -796,16 +677,7 @@ describe("POST /v1/auth/forgot-password", () => {
 });
 
 describe("POST /v1/auth/reset-password", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should return status 400 for invalid payloads", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
     let response: Response;
 
     // Empty payload
@@ -862,11 +734,6 @@ describe("POST /v1/auth/reset-password", () => {
   });
 
   it("should return 200 and reset password when payload is valid", async () => {
-    const { default: authRoutes } = await import("@/routes/auth");
-
-    const app = new Hono<AppEnv>();
-    app.route("/v1/auth", authRoutes);
-
     mockAuthService.resetPassword.mockResolvedValue({ success: true });
 
     const response = await app.request(

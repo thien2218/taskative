@@ -71,3 +71,4 @@ export const mockContext = {
 
 // Creator mock for DB
 export const mockCreateDatabase = vi.fn().mockReturnValue(mockDb);
+export const mockDateFreeze = 1000000000;
