@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import AuthService from "@/services/auth";
+import type AuthService from "@/services/auth";
 import { setCookie, deleteCookie } from "hono/cookie";
 import { authMiddleware, authRateLimit, unauthMiddleware } from "@/middlewares";
 import {
@@ -11,7 +11,7 @@ import {
   logoutSchema,
 } from "@/validators/auth";
 import type { AppEnv } from "@/types";
-import SessionService from "@/services/session";
+import type SessionService from "@/services/session";
 
 const auth = new Hono<AppEnv>();
 
@@ -23,8 +23,9 @@ auth.post(
   zValidator("json", registerSchema),
   async (c) => {
     const data = c.req.valid("json");
-    const authService = new AuthService(c.env);
-    const sessionService = new SessionService(c.env);
+    const container = c.get("container");
+    const authService = container.get<AuthService>("auth");
+    const sessionService = container.get<SessionService>("session");
 
     const result = await authService.register(data);
 
@@ -42,8 +43,9 @@ auth.post(
 // POST /v1/auth/login (public with rate limiting)
 auth.post("/login", unauthMiddleware, authRateLimit, zValidator("json", loginSchema), async (c) => {
   const data = c.req.valid("json");
-  const authService = new AuthService(c.env);
-  const sessionService = new SessionService(c.env);
+  const container = c.get("container");
+  const authService = container.get<AuthService>("auth");
+  const sessionService = container.get<SessionService>("session");
 
   const result = await authService.login(data);
 
@@ -63,7 +65,8 @@ auth.post("/logout", authMiddleware, zValidator("json", logoutSchema), async (c)
   const data = c.req.valid("json");
   const { mode = "current", sessionIds } = data;
 
-  const sessionService = new SessionService(c.env);
+  const container = c.get("container");
+  const sessionService = container.get<SessionService>("session");
   let success = false;
   let shouldClearCookie = false;
 
@@ -115,7 +118,8 @@ auth.post(
   zValidator("json", forgotPasswordSchema),
   async (c) => {
     const data = c.req.valid("json");
-    const authService = new AuthService(c.env);
+    const container = c.get("container");
+    const authService = container.get<AuthService>("auth");
 
     await authService.forgotPassword(data);
 
@@ -131,8 +135,9 @@ auth.post(
   zValidator("json", resetPasswordSchema),
   async (c) => {
     const data = c.req.valid("json");
-    const authService = new AuthService(c.env);
-    const sessionService = new SessionService(c.env);
+    const container = c.get("container");
+    const authService = container.get<AuthService>("auth");
+    const sessionService = container.get<SessionService>("session");
 
     const result = await authService.resetPassword(data);
 

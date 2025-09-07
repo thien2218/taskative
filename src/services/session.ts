@@ -1,4 +1,3 @@
-import { createDatabase } from "@/db";
 import type { Bindings } from "@/types";
 import type {
   SessionPayload,
@@ -10,18 +9,20 @@ import type {
 import type { DB } from "@/db/types";
 import type { Kysely } from "kysely";
 import { sign, verify } from "hono/jwt";
+import type DatabaseService from "@/services/database";
+import CacheService from "@/services/cache";
 
 class SessionService {
   private readonly environment: string;
   private readonly db: Kysely<DB>;
-  private readonly kv: KVNamespace;
+  private readonly cache: CacheService;
   private readonly jwtSecret: string;
 
-  constructor(env: Bindings) {
-    this.db = createDatabase(env.DB);
-    this.kv = env.CACHE;
-    this.jwtSecret = env.JWT_SECRET;
-    this.environment = env.ENVIRONMENT;
+  constructor(deps: { dbService: DatabaseService; cache: CacheService; config: Bindings }) {
+    this.db = deps.dbService.db;
+    this.cache = deps.cache;
+    this.jwtSecret = deps.config.JWT_SECRET;
+    this.environment = deps.config.ENVIRONMENT;
   }
 
   private readonly SESSION_TTL = 30 * 60;
@@ -78,16 +79,18 @@ class SessionService {
 
       // Cache session with TTL
       const kvKey = `session:${sessionId}`;
-      const kvValue = JSON.stringify({
-        userId: data.userId,
-        email: data.email,
-        status: session.status,
-        expiresAt: session.expiresAt,
-        deviceId: session.deviceId,
-        deviceName: session.deviceName,
-      });
-
-      await this.kv.put(kvKey, kvValue, { expirationTtl: this.SESSION_KV_TTL });
+      await this.cache.set(
+        kvKey,
+        {
+          userId: data.userId,
+          email: data.email,
+          status: session.status,
+          expiresAt: session.expiresAt,
+          deviceId: session.deviceId,
+          deviceName: session.deviceName,
+        },
+        this.SESSION_KV_TTL,
+      );
 
       // Generate a 30-minute JWT tied to this session
       const sessionToken = await this.generateToken({
@@ -113,10 +116,10 @@ class SessionService {
     try {
       // First check KV cache
       const kvKey = `session:${sessionId}`;
-      const kvValue = await this.kv.get(kvKey);
+      const kvValue = await this.cache.get<any>(kvKey);
 
       if (kvValue) {
-        const sessionData = JSON.parse(kvValue);
+        const sessionData = kvValue;
         // Check if session is still active and not expired
         if (sessionData.status === "active" && new Date(sessionData.expiresAt) > new Date()) {
           return {
@@ -149,16 +152,18 @@ class SessionService {
 
       if (session) {
         // Refresh KV cache
-        const kvValue = JSON.stringify({
-          userId: session.userId,
-          email: session.email,
-          status: session.status,
-          expiresAt: session.expiresAt,
-          deviceId: session.deviceId,
-          deviceName: session.deviceName,
-        });
-
-        await this.kv.put(kvKey, kvValue, { expirationTtl: this.SESSION_KV_TTL });
+        await this.cache.set(
+          kvKey,
+          {
+            userId: session.userId,
+            email: session.email,
+            status: session.status,
+            expiresAt: session.expiresAt,
+            deviceId: session.deviceId,
+            deviceName: session.deviceName,
+          },
+          this.SESSION_KV_TTL,
+        );
 
         return {
           sessionId: session.id,
@@ -194,7 +199,7 @@ class SessionService {
 
       // Remove from KV cache
       const kvKey = `session:${sessionId}`;
-      await this.kv.delete(kvKey);
+      await this.cache.del(kvKey);
 
       return Number(result.numUpdatedRows) > 0;
     } catch (error) {
@@ -232,12 +237,8 @@ class SessionService {
         .execute();
 
       // Remove all session keys from KV cache
-      const deletePromises = activeSessions.map((session) => {
-        const kvKey = `session:${session.id}`;
-        return this.kv.delete(kvKey);
-      });
-
-      await Promise.all(deletePromises);
+      const keys = activeSessions.map((session) => `session:${session.id}`);
+      await this.cache.mdelete(keys);
 
       return true;
     } catch (error) {
@@ -277,12 +278,8 @@ class SessionService {
         .execute();
 
       // Remove session keys from KV cache
-      const deletePromises = activeSessions.map((session) => {
-        const kvKey = `session:${session.id}`;
-        return this.kv.delete(kvKey);
-      });
-
-      await Promise.all(deletePromises);
+      const keys = activeSessions.map((session) => `session:${session.id}`);
+      await this.cache.mdelete(keys);
 
       return true;
     } catch (error) {
@@ -331,12 +328,8 @@ class SessionService {
         .execute();
 
       // Remove session keys from KV cache
-      const deletePromises = existingSessionIds.map((sessionId) => {
-        const kvKey = `session:${sessionId}`;
-        return this.kv.delete(kvKey);
-      });
-
-      await Promise.all(deletePromises);
+      const keys = existingSessionIds.map((sessionId) => `session:${sessionId}`);
+      await this.cache.mdelete(keys);
 
       // Check if any of the revoked sessions is the current session
       // We don't have access to current session here, so we return the IDs
@@ -385,3 +378,4 @@ class SessionService {
 }
 
 export default SessionService;
+export { SessionService };

@@ -4,10 +4,12 @@ import { AppEnv } from "@/types";
 import auth from "@/routes/auth";
 import { csrf } from "hono/csrf";
 import { cache } from "hono/cache";
+import { initContainerMiddleware } from "./middlewares";
 
 const app = new Hono<AppEnv>();
 
 // Middlewares
+app.use(initContainerMiddleware);
 app.use(csrf());
 app.use(cors());
 app.get("*", cache({ cacheName: "taskative-cache", cacheControl: "max-age=3600" }));

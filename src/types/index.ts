@@ -1,3 +1,5 @@
+import type { ServiceContainer } from "@/di";
+
 export interface UserContext {
   userId: string;
   email: string;
@@ -21,6 +23,7 @@ export interface AppEnv {
   Bindings: Bindings;
   Variables: {
     user?: UserContext;
+    container: ServiceContainer;
   };
 }
 

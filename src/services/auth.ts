@@ -1,7 +1,9 @@
 import bcrypt from "bcryptjs";
-import { createDatabase } from "@/db";
-import SessionService from "@/services/session";
 import type { Bindings } from "@/types";
+import type { Kysely } from "kysely";
+import type { DB } from "@/db/types";
+import type DatabaseService from "@/services/database";
+import SessionService from "@/services/session";
 import type { AuthResult, AuthError, PasswordResetResult, PasswordResetError } from "@/types/auth";
 import {
   LoginRequest,
@@ -11,13 +13,13 @@ import {
 } from "@/validators/auth";
 
 class AuthService {
-  private readonly db: ReturnType<typeof createDatabase>;
+  private readonly db: Kysely<DB>;
   private readonly sessionService: SessionService;
   private readonly TOKEN_EXPIRY_MINUTES = 60; // 1 hour expiry for reset tokens
 
-  constructor(env: Bindings) {
-    this.db = createDatabase(env.DB);
-    this.sessionService = new SessionService(env);
+  constructor(deps: { dbService: DatabaseService; session: SessionService; config: Bindings }) {
+    this.db = deps.dbService.db;
+    this.sessionService = deps.session;
   }
 
   /**

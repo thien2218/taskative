@@ -1,7 +1,8 @@
 import type { Context, Next } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import type { AppEnv, AuthEnv, UnauthEnv } from "@/types";
-import { SessionService } from "@/services/session";
+import { createContainer } from "@/di";
+import type SessionService from "@/services/session";
 
 export async function authRateLimit(c: Context<AppEnv>, next: Next) {
   const url = new URL(c.req.url);
@@ -26,14 +27,15 @@ export async function unauthMiddleware(c: Context<UnauthEnv>, next: Next) {
 }
 
 export async function authMiddleware(c: Context<AuthEnv>, next: Next) {
-  const sessions = new SessionService(c.env);
+  const container = c.get("container");
+  const sessionService = container.get<SessionService>("session");
   const sessionToken = getCookie(c, c.env.SESSION_NAME);
 
   if (!sessionToken) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  const jwtPayload = await sessions.verifyToken(sessionToken);
+  const jwtPayload = await sessionService.verifyToken(sessionToken);
   if (jwtPayload) {
     c.set("user", {
       userId: jwtPayload.userId,
@@ -54,13 +56,13 @@ export async function authMiddleware(c: Context<AuthEnv>, next: Next) {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const sessionPayload = await sessions.findById(decodedPayload.sessionId);
+    const sessionPayload = await sessionService.findById(decodedPayload.sessionId);
     if (!sessionPayload) {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const newSessionToken = await sessions.generateToken(sessionPayload);
-    const cookieConfig = sessions.getSessionCookieConfig();
+    const newSessionToken = await sessionService.generateToken(sessionPayload);
+    const cookieConfig = sessionService.getSessionCookieConfig();
     setCookie(c, c.env.SESSION_NAME, newSessionToken, cookieConfig);
 
     c.set("user", {
@@ -74,4 +76,10 @@ export async function authMiddleware(c: Context<AuthEnv>, next: Next) {
     console.error("Auth middleware renewal error:", error);
     return c.json({ error: "Unauthorized" }, 401);
   }
+}
+
+export async function initContainerMiddleware(c: Context<AppEnv>, next: Next) {
+  const container = createContainer(c.env);
+  c.set("container", container);
+  return next();
 }
