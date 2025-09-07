@@ -1,36 +1,5 @@
 import { vi } from "vitest";
-
-// Valid payloads
-export const sessionOpts = {
-  httpOnly: true,
-  secure: false,
-  sameSite: "Strict" as const,
-  maxAge: 1800, // 20 minutes + 10 minute buffer
-};
-
-export const authPayload = {
-  // Used for log in and registering
-  email: "john.doe@taskative.com",
-  password: "SecurePassword123!",
-};
-
-export const resetPayload = {
-  // Used for forgot password and resetting
-  forgotPassword: {
-    email: "user@taskative.com",
-  },
-  resetPassword: {
-    token: "valid-reset-token-abc123",
-    newPassword: "NewSecurePassword789!",
-  },
-};
-
-export const requestBaseOpts = {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-};
+import { sessionTestOpts } from "../data/auth";
 
 // AuthService mock
 export const mockAuthService = {
@@ -49,7 +18,7 @@ export const mockSessionService = {
   revokeAllUserSessions: vi.fn(),
   revokeUserOtherSessions: vi.fn(),
   revokeSessionsByIds: vi.fn(),
-  getSessionCookieConfig: vi.fn().mockReturnValue(sessionOpts),
+  getSessionCookieConfig: vi.fn().mockReturnValue(sessionTestOpts),
   generateToken: vi.fn(),
   verifyToken: vi.fn(),
 };
@@ -95,35 +64,4 @@ export const mockCookie = {
   setCookie: vi.fn(),
   deleteCookie: vi.fn(),
   getCookie: vi.fn(),
-};
-
-// Test data mocks
-export const mockUser = {
-  id: "user123",
-  email: "test@example.com",
-  passwordHash: "hashed_password123",
-  firstName: "Test",
-  lastName: "User",
-  username: "testuser",
-  profileImageUrl: null,
-  createdAt: "2025-01-01T00:00:00.000Z",
-  updatedAt: "2025-01-01T00:00:00.000Z",
-};
-
-export const mockSession = {
-  id: "session123",
-  userId: "user123",
-  status: "active",
-  createdAt: "2025-01-01T00:00:00.000Z",
-  expiresAt: "2025-01-01T01:00:00.000Z",
-  revokedAt: null,
-};
-
-export const mockPasswordResetToken = {
-  id: "token123",
-  userId: "user123",
-  token: "valid-reset-token-123",
-  expiresAt: "2025-01-01T01:00:00.000Z",
-  usedAt: null,
-  createdAt: "2025-01-01T00:00:00.000Z",
 };

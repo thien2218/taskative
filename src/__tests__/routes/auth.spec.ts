@@ -8,14 +8,16 @@ import {
   mockJWT,
   mockAuthRateLimit,
   mockAuthMiddleware,
-  sessionOpts,
-  authPayload,
-  requestBaseOpts,
-  resetPayload,
   mockUnauthMiddleware,
   mockCookie,
 } from "../__mocks__/auth";
 import { mockCreateDatabase, mockEnv } from "../__mocks__/env";
+import {
+  authTestPayload,
+  requestBaseTestOpts,
+  resetTestPayload,
+  sessionTestOpts,
+} from "../data/auth";
 
 vi.mock("@/services/auth", () => ({
   default: vi.fn().mockImplementation(() => mockAuthService),
@@ -52,7 +54,7 @@ describe("POST /v1/auth/register", () => {
     response = await app.request(
       "/v1/auth/register",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({}),
       },
       mockEnv,
@@ -62,7 +64,7 @@ describe("POST /v1/auth/register", () => {
     response = await app.request(
       "/v1/auth/register",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ email: "invalid_email", password: "pass" }),
       },
       mockEnv,
@@ -72,7 +74,7 @@ describe("POST /v1/auth/register", () => {
     response = await app.request(
       "/v1/auth/register",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ email: "test@example.com", password: "123" }),
       },
       mockEnv,
@@ -82,7 +84,7 @@ describe("POST /v1/auth/register", () => {
     response = await app.request(
       "/v1/auth/register",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ email: "test@example.com" }),
       },
       mockEnv,
@@ -92,7 +94,7 @@ describe("POST /v1/auth/register", () => {
     response = await app.request(
       "/v1/auth/register",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ password: "password123" }),
       },
       mockEnv,
@@ -102,7 +104,7 @@ describe("POST /v1/auth/register", () => {
     response = await app.request(
       "/v1/auth/register",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ email: "", password: "password123" }),
       },
       mockEnv,
@@ -112,7 +114,7 @@ describe("POST /v1/auth/register", () => {
     response = await app.request(
       "/v1/auth/register",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ email: "test@example.com", password: "" }),
       },
       mockEnv,
@@ -131,8 +133,8 @@ describe("POST /v1/auth/register", () => {
     const response = await app.request(
       "/v1/auth/register",
       {
-        ...requestBaseOpts,
-        body: JSON.stringify(authPayload),
+        ...requestBaseTestOpts,
+        body: JSON.stringify(authTestPayload),
       },
       mockEnv,
     );
@@ -140,23 +142,23 @@ describe("POST /v1/auth/register", () => {
     expect(response.status).toBe(400);
     const responseData = await response.json();
     expect(responseData).toEqual({ error: "Registration failed" });
-    expect(mockAuthService.register).toHaveBeenCalledWith(authPayload);
+    expect(mockAuthService.register).toHaveBeenCalledWith(authTestPayload);
   });
 
   it("should return 201 if new user is created, create a new session, get the session token and set the session token in cookie with name 'taskative_session'", async () => {
     // Mock successful registration
-    const mockSessionToken = "new.user.session.token.123";
+    const testSessionToken = "new.user.session.token.123";
     mockAuthService.register.mockResolvedValue({
       success: true,
-      sessionToken: mockSessionToken,
+      sessionToken: testSessionToken,
       status: 201,
     });
 
     const response = await app.request(
       "/v1/auth/register",
       {
-        ...requestBaseOpts,
-        body: JSON.stringify(authPayload),
+        ...requestBaseTestOpts,
+        body: JSON.stringify(authTestPayload),
       },
       mockEnv,
     );
@@ -166,7 +168,7 @@ describe("POST /v1/auth/register", () => {
     expect(responseData).toEqual({ success: true });
 
     // Verify AuthService.register was called correctly
-    expect(mockAuthService.register).toHaveBeenCalledWith(authPayload);
+    expect(mockAuthService.register).toHaveBeenCalledWith(authTestPayload);
 
     // Verify SessionService.getSessionCookieConfig was called
     expect(mockSessionService.getSessionCookieConfig).toHaveBeenCalled();
@@ -175,8 +177,8 @@ describe("POST /v1/auth/register", () => {
     expect(mockCookie.setCookie).toHaveBeenCalledWith(
       expect.any(Object), // context object
       "taskative_session_test", // cookie name
-      mockSessionToken, // session token
-      sessionOpts,
+      testSessionToken, // session token
+      sessionTestOpts,
     );
   });
 });
@@ -189,7 +191,7 @@ describe("POST /v1/auth/login", () => {
     response = await app.request(
       "/v1/auth/login",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({}),
       },
       mockEnv,
@@ -200,7 +202,7 @@ describe("POST /v1/auth/login", () => {
     response = await app.request(
       "/v1/auth/login",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ email: "invalid_email", password: "password123" }),
       },
       mockEnv,
@@ -211,7 +213,7 @@ describe("POST /v1/auth/login", () => {
     response = await app.request(
       "/v1/auth/login",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ email: "test@example.com" }),
       },
       mockEnv,
@@ -222,7 +224,7 @@ describe("POST /v1/auth/login", () => {
     response = await app.request(
       "/v1/auth/login",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ password: "password123" }),
       },
       mockEnv,
@@ -233,7 +235,7 @@ describe("POST /v1/auth/login", () => {
     response = await app.request(
       "/v1/auth/login",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ email: "test@example.com", password: "" }),
       },
       mockEnv,
@@ -244,7 +246,7 @@ describe("POST /v1/auth/login", () => {
     response = await app.request(
       "/v1/auth/login",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ email: "", password: "password123" }),
       },
       mockEnv,
@@ -262,14 +264,14 @@ describe("POST /v1/auth/login", () => {
     const response = await app.request(
       "/v1/auth/login",
       {
-        ...requestBaseOpts,
-        body: JSON.stringify(authPayload),
+        ...requestBaseTestOpts,
+        body: JSON.stringify(authTestPayload),
       },
       mockEnv,
     );
 
     expect(response.status).toBe(200);
-    expect(mockAuthService.login).toHaveBeenCalledWith(authPayload);
+    expect(mockAuthService.login).toHaveBeenCalledWith(authTestPayload);
   });
 
   it("should return status 401 for invalid login with either email or password with a generic message for security", async () => {
@@ -283,7 +285,7 @@ describe("POST /v1/auth/login", () => {
     const response = await app.request(
       "/v1/auth/login",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({
           email: "nonexistent@example.com",
           password: "wrongpassword",
@@ -312,8 +314,8 @@ describe("POST /v1/auth/login", () => {
     const response = await app.request(
       "/v1/auth/login",
       {
-        ...requestBaseOpts,
-        body: JSON.stringify(authPayload),
+        ...requestBaseTestOpts,
+        body: JSON.stringify(authTestPayload),
       },
       mockEnv,
     );
@@ -323,7 +325,7 @@ describe("POST /v1/auth/login", () => {
     expect(responseData).toEqual({ success: true });
 
     // Verify AuthService.login was called correctly
-    expect(mockAuthService.login).toHaveBeenCalledWith(authPayload);
+    expect(mockAuthService.login).toHaveBeenCalledWith(authTestPayload);
 
     // Verify SessionService.getSessionCookieConfig was called
     expect(mockSessionService.getSessionCookieConfig).toHaveBeenCalled();
@@ -333,7 +335,7 @@ describe("POST /v1/auth/login", () => {
       expect.any(Object), // context object
       "taskative_session_test", // cookie name
       mockLoginSessionToken, // session token
-      sessionOpts,
+      sessionTestOpts,
     );
   });
 });
@@ -346,7 +348,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({}),
         },
         mockEnv,
@@ -370,7 +372,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({ mode: "current" }),
         },
         mockEnv,
@@ -394,7 +396,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({}),
         },
         mockEnv,
@@ -413,7 +415,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({ mode: "others" }),
         },
         mockEnv,
@@ -436,7 +438,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({ mode: "others" }),
         },
         mockEnv,
@@ -455,7 +457,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({ mode: "all" }),
         },
         mockEnv,
@@ -479,7 +481,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({ mode: "all" }),
         },
         mockEnv,
@@ -502,7 +504,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({ mode: "byIds", sessionIds }),
         },
         mockEnv,
@@ -529,7 +531,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({ mode: "byIds", sessionIds }),
         },
         mockEnv,
@@ -557,7 +559,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({ mode: "byIds", sessionIds }),
         },
         mockEnv,
@@ -574,7 +576,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({ mode: "invalid" }),
         },
         mockEnv,
@@ -587,7 +589,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({ mode: "byIds" }),
         },
         mockEnv,
@@ -600,7 +602,7 @@ describe("POST /v1/auth/logout", () => {
       const response = await app.request(
         "/v1/auth/logout",
         {
-          ...requestBaseOpts,
+          ...requestBaseTestOpts,
           body: JSON.stringify({ mode: "byIds", sessionIds: [] }),
         },
         mockEnv,
@@ -618,7 +620,7 @@ describe("POST /v1/auth/forgot-password", () => {
     // Empty payload
     response = await app.request(
       "/v1/auth/forgot-password",
-      { ...requestBaseOpts, body: JSON.stringify({}) },
+      { ...requestBaseTestOpts, body: JSON.stringify({}) },
       mockEnv,
     );
     expect(response.status).toBe(400);
@@ -627,7 +629,7 @@ describe("POST /v1/auth/forgot-password", () => {
     response = await app.request(
       "/v1/auth/forgot-password",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ email: "invalid_email" }),
       },
       mockEnv,
@@ -638,7 +640,7 @@ describe("POST /v1/auth/forgot-password", () => {
     response = await app.request(
       "/v1/auth/forgot-password",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ notEmail: "x" }),
       },
       mockEnv,
@@ -649,7 +651,7 @@ describe("POST /v1/auth/forgot-password", () => {
     response = await app.request(
       "/v1/auth/forgot-password",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ email: "" }),
       },
       mockEnv,
@@ -663,8 +665,8 @@ describe("POST /v1/auth/forgot-password", () => {
     const response = await app.request(
       "/v1/auth/forgot-password",
       {
-        ...requestBaseOpts,
-        body: JSON.stringify(resetPayload.forgotPassword),
+        ...requestBaseTestOpts,
+        body: JSON.stringify(resetTestPayload.forgotPassword),
       },
       mockEnv,
     );
@@ -672,7 +674,7 @@ describe("POST /v1/auth/forgot-password", () => {
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data).toEqual({ success: true });
-    expect(mockAuthService.forgotPassword).toHaveBeenCalledWith(resetPayload.forgotPassword);
+    expect(mockAuthService.forgotPassword).toHaveBeenCalledWith(resetTestPayload.forgotPassword);
   });
 });
 
@@ -683,7 +685,7 @@ describe("POST /v1/auth/reset-password", () => {
     // Empty payload
     response = await app.request(
       "/v1/auth/reset-password",
-      { ...requestBaseOpts, body: JSON.stringify({}) },
+      { ...requestBaseTestOpts, body: JSON.stringify({}) },
       mockEnv,
     );
     expect(response.status).toBe(400);
@@ -692,7 +694,7 @@ describe("POST /v1/auth/reset-password", () => {
     response = await app.request(
       "/v1/auth/reset-password",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ newPassword: "Password!123" }),
       },
       mockEnv,
@@ -703,7 +705,7 @@ describe("POST /v1/auth/reset-password", () => {
     response = await app.request(
       "/v1/auth/reset-password",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ token: "token-123" }),
       },
       mockEnv,
@@ -714,7 +716,7 @@ describe("POST /v1/auth/reset-password", () => {
     response = await app.request(
       "/v1/auth/reset-password",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ token: "", newPassword: "Password!123" }),
       },
       mockEnv,
@@ -725,7 +727,7 @@ describe("POST /v1/auth/reset-password", () => {
     response = await app.request(
       "/v1/auth/reset-password",
       {
-        ...requestBaseOpts,
+        ...requestBaseTestOpts,
         body: JSON.stringify({ token: "token-123", newPassword: "" }),
       },
       mockEnv,
@@ -739,8 +741,8 @@ describe("POST /v1/auth/reset-password", () => {
     const response = await app.request(
       "/v1/auth/reset-password",
       {
-        ...requestBaseOpts,
-        body: JSON.stringify(resetPayload.resetPassword),
+        ...requestBaseTestOpts,
+        body: JSON.stringify(resetTestPayload.resetPassword),
       },
       mockEnv,
     );
@@ -748,6 +750,6 @@ describe("POST /v1/auth/reset-password", () => {
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data).toEqual({ success: true });
-    expect(mockAuthService.resetPassword).toHaveBeenCalledWith(resetPayload.resetPassword);
+    expect(mockAuthService.resetPassword).toHaveBeenCalledWith(resetTestPayload.resetPassword);
   });
 });

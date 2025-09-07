@@ -5,8 +5,10 @@ import CacheService from "@/services/cache";
 import SessionService from "@/services/session";
 import AuthService from "@/services/auth";
 
+export type { ServiceContainer } from "@/di/container";
+
 export function createContainer(env: Bindings): ServiceContainer {
-  const container = new ServiceContainer(env);
+  const container = new ServiceContainer();
 
   // Infrastructure services
   container.register("database", () => new DatabaseService(env.DB));
@@ -35,5 +37,3 @@ export function createContainer(env: Bindings): ServiceContainer {
 
   return container;
 }
-
-export type { ServiceContainer } from "@/di/container";

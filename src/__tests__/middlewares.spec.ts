@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { AppEnv } from "@/types";
-import { mockCookie, mockSessionService, sessionOpts } from "./__mocks__/auth";
+import { mockCookie, mockSessionService } from "./__mocks__/auth";
 import { mockEnv } from "./__mocks__/env";
+import { sessionTestOpts } from "./data/auth";
 
 vi.mock("@/services/session", () => ({
   SessionService: vi.fn().mockImplementation(() => mockSessionService),
@@ -138,7 +139,7 @@ describe("authMiddleware", () => {
     });
     mockSessionService.generateToken.mockResolvedValue("new.session.token");
 
-    // getSessionCookieConfig already returns sessionOpts by default
+    // getSessionCookieConfig already returns sessionTestOpts by default
     const res = await app.request("/auth/ping", {}, mockEnv);
     expect(res.status).toBe(200);
     expect(mockSessionService.findById).toHaveBeenCalledWith("session-123");
@@ -146,7 +147,7 @@ describe("authMiddleware", () => {
       expect.any(Object),
       mockEnv.SESSION_NAME,
       "new.session.token",
-      sessionOpts,
+      sessionTestOpts,
     );
   });
 

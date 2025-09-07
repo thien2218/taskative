@@ -1,21 +1,13 @@
-import type { Bindings } from "@/types";
-
-export type ServiceFactory<T> = (container: ServiceContainer) => T;
+type ServiceFactory<T> = (container: ServiceContainer) => T;
 
 /**
  * A lightweight service container with per-container singletons,
  * lazy instantiation, dependency-aware factories, and test overrides.
  */
 export class ServiceContainer {
-  readonly env: Bindings;
-
   private factories: Map<string, ServiceFactory<any>> = new Map();
   private instances: Map<string, any> = new Map();
   private constructing: Set<string> = new Set();
-
-  constructor(env: Bindings) {
-    this.env = env;
-  }
 
   /**
    * Register a factory for a service key. The factory receives this container
@@ -48,9 +40,7 @@ export class ServiceContainer {
     }
 
     if (this.constructing.has(key)) {
-      throw new Error(
-        `Circular dependency detected while constructing service: ${key}`,
-      );
+      throw new Error(`Circular dependency detected while constructing service: ${key}`);
     }
 
     this.constructing.add(key);
