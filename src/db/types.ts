@@ -37,6 +37,9 @@ export type Session = {
     createdAt: Generated<string>;
     expiresAt: string;
     revokedAt: string | null;
+    deviceId: string;
+    deviceName: string;
+    ipAddress: string | null;
 };
 export type Subtask = {
     id: string;

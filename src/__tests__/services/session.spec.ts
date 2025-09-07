@@ -87,6 +87,38 @@ describe("SessionService.create", () => {
     );
   });
 
+  it("should forward provided device metadata to the insert values", async () => {
+    const sessionData = {
+      id: "mock-uuid",
+      userId: "user-id",
+      status: "active",
+      createdAt: expect.any(String),
+      expiresAt: expect.any(String),
+      revokedAt: null,
+      deviceId: "device-abc",
+      deviceName: "Pixel 8",
+      ipAddress: "203.0.113.5",
+    } as any;
+    mockDb.executeTakeFirst.mockResolvedValue(sessionData);
+
+    await sessionService.create({
+      userId: "user-id",
+      email: "test@example.com",
+      deviceId: "device-abc",
+      deviceName: "Pixel 8",
+      ipAddress: "203.0.113.5",
+    });
+
+    expect(mockDb.values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-id",
+        deviceId: "device-abc",
+        deviceName: "Pixel 8",
+        ipAddress: "203.0.113.5",
+      }),
+    );
+  });
+
   it("should cache the new session", async () => {
     const sessionData = {
       id: "mock-uuid",
@@ -156,6 +188,9 @@ describe("SessionService.create", () => {
       createdAt: expect.any(String),
       expiresAt: expect.any(String),
       revokedAt: null,
+      deviceId: "device-abc",
+      deviceName: "Pixel 8",
+      ipAddress: "203.0.113.5",
     };
     mockDb.executeTakeFirst.mockResolvedValue(sessionData);
     mockJWT.sign.mockResolvedValue("mock-jwt-token");
@@ -176,6 +211,9 @@ describe("SessionService.findById", () => {
       email: "test@example.com",
       status: "active",
       expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      deviceId: "device-xyz",
+      deviceName: "MacBook",
+      ipAddress: null,
     });
     mockKV.get.mockResolvedValue(cachedSession);
 
@@ -186,6 +224,9 @@ describe("SessionService.findById", () => {
       sessionId: "session-id",
       userId: "user-id",
       email: "test@example.com",
+      deviceId: "device-xyz",
+      deviceName: "MacBook",
+      ipAddress: null,
     });
     expect(mockDb.executeTakeFirst).not.toHaveBeenCalled(); // Shouldn't query DB
   });
@@ -198,6 +239,9 @@ describe("SessionService.findById", () => {
       email: "test@example.com",
       status: "active",
       expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      deviceId: "device-xyz",
+      deviceName: "MacBook",
+      ipAddress: null,
     });
 
     const result = await sessionService.findById("session-id");
@@ -209,6 +253,9 @@ describe("SessionService.findById", () => {
       sessionId: "session-id",
       userId: "user-id",
       email: "test@example.com",
+      deviceId: "device-xyz",
+      deviceName: "MacBook",
+      ipAddress: null,
     });
   });
 
@@ -220,6 +267,9 @@ describe("SessionService.findById", () => {
       email: "test@example.com",
       status: "active",
       expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      deviceId: "device-xyz",
+      deviceName: "MacBook",
+      ipAddress: null,
     });
 
     await sessionService.findById("session-id");

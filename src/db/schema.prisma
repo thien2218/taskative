@@ -33,13 +33,16 @@ model User {
 }
 
 model Session {
-  id         String    @id
-  user_id    String
-  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  status     String    @default("active")
-  created_at DateTime  @default(now())
-  expires_at DateTime
-  revoked_at DateTime?
+  id          String    @id
+  user_id     String
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  status      String    @default("active")
+  created_at  DateTime  @default(now())
+  expires_at  DateTime
+  revoked_at  DateTime?
+  device_id   String
+  device_name String
+  ip_address  String?
 
   @@index([user_id])
   @@index([expires_at])

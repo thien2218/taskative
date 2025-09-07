@@ -48,15 +48,27 @@ class SessionService {
     const expiresAt = new Date(Date.now() + this.SESSION_TTL * 1000);
 
     try {
-      // Create session in D1
       const session = await this.db
         .insertInto("sessions")
         .values({
           id: sessionId,
           userId: data.userId,
+          deviceId: data.deviceId ?? "unknown-device",
+          deviceName: data.deviceName ?? "Unknown",
+          ipAddress: data.ipAddress,
           expiresAt: expiresAt.toISOString(),
         })
-        .returning(["id", "userId", "status", "createdAt", "expiresAt", "revokedAt"])
+        .returning([
+          "id",
+          "userId",
+          "status",
+          "createdAt",
+          "expiresAt",
+          "revokedAt",
+          "deviceId",
+          "deviceName",
+          "ipAddress",
+        ])
         .executeTakeFirst();
 
       if (!session) {
@@ -66,13 +78,16 @@ class SessionService {
         };
       }
 
-      // Cache session in KV with TTL
+      // Cache session with TTL
       const kvKey = `session:${sessionId}`;
       const kvValue = JSON.stringify({
         userId: data.userId,
         email: data.email,
         status: session.status,
         expiresAt: session.expiresAt,
+        deviceId: session.deviceId,
+        deviceName: session.deviceName,
+        ipAddress: session.ipAddress ?? null,
       });
 
       await this.kv.put(kvKey, kvValue, { expirationTtl: this.SESSION_KV_TTL });
@@ -111,6 +126,9 @@ class SessionService {
             sessionId,
             userId: sessionData.userId,
             email: sessionData.email,
+            deviceId: sessionData.deviceId ?? "unknown-device",
+            deviceName: sessionData.deviceName ?? "Unknown",
+            ipAddress: sessionData.ipAddress ?? null,
           };
         }
       }
@@ -124,6 +142,9 @@ class SessionService {
           "sessions.userId",
           "sessions.status",
           "sessions.expiresAt",
+          "sessions.deviceId",
+          "sessions.deviceName",
+          "sessions.ipAddress",
           "users.email",
         ])
         .where("sessions.id", "=", sessionId)
@@ -138,6 +159,9 @@ class SessionService {
           email: session.email,
           status: session.status,
           expiresAt: session.expiresAt,
+          deviceId: session.deviceId,
+          deviceName: session.deviceName,
+          ipAddress: session.ipAddress ?? null,
         });
 
         await this.kv.put(kvKey, kvValue, { expirationTtl: this.SESSION_KV_TTL });
@@ -146,6 +170,9 @@ class SessionService {
           sessionId: session.id,
           userId: session.userId,
           email: session.email,
+          deviceId: session.deviceId,
+          deviceName: session.deviceName,
+          ipAddress: session.ipAddress ?? null,
         };
       }
 
@@ -346,7 +373,9 @@ class SessionService {
   /**
    * Generate session JWT token with 30-minute expiration
    */
-  async generateToken(payload: SessionPayload): Promise<string> {
+  async generateToken(
+    payload: Pick<SessionPayload, "sessionId" | "userId" | "email">,
+  ): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
 
     return sign(

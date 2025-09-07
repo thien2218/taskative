@@ -2,6 +2,9 @@ export interface SessionPayload {
   sessionId: string;
   userId: string;
   email: string;
+  deviceId: string;
+  deviceName: string;
+  ipAddress: string | null;
 }
 
 export interface SessionJWTPayload {
@@ -15,6 +18,9 @@ export interface SessionJWTPayload {
 export interface CreateSessionRequest {
   userId: string;
   email: string;
+  deviceId?: string;
+  deviceName?: string;
+  ipAddress?: string | null;
 }
 
 export interface SessionResult {
