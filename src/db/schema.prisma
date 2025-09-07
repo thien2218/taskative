@@ -42,7 +42,6 @@ model Session {
   revoked_at  DateTime?
   device_id   String
   device_name String
-  ip_address  String?
 
   @@index([user_id])
   @@index([expires_at])

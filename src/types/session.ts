@@ -4,7 +4,6 @@ export interface SessionPayload {
   email: string;
   deviceId: string;
   deviceName: string;
-  ipAddress: string | null;
 }
 
 export interface SessionJWTPayload {
@@ -20,7 +19,6 @@ export interface CreateSessionRequest {
   email: string;
   deviceId?: string;
   deviceName?: string;
-  ipAddress?: string | null;
 }
 
 export interface SessionResult {

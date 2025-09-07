@@ -54,8 +54,7 @@ class SessionService {
           id: sessionId,
           userId: data.userId,
           deviceId: data.deviceId ?? "unknown-device",
-          deviceName: data.deviceName ?? "Unknown",
-          ipAddress: data.ipAddress,
+          deviceName: data.deviceName ?? "Unknown Device",
           expiresAt: expiresAt.toISOString(),
         })
         .returning([
@@ -67,7 +66,6 @@ class SessionService {
           "revokedAt",
           "deviceId",
           "deviceName",
-          "ipAddress",
         ])
         .executeTakeFirst();
 
@@ -87,7 +85,6 @@ class SessionService {
         expiresAt: session.expiresAt,
         deviceId: session.deviceId,
         deviceName: session.deviceName,
-        ipAddress: session.ipAddress ?? null,
       });
 
       await this.kv.put(kvKey, kvValue, { expirationTtl: this.SESSION_KV_TTL });
@@ -128,7 +125,6 @@ class SessionService {
             email: sessionData.email,
             deviceId: sessionData.deviceId ?? "unknown-device",
             deviceName: sessionData.deviceName ?? "Unknown",
-            ipAddress: sessionData.ipAddress ?? null,
           };
         }
       }
@@ -144,7 +140,6 @@ class SessionService {
           "sessions.expiresAt",
           "sessions.deviceId",
           "sessions.deviceName",
-          "sessions.ipAddress",
           "users.email",
         ])
         .where("sessions.id", "=", sessionId)
@@ -161,7 +156,6 @@ class SessionService {
           expiresAt: session.expiresAt,
           deviceId: session.deviceId,
           deviceName: session.deviceName,
-          ipAddress: session.ipAddress ?? null,
         });
 
         await this.kv.put(kvKey, kvValue, { expirationTtl: this.SESSION_KV_TTL });
@@ -172,7 +166,6 @@ class SessionService {
           email: session.email,
           deviceId: session.deviceId,
           deviceName: session.deviceName,
-          ipAddress: session.ipAddress ?? null,
         };
       }
 
