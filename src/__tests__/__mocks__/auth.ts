@@ -47,7 +47,7 @@ export const mockSessionService = {
   findById: vi.fn(),
   revoke: vi.fn(),
   revokeAllUserSessions: vi.fn(),
-  revokeOtherSessionsForUser: vi.fn(),
+  revokeUserOtherSessions: vi.fn(),
   revokeSessionsByIds: vi.fn(),
   getSessionCookieConfig: vi.fn().mockReturnValue(sessionOpts),
   generateToken: vi.fn(),

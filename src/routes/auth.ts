@@ -74,7 +74,7 @@ auth.post("/logout", authMiddleware, zValidator("json", logoutSchema), async (c)
       break;
 
     case "others":
-      success = await sessionService.revokeOtherSessionsForUser(user.userId, user.sessionId);
+      success = await sessionService.revokeUserOtherSessions(user.userId, user.sessionId);
       shouldClearCookie = false; // Keep current session cookie
       break;
 

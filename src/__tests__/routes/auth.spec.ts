@@ -44,7 +44,6 @@ vi.mock("@/db", () => ({
 
 describe("POST /v1/auth/register", () => {
   beforeEach(() => {
-    // Reset all mocks before each test
     vi.clearAllMocks();
   });
 
@@ -469,7 +468,7 @@ describe("POST /v1/auth/logout", () => {
       const app = new Hono<AppEnv>();
       app.route("/v1/auth", authRoutes);
 
-      mockSessionService.revokeOtherSessionsForUser.mockResolvedValue(true);
+      mockSessionService.revokeUserOtherSessions.mockResolvedValue(true);
 
       const response = await app.request(
         "/v1/auth/logout",
@@ -484,9 +483,9 @@ describe("POST /v1/auth/logout", () => {
       const data = await response.json();
       expect(data).toEqual({ success: true });
 
-      expect(mockSessionService.revokeOtherSessionsForUser).toHaveBeenCalledWith(
+      expect(mockSessionService.revokeUserOtherSessions).toHaveBeenCalledWith(
         "mock-user-id",
-        "mock-session-id"
+        "mock-session-id",
       );
       expect(mockDeleteCookie).not.toHaveBeenCalled();
     });
@@ -497,7 +496,7 @@ describe("POST /v1/auth/logout", () => {
       const app = new Hono<AppEnv>();
       app.route("/v1/auth", authRoutes);
 
-      mockSessionService.revokeOtherSessionsForUser.mockResolvedValue(false);
+      mockSessionService.revokeUserOtherSessions.mockResolvedValue(false);
 
       const response = await app.request(
         "/v1/auth/logout",
@@ -575,7 +574,10 @@ describe("POST /v1/auth/logout", () => {
       app.route("/v1/auth", authRoutes);
 
       const sessionIds = ["session-1", "session-2"];
-      mockSessionService.revokeSessionsByIds.mockResolvedValue({ success: true, revokedCurrentSession: false });
+      mockSessionService.revokeSessionsByIds.mockResolvedValue({
+        success: true,
+        revokedCurrentSession: false,
+      });
 
       const response = await app.request(
         "/v1/auth/logout",
@@ -592,7 +594,7 @@ describe("POST /v1/auth/logout", () => {
 
       expect(mockSessionService.revokeSessionsByIds).toHaveBeenCalledWith(
         "mock-user-id",
-        sessionIds
+        sessionIds,
       );
       expect(mockDeleteCookie).not.toHaveBeenCalled();
     });
@@ -604,7 +606,10 @@ describe("POST /v1/auth/logout", () => {
       app.route("/v1/auth", authRoutes);
 
       const sessionIds = ["mock-session-id", "session-2"];
-      mockSessionService.revokeSessionsByIds.mockResolvedValue({ success: true, revokedCurrentSession: true });
+      mockSessionService.revokeSessionsByIds.mockResolvedValue({
+        success: true,
+        revokedCurrentSession: true,
+      });
 
       const response = await app.request(
         "/v1/auth/logout",
@@ -621,7 +626,7 @@ describe("POST /v1/auth/logout", () => {
 
       expect(mockSessionService.revokeSessionsByIds).toHaveBeenCalledWith(
         "mock-user-id",
-        sessionIds
+        sessionIds,
       );
       expect(mockDeleteCookie).toHaveBeenCalledWith(
         expect.any(Object),
@@ -707,15 +712,6 @@ describe("POST /v1/auth/logout", () => {
       );
 
       expect(response.status).toBe(400);
-    });
-  });
-
-  describe("authorization", () => {
-    it("should return 401 when not authenticated (handled by middleware)", async () => {
-      // This test verifies that authMiddleware is properly applied
-      // The actual 401 response would be handled by the middleware
-      // We just verify the middleware is called
-      expect(mockAuthMiddleware).toBeDefined();
     });
   });
 });

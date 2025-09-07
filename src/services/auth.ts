@@ -12,12 +12,12 @@ import {
 
 export class AuthService {
   private readonly db: ReturnType<typeof createDatabase>;
-  private readonly sessions: SessionService;
+  private readonly sessionService: SessionService;
   private readonly TOKEN_EXPIRY_MINUTES = 60; // 1 hour expiry for reset tokens
 
   constructor(env: Bindings) {
     this.db = createDatabase(env.DB);
-    this.sessions = new SessionService(env);
+    this.sessionService = new SessionService(env);
   }
 
   /**
@@ -51,7 +51,7 @@ export class AuthService {
       };
     }
 
-    const sessionResult = await this.sessions.create({
+    const sessionResult = await this.sessionService.create({
       userId: insertedUser.id,
       email: insertedUser.email,
     });
@@ -99,7 +99,7 @@ export class AuthService {
       };
     }
 
-    const sessionResult = await this.sessions.create({
+    const sessionResult = await this.sessionService.create({
       userId: user.id,
       email: user.email,
     });
@@ -113,13 +113,6 @@ export class AuthService {
     }
 
     return { success: true, sessionToken: sessionResult.sessionToken };
-  }
-
-  /**
-   * Logout user - revoke session
-   */
-  async logout(sessionId: string): Promise<boolean> {
-    return this.sessions.revoke(sessionId);
   }
 
   /**
@@ -141,7 +134,7 @@ export class AuthService {
 
       // If no user found, still return success (security: don't leak account existence)
       if (!user) {
-        console.log(`No user found with email ${email}, but returning success for security`);
+        console.log(`No user found with email ${email}, returning success for security`);
         return { success: true };
       }
 
@@ -159,7 +152,7 @@ export class AuthService {
         .values({
           id: crypto.randomUUID(),
           userId: user.id,
-          token: token,
+          token,
           expiresAt: expiresAt.toISOString(),
         })
         .execute();
@@ -245,8 +238,8 @@ export class AuthService {
           .execute();
       });
 
-      // Revoke all sessions for the user
-      await this.sessions.revokeAllUserSessions(resetToken.userId);
+      // Revoke all sessionService for the user
+      await this.sessionService.revokeAllUserSessions(resetToken.userId);
 
       return { success: true };
     } catch (error) {

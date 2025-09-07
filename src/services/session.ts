@@ -24,7 +24,7 @@ export class SessionService {
     this.environment = env.ENVIRONMENT;
   }
 
-  private readonly SESSION_TTL = 20 * 60;
+  private readonly SESSION_TTL = 30 * 60;
   private readonly SESSION_KV_TTL = 60 * 60;
 
   /**
@@ -77,7 +77,7 @@ export class SessionService {
 
       await this.kv.put(kvKey, kvValue, { expirationTtl: this.SESSION_KV_TTL });
 
-      // Generate a 20-minute JWT tied to this session
+      // Generate a 30-minute JWT tied to this session
       const sessionToken = await this.generateToken({
         sessionId: session.id,
         userId: data.userId,
@@ -201,7 +201,7 @@ export class SessionService {
       }
 
       // Update all active sessions to revoked status
-      const result = await this.db
+      await this.db
         .updateTable("sessions")
         .set({
           status: "revoked",
@@ -229,7 +229,7 @@ export class SessionService {
   /**
    * Revoke all active sessions for a user EXCEPT the specified session
    */
-  async revokeOtherSessionsForUser(userId: string, excludeSessionId: string): Promise<boolean> {
+  async revokeUserOtherSessions(userId: string, excludeSessionId: string): Promise<boolean> {
     try {
       // First get all active sessions for the user except the excluded one
       const activeSessions = await this.db
@@ -266,7 +266,7 @@ export class SessionService {
 
       return true;
     } catch (error) {
-      console.error("SessionService.revokeOtherSessionsForUser error:", error);
+      console.error("SessionService.revokeUserOtherSessions error:", error);
       return false;
     }
   }
@@ -339,23 +339,22 @@ export class SessionService {
       httpOnly: true,
       secure: this.environment === "production",
       sameSite: "Strict" as const,
-      maxAge: this.SESSION_TTL + 5 * 60, // 5 minutes buffer
+      maxAge: this.SESSION_TTL,
     };
   }
 
   /**
-   * Generate session JWT token with 20-minute expiration
+   * Generate session JWT token with 30-minute expiration
    */
   async generateToken(payload: SessionPayload): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
-    const expiresIn = this.SESSION_TTL;
 
     return sign(
       {
         sessionId: payload.sessionId,
         userId: payload.userId,
         email: payload.email,
-        exp: now + expiresIn,
+        exp: now + this.SESSION_TTL,
         iat: now,
       },
       this.jwtSecret,
