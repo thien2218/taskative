@@ -1,0 +1,67 @@
+status: "Draft"
+priority: null
+story:
+  role: "backend platform engineer"
+  action: "to introduce a minimal structured logging service compatible with Cloudflare Workers, enabling easy integration and debugging"
+  benefit: "we get consistent JSON logs and simpler debugging in Workers without Node-only APIs"
+
+acceptance-criteria:
+  - "Works in Cloudflare Workers runtime (no Node-only APIs) and validates under wrangler dev."
+  - "Supports log levels: debug, info, warn, error."
+  - "Emits structured JSON with keys: ts (ISO-8601), level, message, context (object)."
+  - "Allows injecting request context (e.g., cf-ray or x-request-id) when provided."
+  - "Configurable pretty-print for local dev and compact JSON for production via a flag/env binding."
+  - "Safe serialization that avoids throwing on circular data; fallback to stringification."
+
+tasks-subtasks: |
+  - [ ] Implement minimal logger wrapper with level gating and JSON formatter (AC: 2, 3) [Diff: 3]
+    - [ ] Detect Workers environment and avoid Node-specific globals (AC: 1) [Diff: 1]
+  - [ ] Add request context injection helper (AC: 4) [Diff: 2]
+  - [ ] Toggle pretty/compact modes via config/env (AC: 5) [Diff: 2]
+  - [ ] Write checks using wrangler dev to confirm runtime compatibility (AC: 1) [Diff: 3]
+
+dev-notes: |
+  ### Previous Story Insights
+  - Prior stories focused on DI and session improvements; this adds minimal structured logging compatible with Workers.
+
+  ### Runtime Components
+  - API Edge (Cloudflare Workers + Hono) uses console.* and env bindings; no Node fs/process.
+
+  ### File Locations
+  - TBD: backend logging utility and Worker integration points.
+
+  ### Technical Constraints and Notes
+  - Cloudflare Workers runtime only; avoid Node-only APIs; ensure safe serialization.
+
+testing-standards:
+  - "Include tests for level gating, JSON shape, and context injection."
+  - "Verify behavior in wrangler dev; avoid Node-only APIs."
+
+change-log:
+  - date: "2025-09-08"
+    version: "0.1"
+    description: "Initial draft"
+    author: "PM"
+
+developer-record:
+  agent-model: "dev"
+  debug-log-references: []
+  completion-notes: []
+  file-list: []
+
+qa-results: |
+  _To be completed by QA Agent_
+
+test-specs:
+  specs:
+    - "1: [AC 1] Given a Worker handler with the logger, When emitting at each level, Then logs are produced without runtime errors in wrangler dev."
+    - "2: [AC 3] Given context object, When logging, Then output includes ts, level, message, and context keys."
+  artifacts: []
+
+risk-mitigation:
+  primary-risk: "Unexpected runtime incompatibility or excessive log volume in production"
+  mitigation-strategies:
+    - "Validate in wrangler dev and stage before enabling in production"
+    - "Default to info level; allow level override via binding"
+  rollback-plan: "Disable or lower log level via configuration and remove logger initialization"
+

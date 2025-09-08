@@ -1,0 +1,81 @@
+status: "Draft"
+priority: null
+story:
+  role: "backend platform engineer"
+  action: "implement and deploy a dedicated Auth Service Worker that provides bcrypt-based hash and verify operations and integrate the API Worker to call it for password operations"
+  benefit: "we avoid CPU contention on the API Worker and centralize authentication crypto per the architecture plan"
+acceptance-criteria:
+  - "A separate Auth Service Worker exists to handle bcrypt password hash and verify. [Source: docs/backend-architecture.md#Components] [Source: docs/backend-architecture.md#High Level Architecture]"
+  - "API Worker delegates password operations (register/login and reset flows where hashing is required) to the Auth Worker; AuthService no longer calls bcryptjs directly. [Source: docs/backend-architecture.md#High Level Architecture] [Source: docs/backend-architecture.md#Core Workflows]"
+  - "Deployment configuration for the Auth Worker is included and runnable locally via Wrangler. [Source: docs/epics/1-authentication.yaml#definition_of_done]"
+  - "Unit tests cover Auth Worker endpoints (hash/verify) and API integration paths; tests live under backend/src/__tests__/. [Source: docs/backend-architecture.md#Test Strategy and Standards]"
+  - "Security: No secrets/hashes are logged; bcryptjs used for hashing; adhere to security standards. [Source: docs/backend-architecture.md#Security]"
+tasks-subtasks: |
+  - [ ] Worker scaffolding and configuration (AC: 3) [Diff: 6]
+    - [ ] Add an Auth Worker entry and configuration to enable internal calls from the API Worker via HTTP/RPC. [Source: docs/backend-architecture.md#Infrastructure and Deployment]
+    - [ ] Expose internal endpoints for password operations (e.g., /hash, /verify) with JSON request/response. [Source: docs/backend-architecture.md#Components]
+  - [ ] Implement bcrypt-based endpoints (AC: 1, 5) [Diff: 5]
+    - [ ] Implement hash (cost ~11) and verify handlers using bcryptjs. [Source: docs/backend-architecture.md#Security]
+  - [ ] Integrate API Worker with Auth Worker (AC: 2) [Diff: 6]
+    - [ ] Introduce a small client/adapter in services to call the Auth Worker and update AuthService.register/login/resetPassword to use it. [Source: docs/backend-architecture.md#Core Workflows]
+  - [ ] Tests (AC: 4, 5) [Diff: 6]
+    - [ ] Unit test Auth Worker handlers; integration-style tests for AuthService using mocked client calls; place tests under backend/src/__tests__/. [Source: docs/backend-architecture.md#Test Strategy and Standards]
+  - [ ] Documentation (AC: 3) [Diff: 3]
+    - [ ] Update architecture notes to reflect Auth Worker implementation and internal endpoints summary. [Source: docs/backend-architecture.md#Next Steps]
+dev-notes: |
+  ### Previous Story Insights
+  - Story 1.2 introduced session-backed JWT cookies and the SessionService with DI patterns; AuthService performs password hashing/verification today using bcryptjs directly. This story extracts those crypto operations into a dedicated Auth Worker and integrates via a small client in the API Worker. [Source: docs/stories/1.2-auth-session-jwt-cookie-migration.yaml] [Source: docs/backend-architecture.md#High Level Architecture]
+
+  ### Runtime Components
+  - Cloudflare Workers (API Worker + dedicated Auth Worker for bcrypt; Cron Worker for reminders). [Source: docs/backend-architecture.md#Technical Summary] [Source: docs/backend-architecture.md#Components]
+
+  ### File Locations (planned touchpoints)
+  - API routes remain under backend/src/routes/auth.ts; crypto calls will be routed via AuthService -> Auth Worker client. [Source: docs/backend-architecture.md#Source Tree]
+  - Service integration in backend/src/services (introduce a client/adapter; avoid leaking fetch details into route handlers). [Source: docs/backend-architecture.md#Dependency Injection and Infrastructure Services]
+  - Tests under backend/src/__tests__/ (mocks and routes/services coverage). [Source: docs/backend-architecture.md#Test Strategy and Standards]
+
+  ### Testing Requirements
+  - Mock-first approach; 90% coverage target; place tests under backend/src/__tests__/; cover success/error branches for hash/verify and the AuthService integration paths. [Source: docs/backend-architecture.md#Test Strategy and Standards]
+
+  ### Technical Constraints and Notes
+  - Do not log secrets or password material; adhere to DI/container patterns; keep API Worker CPU-light by offloading bcrypt to the Auth Worker. [Source: docs/backend-architecture.md#Security] [Source: docs/backend-architecture.md#Dependency Injection and Infrastructure Services]
+
+testing-standards:
+  - "Mock-first tests; target 90% coverage; place under backend/src/__tests__/"
+  - "Cover hash/verify endpoints and API integration paths"
+  - "No external D1/KV dependencies in unit tests; use in-memory/mocked adapters"
+change-log:
+  - date: "2025-09-08"
+    version: "0.1"
+    description: "Draft: introduce dedicated Auth Worker and integrate API Worker password operations"
+    author: "PDM"
+developer-record:
+  agent-model: ""
+  debug-log-references: []
+  completion-notes: []
+  file-list: []
+qa-results: |
+  Gate: PENDING
+  Reviewer: TBD
+  Summary: Auth Worker story drafted with ACs aligned to architecture and epic DoD; pending implementation and QA.
+  Evidence:
+    - AC mapping to architecture sections and epic DoD
+  NFRs:
+    - Security: TBD
+    - Reliability: TBD
+    - Maintainability: TBD
+    - Performance: TBD
+  Recommendations:
+    - Validate internal call patterns and bindings during implementation
+
+test-specs:
+  specs: []
+  artifacts: []
+risk-mitigation:
+  primary-risk: "Cross-Worker communication and CPU cost: hashing could add latency or failure points if not isolated and retried appropriately."
+  mitigation-strategies:
+    - "Isolate bcrypt in Auth Worker; keep payloads minimal; avoid logging sensitive data"
+    - "Use clear error envelopes and test error branches in API integration"
+    - "Consider basic retry/backoff at call site if needed"
+  rollback-plan: "Fallback to local bcrypt in API Worker by feature flag if Auth Worker route is unavailable (temporary), then re-enable once stabilized."
+
