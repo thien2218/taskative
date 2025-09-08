@@ -8,7 +8,8 @@
     "db:migrate": "npx prisma migrate dev --schema ./src/db/schema.prisma",
     "db:migrate:reset": "rm -rf .wrangler/state && npx prisma migrate reset --force --skip-seed --schema ./src/db/schema.prisma && npx prisma generate --schema ./src/db/schema.prisma",
     "db:seed": "tsx src/db/seed.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint \"src/**/*.{ts,tsx}\""
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.2",
@@ -26,6 +27,10 @@
     "prisma": "^6.13.0",
     "tsx": "^4.19.2",
     "vitest": "^3.2.4",
-    "wrangler": "^4.4.0"
+    "wrangler": "^4.4.0",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "typescript": "^5.6.3"
   }
 }

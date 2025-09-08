@@ -1,5 +1,4 @@
 import { vi } from "vitest";
-import { sessionTestOpts } from "../data/auth";
 
 // AuthService mock
 export const mockAuthService = {
@@ -8,19 +7,6 @@ export const mockAuthService = {
   logout: vi.fn(),
   forgotPassword: vi.fn(),
   resetPassword: vi.fn(),
-};
-
-// SessionService mock
-export const mockSessionService = {
-  create: vi.fn(),
-  findById: vi.fn(),
-  revoke: vi.fn(),
-  revokeAllUserSessions: vi.fn(),
-  revokeUserOtherSessions: vi.fn(),
-  revokeSessionsByIds: vi.fn(),
-  getSessionCookieConfig: vi.fn().mockReturnValue(sessionTestOpts),
-  generateToken: vi.fn(),
-  verifyToken: vi.fn(),
 };
 
 // bcrypt mock
@@ -37,27 +23,13 @@ export const mockBcrypt = {
 
 // JWT mock
 export const mockJWT = {
-  sign: vi.fn().mockImplementation((payload, secret) => Promise.resolve("mock.jwt.token")),
-  verify: vi.fn().mockImplementation((token, secret) =>
-    Promise.resolve({
-      sessionId: "mock-session-id",
-      userId: "mock-user-id",
-      email: "test@example.com",
-    }),
-  ),
-};
-
-// Middleware mocks
-export const mockAuthRateLimit = vi.fn().mockImplementation((c, next) => next());
-export const mockUnauthMiddleware = vi.fn().mockImplementation((c, next) => next());
-export const mockAuthMiddleware = vi.fn().mockImplementation((c, next) => {
-  c.set("user", {
-    userId: "mock-user-id",
+  sign: vi.fn().mockResolvedValue("mock.jwt.token"),
+  verify: vi.fn().mockResolvedValue({
     sessionId: "mock-session-id",
+    userId: "mock-user-id",
     email: "test@example.com",
-  });
-  return next();
-});
+  }),
+};
 
 // Hono cookie mocks
 export const mockCookie = {

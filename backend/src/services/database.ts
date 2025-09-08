@@ -18,13 +18,6 @@ export class DatabaseService {
   get db(): Kysely<DB> {
     return this.client;
   }
-
-  /**
-   * Convenience helper for running a transaction.
-   */
-  async transaction<R>(fn: (trx: Kysely<DB>) => Promise<R>): Promise<R> {
-    return this.client.transaction().execute(async (trx) => fn(trx));
-  }
 }
 
 export default DatabaseService;

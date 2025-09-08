@@ -1,14 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { mockEnv, mockDb, mockCreateDatabase } from "../__mocks__/env";
-import { mockBcrypt, mockSessionService } from "../__mocks__/auth";
+import { mockEnv } from "../__mocks__/env";
+import { mockBcrypt } from "../__mocks__/auth";
 import AuthService from "@/services/auth";
+import { mockSessionService } from "../__mocks__/session";
+import { mockDbService } from "../__mocks__/database";
+import { mockCacheService } from "../__mocks__/cache";
 
 vi.mock("bcryptjs", () => ({ default: mockBcrypt }));
 vi.mock("@/services/session", () => ({
-  default: vi.fn().mockImplementation(() => mockSessionService),
+  default: vi.fn().mockReturnValue(mockSessionService),
 }));
-vi.mock("@/db", () => ({
-  createDatabase: mockCreateDatabase,
+vi.mock("@/services/database", () => ({
+  default: mockDbService,
+}));
+vi.mock("@/services/cache", () => ({
+  default: vi.fn().mockReturnValue(mockCacheService),
 }));
 
 Object.defineProperty(global, "crypto", {
