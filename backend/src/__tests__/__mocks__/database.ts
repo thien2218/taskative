@@ -28,5 +28,5 @@ export const mockDb = {
 };
 
 export const mockDbService = vi.fn().mockReturnValue({
-  db: vi.fn().mockReturnValue(mockDb),
+  db: mockDb,
 });

@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { AppEnv } from "@/types";
-import { mockCookie, mockSessionService } from "./__mocks__/auth";
+import { mockCookie } from "./__mocks__/auth";
+import { mockSessionService } from "./__mocks__/session";
 import { mockEnv } from "./__mocks__/env";
 import { sessionTestOpts } from "./data/auth";
+import { initContainerMiddleware } from "@/middlewares";
 
 vi.mock("@/services/session", () => ({
-  SessionService: vi.fn().mockImplementation(() => mockSessionService),
+  default: vi.fn().mockImplementation(() => mockSessionService),
 }));
 vi.mock("hono/cookie", () => mockCookie);
 
@@ -59,6 +61,7 @@ describe("unauthMiddleware", () => {
   it("allows request when no session cookie is present", async () => {
     const { unauthMiddleware } = await import("@/middlewares");
     const app = new Hono<AppEnv>();
+    app.use(initContainerMiddleware);
     app.use("/unauth/*", unauthMiddleware);
     app.get("/unauth/ping", (c) => c.json({ ok: true }));
 
@@ -72,6 +75,7 @@ describe("unauthMiddleware", () => {
   it("returns 401 when a session cookie exists", async () => {
     const { unauthMiddleware } = await import("@/middlewares");
     const app = new Hono<AppEnv>();
+    app.use(initContainerMiddleware);
     app.use("/unauth/*", unauthMiddleware);
     app.get("/unauth/ping", (c) => c.json({ ok: true }));
 
@@ -88,6 +92,7 @@ describe("authMiddleware", () => {
   it("returns 401 when no session cookie is present", async () => {
     const { authMiddleware } = await import("@/middlewares");
     const app = new Hono<AppEnv>();
+    app.use(initContainerMiddleware);
     app.use("/auth/*", authMiddleware);
     app.get("/auth/ping", (c) => c.json({ ok: true }));
 
@@ -100,6 +105,7 @@ describe("authMiddleware", () => {
   it("passes through when JWT is valid and sets user in context", async () => {
     const { authMiddleware } = await import("@/middlewares");
     const app = new Hono<AppEnv>();
+    app.use(initContainerMiddleware);
     app.use("/auth/*", authMiddleware);
     app.get("/auth/ping", (c) => c.json({ ok: true, user: c.get("user") }));
 
@@ -123,6 +129,7 @@ describe("authMiddleware", () => {
   it("renews session when JWT invalid but session exists, sets cookie, and proceeds", async () => {
     const { authMiddleware } = await import("@/middlewares");
     const app = new Hono<AppEnv>();
+    app.use(initContainerMiddleware);
     app.use("/auth/*", authMiddleware);
     app.get("/auth/ping", (c) => c.json({ ok: true }));
 
@@ -154,6 +161,7 @@ describe("authMiddleware", () => {
   it("returns 401 when JWT invalid and token payload missing sessionId", async () => {
     const { authMiddleware } = await import("@/middlewares");
     const app = new Hono<AppEnv>();
+    app.use(initContainerMiddleware);
     app.use("/auth/*", authMiddleware);
     app.get("/auth/ping", (c) => c.json({ ok: true }));
 
@@ -169,6 +177,7 @@ describe("authMiddleware", () => {
   it("returns 401 when session not found during renewal", async () => {
     const { authMiddleware } = await import("@/middlewares");
     const app = new Hono<AppEnv>();
+    app.use(initContainerMiddleware);
     app.use("/auth/*", authMiddleware);
     app.get("/auth/ping", (c) => c.json({ ok: true }));
 
@@ -188,6 +197,7 @@ describe("authMiddleware", () => {
   it("returns 401 when renewal branch throws an error", async () => {
     const { authMiddleware } = await import("@/middlewares");
     const app = new Hono<AppEnv>();
+    app.use(initContainerMiddleware);
     app.use("/auth/*", authMiddleware);
     app.get("/auth/ping", (c) => c.json({ ok: true }));
 
@@ -200,5 +210,59 @@ describe("authMiddleware", () => {
 
     const res = await app.request("/auth/ping", {}, mockEnv);
     expect(res.status).toBe(401);
+  });
+});
+
+describe("initContainerMiddleware", () => {
+  it("sets container on context using createContainer(env)", async () => {
+    vi.resetModules();
+    const fakeContainer = { get: vi.fn() } as any;
+    const createContainerMock = vi.fn().mockReturnValue(fakeContainer);
+    vi.doMock("@/di", () => ({ createContainer: createContainerMock }));
+
+    const { initContainerMiddleware } = await import("@/middlewares");
+    const app = new Hono<AppEnv>();
+    app.use(initContainerMiddleware);
+    app.get("/di/check", (c) => {
+      const container = c.get("container");
+      return c.json({ ok: !!container, same: container === fakeContainer });
+    });
+
+    const res = await app.request("/di/check", {}, mockEnv);
+    const body = (await res.json()) as any;
+
+    expect(res.status).toBe(200);
+    expect(createContainerMock).toHaveBeenCalledWith(mockEnv);
+    expect(body).toEqual({ ok: true, same: true });
+  });
+
+  it("creates a new container for each request", async () => {
+    vi.resetModules();
+    const c0 = { get: vi.fn() } as any;
+    const c1 = { get: vi.fn() } as any;
+    const createContainerMock = vi
+      .fn()
+      .mockReturnValueOnce(c0)
+      .mockReturnValueOnce(c1);
+    vi.doMock("@/di", () => ({ createContainer: createContainerMock }));
+
+    const { initContainerMiddleware } = await import("@/middlewares");
+    const app = new Hono<AppEnv>();
+    app.use(initContainerMiddleware);
+    app.get("/di/id", (c) => {
+      const container = c.get("container");
+      const id = container === c0 ? "c0" : container === c1 ? "c1" : "other";
+      return c.json({ id });
+    });
+
+    let res = await app.request("/di/id", {}, mockEnv);
+    let body = (await res.json()) as any;
+    expect(body.id).toBe("c0");
+
+    res = await app.request("/di/id", {}, mockEnv);
+    body = (await res.json()) as any;
+    expect(body.id).toBe("c1");
+
+    expect(createContainerMock).toHaveBeenCalledTimes(2);
   });
 });

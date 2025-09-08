@@ -3,8 +3,9 @@ import { mockEnv } from "../__mocks__/env";
 import { mockBcrypt } from "../__mocks__/auth";
 import AuthService from "@/services/auth";
 import { mockSessionService } from "../__mocks__/session";
-import { mockDbService } from "../__mocks__/database";
+import { mockDb, mockDbService } from "../__mocks__/database";
 import { mockCacheService } from "../__mocks__/cache";
+import { createContainer } from "@/di";
 
 vi.mock("bcryptjs", () => ({ default: mockBcrypt }));
 vi.mock("@/services/session", () => ({
@@ -35,16 +36,17 @@ beforeEach(async () => {
   vi.clearAllMocks();
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
-  const { default: AuthService } = await import("@/services/auth");
-  authService = new AuthService(mockEnv);
+  const container = createContainer(mockEnv);
+  authService = container.get("auth");
 });
 
 describe("AuthService constructor", () => {
   it("should create a database client instance and get session service", async () => {
     const { default: SessionService } = await import("@/services/session");
+    const { default: DatabaseService } = await import("@/services/database");
 
-    expect(mockCreateDatabase).toHaveBeenCalledWith(mockEnv.DB);
-    expect(SessionService).toHaveBeenCalledWith(mockEnv);
+    expect(DatabaseService).toHaveBeenCalledWith(mockEnv.DB);
+    expect(SessionService).toHaveBeenCalledOnce();
     expect(authService).toBeInstanceOf(AuthService);
     expect(authService).toHaveProperty("register");
     expect(authService).toHaveProperty("login");

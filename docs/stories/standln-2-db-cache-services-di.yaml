@@ -30,10 +30,10 @@ tasks-subtasks: |
     - [x] Refactor SessionService to accept `{ db: DatabaseService, cache: CacheService }` (and config) via constructor.
     - [x] Refactor AuthService to accept `{ db: DatabaseService, cache: CacheService, session: SessionService }` (and config) via constructor - session service is injected, not instantiated.
     - [x] Register service factories in ServiceContainer ensuring AuthService and direct SessionService usage share the same SessionService instance.
-  - [ ] Tests and mocks (AC: 6) [Diff: 5]
-    - [ ] Provide in-memory adapters/mocks for DatabaseService and CacheService to ease unit tests.
-    - [ ] Create test cases for database and cache services.
-    - [ ] Update affected tests to use the container and substitute mocks via override method.
+  - [x] Tests and mocks (AC: 6) [Diff: 5]
+    - [x] Provide in-memory adapters/mocks for DatabaseService and CacheService to ease unit tests.
+    - [x] Create test cases for database and cache services.
+    - [x] Update affected tests to use the container and substitute mocks via override method.
   - [x] No behavior change (AC: 7) [Diff: 2]
     - [x] Ensure API contract and external behaviors are unchanged; run existing test suite.
 dev-notes: |

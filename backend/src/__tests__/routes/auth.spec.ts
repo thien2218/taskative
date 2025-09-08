@@ -1,23 +1,13 @@
 import { Hono } from "hono";
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { AppEnv } from "@/types";
-import {
-  mockAuthService,
-  mockSessionService,
-  mockBcrypt,
-  mockJWT,
-  mockAuthRateLimit,
-  mockAuthMiddleware,
-  mockUnauthMiddleware,
-  mockCookie,
-} from "../__mocks__/auth";
-import { mockCreateDatabase, mockEnv } from "../__mocks__/env";
-import {
-  authTestPayload,
-  requestBaseTestOpts,
-  resetTestPayload,
-  sessionTestOpts,
-} from "../data/auth";
+import { mockAuthService, mockCookie } from "../__mocks__/auth";
+import { mockSessionService } from "../__mocks__/session";
+import { mockEnv } from "../__mocks__/env";
+import { mockDbService } from "../__mocks__/database";
+import { mockCacheService } from "../__mocks__/cache";
+import { authTestPayload, requestBaseTestOpts, resetTestPayload, sessionTestOpts } from "../data/auth";
+import { initContainerMiddleware } from "@/middlewares";
 
 vi.mock("@/services/auth", () => ({
   default: vi.fn().mockImplementation(() => mockAuthService),
@@ -25,17 +15,9 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/services/session", () => ({
   default: vi.fn().mockImplementation(() => mockSessionService),
 }));
-vi.mock("bcrypt", () => ({ default: mockBcrypt }));
-vi.mock("jsonwebtoken", () => mockJWT);
-vi.mock("@/middlewares", () => ({
-  authRateLimit: mockAuthRateLimit,
-  unauthMiddleware: mockUnauthMiddleware,
-  authMiddleware: mockAuthMiddleware,
-}));
+vi.mock("@/services/database", () => ({ default: mockDbService }));
+vi.mock("@/services/cache", () => ({ default: vi.fn().mockReturnValue(mockCacheService) }));
 vi.mock("hono/cookie", () => mockCookie);
-vi.mock("@/db", () => ({
-  createDatabase: mockCreateDatabase,
-}));
 
 let authRoutes: Hono<AppEnv>;
 let app: Hono<AppEnv>;
@@ -44,6 +26,7 @@ beforeEach(async () => {
   vi.clearAllMocks();
   authRoutes = (await import("@/routes/auth")).default;
   app = new Hono<AppEnv>();
+  app.use(initContainerMiddleware);
   app.route("/v1/auth", authRoutes);
 });
 
@@ -341,6 +324,15 @@ describe("POST /v1/auth/login", () => {
 });
 
 describe("POST /v1/auth/logout", () => {
+  beforeEach(() => {
+    // Satisfy authMiddleware: provide a valid session cookie and JWT verification
+    mockCookie.getCookie.mockReturnValue("valid.jwt.token");
+    mockSessionService.verifyToken.mockResolvedValue({
+      sessionId: "mock-session-id",
+      userId: "mock-user-id",
+      email: "user@test.com",
+    });
+  });
   describe("mode: current (default)", () => {
     it("should revoke current session and delete cookie when no mode specified", async () => {
       mockSessionService.revoke.mockResolvedValue(true);
@@ -614,6 +606,10 @@ describe("POST /v1/auth/logout", () => {
 });
 
 describe("POST /v1/auth/forgot-password", () => {
+  beforeEach(() => {
+    // unauth route: no session cookie
+    mockCookie.getCookie.mockReturnValue(undefined);
+  });
   it("should return status 400 for invalid payloads", async () => {
     let response: Response;
 
@@ -679,6 +675,10 @@ describe("POST /v1/auth/forgot-password", () => {
 });
 
 describe("POST /v1/auth/reset-password", () => {
+  beforeEach(() => {
+    // unauth route: no session cookie
+    mockCookie.getCookie.mockReturnValue(undefined);
+  });
   it("should return status 400 for invalid payloads", async () => {
     let response: Response;
 
