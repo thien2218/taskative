@@ -10,9 +10,10 @@ N/A
 
 #### Change Log
 
-| Date       | Version | Description                                                                                                    | Author |
-| ---------- | ------- | -------------------------------------------------------------------------------------------------------------- | ------ |
-| 2025-09-07 | 0.2     | Introduced DI patterns (DatabaseService, CacheService, lightweight container); updated components and diagrams | PM     |
+| Date       | Version | Description                                                                                                                           | Author |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2025-09-08 | 0.3     | Align to template v2; add External APIs (none), Test Strategy (mock-first, 90% coverage), infra/security; clarify multi-Worker plan B | PM     |
+| 2025-09-07 | 0.2     | Introduced DI patterns (DatabaseService, CacheService, lightweight container); updated components and diagrams                        | PM     |
 
 ### High Level Architecture
 
@@ -196,6 +197,18 @@ graph TD
 -  Interfaces: Scheduled trigger
 -  Dependencies: D1
 
+#### Component Diagrams
+
+```mermaid
+graph TD
+  U[User] -->|HTTPS| API[API Worker (Hono)]
+  API --> D1[(Cloudflare D1)]
+  API <-->|cache| KV[(Cloudflare KV)]
+  API -->|password ops (planned)| AUTH[Auth Worker]
+  CRON[Cron Worker] --> D1
+  CRON -->|due reminders| U
+```
+
 ### Dependency Injection and Infrastructure Services
 
 The application uses a lightweight container/factory to wire services with shared infrastructure dependencies and configuration.
@@ -224,6 +237,10 @@ graph LR
 
 Rationale: Decouple infra concerns from domain logic; improve testability and consistency of access patterns.
 
+### External APIs
+
+N/A
+
 ### Core Workflows
 
 ```mermaid
@@ -241,6 +258,138 @@ sequenceDiagram
   API-->>C: Set-Cookie: session; 200 OK
 ```
 
-### Database Schema (reference only; Prisma-first)
+### API Specification
 
-Use Prisma migrations and prisma-kysely for types. Sessions table is part of the schema with indexes on user_id and expires_at.
+Deferred. API docs will be generated via framework-integrated OpenAPI tooling; this section will be populated once that is in place.
+
+### Database Schema
+
+Prisma-first schema located at backend/src/db/schema.prisma with migrations under backend/src/db/migrations. Key points:
+
+-  IMPORTANT constraints (from schema): table models map to plural, snake_case table names; all model fields are snake_case.
+-  Core tables: users, sessions, groups, tasks, subtasks, reminders, password_reset_tokens.
+-  Representative indexes and constraints:
+   -  users: unique(email), unique(username); timestamps.
+   -  sessions: indexes on user_id and expires_at; status, device_id, device_name; FK to users(id) with CASCADE; no ip_address (removed in later migration).
+   -  tasks: FKs to users(id) CASCADE and groups(id) SET NULL; indexes on (user_id, status, deadline), (user_id, priority, deadline), (title).
+   -  reminders: FKs to tasks(id) and users(id) CASCADE; index on (user_id, remind_at).
+-  Migrations live in backend/src/db/migrations; see files for exact DDL evolution.
+-  Kysely types generated via prisma-kysely to backend/src/db/types.ts.
+
+### Source Tree
+
+```text
+backend/
+  src/               # application source
+    routes/          # HTTP route handlers (Hono)
+    services/        # business/domain services
+    di/              # dependency injection container and factories
+    validators/      # zod schemas for request validation
+    types/           # shared types and Worker bindings
+    db/              # Prisma schema, Kysely types, migrations
+      migrations/    # Prisma-generated migration files
+    __tests__/       # unit tests (mock-first, 90% coverage target)
+      __mocks__/     # reusable mocks for services/libs/env
+      data/          # shared payloads, fixtures, request options
+      routes/        # route-level tests
+      services/      # service unit tests
+```
+
+### Infrastructure and Deployment
+
+-  Infrastructure as Code:
+   -  Tool: Wrangler (config in backend/wrangler.jsonc)
+   -  Approach: platform-managed resources with config-as-code; bindings for DB (D1), KV (CACHE), ratelimiter (AUTH_RATE_LIMITER), ENVIRONMENT, SESSION_NAME
+-  Deployment Strategy:
+  -  Strategy: Workers deploy via wrangler (manual/local for now); production deploys remain manual for now
+  -  CI/CD Platform: GitHub Actions (workflow: .github/workflows/ci.yml)
+  -  Pipeline Configuration: jobs: lint, typecheck, test (unit); triggers: push and pull_request; Node.js 20.x; working-directory: backend; cache installs (pnpm or npm). A deploy job can be added later with manual approval.
+-  Environments:
+   -  test: local dev via wrangler; ENVIRONMENT=test; cookies not secure
+   -  production: ENVIRONMENT=production; cookies secure=true
+-  Environment Promotion Flow:
+
+```text
+dev (local wrangler) -> production (wrangler deploy)
+```
+
+-  Rollback Strategy:
+   -  Primary Method: redeploy previous known-good version via wrangler
+   -  Trigger Conditions: failed health checks, elevated errors, or regression
+   -  Recovery Time Objective: minutes
+
+### Error Handling Strategy
+
+-  General Approach:
+   -  Validate all external inputs at API boundary with zod; return 400 on validation errors
+   -  Use consistent error envelope: { error: string }
+   -  Propagate unexpected errors as 500 with generic messages
+-  Logging Standards:
+   -  Use console.log/console.error for now
+   -  Do not log secrets or PII; include minimal context (route, userId if available)
+-  Error Handling Patterns:
+   -  Platform/Infra errors (D1, KV): apply simple retries in code paths where added later; currently fail closed and log
+   -  Business logic errors: map to 4xx with safe messages
+   -  Data consistency: use DB constraints and transactions where necessary (see password reset flow)
+
+### Coding Standards
+
+-  Never log or echo JWT_SECRET or session tokens
+-  All routes must validate input with zod schemas
+-  Session cookies must use getSessionCookieConfig(); secure=true in production
+-  Use CacheService for KV access; do not store PII in KV beyond session payloads
+
+### Test Strategy and Standards
+
+-  Testing Philosophy:
+   -  Unit tests only for now; 90% coverage target
+   -  Mock-first: vi.mock external dependencies (bcryptjs, hono/cookie, hono/jwt, services) to isolate units
+   -  Follow AAA pattern (Arrange, Act, Assert); cover success paths and error/edge cases
+-  Test Types and Organization:
+   -  Location: backend/src/**tests**/
+   -  Folder roles:
+      -  **mocks**: reusable mocks (AuthService, SessionService, DatabaseService/Kysely, CacheService, env, middlewares; third-party libs)
+      -  data: shared payloads, constants, and request options
+      -  routes: API route tests (e.g., auth endpoints) exercising Hono handlers with initContainerMiddleware and mock env
+      -  services: unit tests for service classes via DI container or direct constructor injection
+      -  middlewares.spec.ts: middleware behavior and renewal/ratelimit branches
+   -  Vitest config: globals=true; environment=node; @ alias to ./src
+   -  Polyfills: add as needed in tests (e.g., atob)
+-  Test Data Management:
+   -  Use inline fixtures in data/; avoid hitting real D1/KV
+   -  Seed script is for demo/data dev; not used in unit tests
+-  Continuous Testing:
+   -  Run tests via npm run test; CI to be added later
+
+### Security
+
+-  Input Validation:
+   -  Validate all external inputs at API boundary with zod; whitelist approach preferred
+-  Authentication & Authorization:
+   -  Session-backed JWT cookies; server-side revocation flows
+   -  Modes for logout: current, others, all, byIds (see auth route)
+-  Secrets Management:
+   -  JWT_SECRET provided via bindings; never hardcode; never log
+-  API Security:
+   -  Rate limiting via AUTH_RATE_LIMITER for unauth routes
+   -  CSRF and CORS middleware enabled
+   -  Security headers and HTTPS enforcement are handled by platform/Workers; add headers as needed later
+-  Data Protection:
+   -  Passwords hashed with bcryptjs
+   -  No sensitive data in logs; avoid PII in KV beyond session payloads
+-  Dependency Security:
+   -  Keep dependencies up to date; adopt automated updates later
+-  Security Testing:
+   -  Add SAST/DAST in CI later
+
+### Checklist Results Report
+
+Pending. Populate after running the architect checklist.
+
+### Next Steps
+
+-  Implement Auth Worker (Epic 1) and route password hashing/verify to it
+-  Implement Cron Worker (Epic 2) to scan reminders and deliver notifications
+-  Adopt a structured logger for Workers (enhancement epic)
+-  Generate REST API docs via framework-integrated OpenAPI and link here
+-  Introduce minimal CI (lint, typecheck, test) and then integration/E2E tests in later phases
