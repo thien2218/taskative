@@ -1,0 +1,44 @@
+status: "Review"
+epic-overview:
+  goal: |
+    Allow users to organize tasks into groups (projects/lists) to improve organization and filtering.
+  description: |
+    API (v1):
+    -  POST `/v1/groups` — Create group (name, optional color)
+    -  GET `/v1/groups` — List caller’s groups
+    -  PATCH `/v1/groups/:id` — Update name/color
+    -  DELETE `/v1/groups/:id` — Delete group (tasks’ `group_id` set to NULL)
+    -  PATCH `/v1/tasks/:id` — Set/clear `group_id` for a task
+    
+    Data Model:
+    -  `groups(id, user_id, name, color?, created_at, updated_at)`
+    -  `tasks.group_id` → `groups.id` (nullable, `ON DELETE SET NULL`)
+    
+    Risks & Mitigations:
+    -  PRD suggests multiple groups per task; MVP chooses 1:1 for simplicity. Mitigate by designing API to be forward-compatible (e.g., future `/v1/task-groups` join endpoints).
+  definition_of_done:
+    - "Group CRUD and task association implemented with validation and tests"
+    - "Kysely queries compiled; D1 migrations applied"
+    - "Minimal rate limiting on group mutations"
+scope-boundaries:
+  in-scope:
+    - "CRUD for `groups`"
+    - "Associate a task with a single group via `tasks.group_id`"
+    - "Handle group deletion with `ON DELETE SET NULL` (preserve tasks)"
+  out-of-scope:
+    - "Multiple groups per task (N:M). MVP uses a single `group_id` per task; N:M is a post-MVP enhancement."
+    - "UI screens for managing groups (post-MVP)"
+requirements-mapping:
+  functional-requirements:
+    - "**FR3:** Task Grouping — Full"
+  non-functional-requirements:
+    - "**NFR5:** Data Consistency — FK relations, ON DELETE SET NULL"
+    - "**NFR6:** Maintainability — Prisma migrations; typed queries"
+story-breakdown:
+  story-list:
+    - "1: Groups — CRUD and task association [Priority: 2]"
+  story-sequencing-rationale: "Follows Epic 2 so tasks exist and can be associated."
+dependencies:
+  dependencies:
+    - "**Epic 2:** Task CRUD — Tasks needed to associate to groups"
+  story-dependencies: []

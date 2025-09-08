@@ -1,0 +1,57 @@
+status: "Review"
+epic-overview:
+  goal: |
+    Provide secure email/password authentication using a session-backed JWT cookie (20-minute expiry) stored in the browser, including password reset flows, optimized for Cloudflare Workers.
+  description: |
+    API (v1):
+    -  POST `/v1/auth/register` — Register account (email, password)
+    -  POST `/v1/auth/login` — Authenticate, create session, and set signed 20m session JWT cookie
+    -  POST `/v1/auth/logout` — Revoke session(s). Supports device-specific logout using optional body:
+      -  `mode`: `"current" | "all" | "others" | "byIds"` (default: `"current"`)
+      -  `sessionIds`: string[] — required when `mode = "byIds"`
+      -  Behavior: `current` revokes only caller's session and clears cookie; `all` revokes all sessions and clears cookie; `others` revokes all sessions except the current and does not clear the cookie; `byIds` revokes the specified session IDs and only clears the cookie if one of them matches the caller's session.
+      -  POST `/v1/auth/forgot-password` — Start reset flow, generate email token
+      -  POST `/v1/auth/reset-password` — Complete reset with token + new password
+    
+    Data Model:
+    -  `users` table: `id`, `email` (unique), `password_hash`, optional profile fields
+    -  Server-side session store (D1) with KV cache, minimally: `id` (session ID), `user_id`, `status` (active/revoked), `expires_at`, `revoked_at?`, `created_at`
+    
+    Risks & Mitigations:
+    -  Email deliverability — stub provider for MVP; log tokens for manual testing
+  definition_of_done:
+    - "Endpoints implemented and documented"
+    - "Unit/integration tests for register/login/logout/reset happy paths + error cases, including middleware renewal path (expired token → KV/DB session check → renewed cookie)"
+    - "Minimal rate limiting and input validation in place"
+    - "Deployment config for Auth Worker included"
+scope-boundaries:
+  in-scope:
+    - "Bcrypt password hashing in a dedicated Auth Service Worker to avoid CPU contention on the API Worker"
+    - "Session-backed JWT cookie (signed; 20m expiry) containing session ID and minimal user data (user ID, email)"
+    - "Middleware on all non-public routes: verify cookie token; if expired, extract session ID + user ID, check KV first, then DB; renew cookie when session is valid"
+    - "Server-side session management with D1 as source of truth and KV as a cache for hot session lookups"
+    - "Forgot/reset password via email token flow (email sending can be stubbed/logged for MVP)"
+  out-of-scope:
+    - "Social logins (Google/Apple), 2FA, OAuth/OIDC federation (post-MVP)"
+    - "UI screens (post-MVP)"
+requirements-mapping:
+  functional-requirements:
+    - "**FR1:** User Authentication — Full"
+  non-functional-requirements:
+    - "**NFR3:** Security — Bcrypt hashing, JWT signing, secure cookies"
+    - "**NFR2:** Performance — Global edge, low-latency session checks"
+    - "**NFR5:** Data Consistency — D1 as source of truth; KV as cache"
+story-breakdown:
+  story-list:
+    - "1: Auth — Register + Login — Implement core auth endpoints [Priority: 1]"
+    - "2: Migrate to session-backed JWT cookie — Replace refresh tokens with server-side sessions [Priority: 1]"
+    - "3: Forgot/Reset Password — Email token flow and session revocation [Priority: 2]"
+    - "4: Logout device scope — Add mode-based revocation [Priority: 2]"
+  story-sequencing-rationale: "Register/Login first; session infrastructure next; reset depends on sessions; logout modes after session middleware."
+dependencies:
+  dependencies:
+    - "**Epic 0:** Schema/Migrations — Required for users/sessions tables"
+  story-dependencies:
+    - "Story 1.2 depends on Story 1.1: Session cookie requires existing register/login"
+    - "Story 1.3 depends on Story 1.2: Reset flow revokes server-side sessions"
+    - "Story 1.4 depends on Story 1.2: Device-scoped logout requires session middleware"

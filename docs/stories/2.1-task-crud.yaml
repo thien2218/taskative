@@ -1,0 +1,94 @@
+status: "Draft"
+priority: null
+story:
+  role: "authenticated user"
+  action: "to create, view, update, and delete my tasks"
+  benefit: "I can manage my to-dos effectively."
+acceptance-criteria:
+  - "Creating a task persists all provided fields (title required) and returns the record. [Source: epics/2-task-crud.md#Acceptance-Criteria] [Source: docs/backend-architecture.md]"
+  - "Listing returns only the caller’s tasks and supports pagination (cursor or offset/limit). [Source: epics/2-task-crud.md#Acceptance-Criteria] [Source: docs/backend-architecture.md]"
+  - "Detail returns 404 if the task is not owned by the caller or does not exist. [Source: epics/2-task-crud.md#Acceptance-Criteria]"
+  - "Updating modifies only allowed fields; timestamps are updated accordingly. [Source: epics/2-task-crud.md#Acceptance-Criteria] [Source: docs/backend-architecture.md#tasks]"
+  - "Deleting removes the task and cascades to subtasks (per FK). [Source: epics/2-task-crud.md#Acceptance-Criteria] [Source: docs/backend-architecture.md#subtasks]"
+  - "Cache is invalidated for affected keys on writes. [Source: epics/2-task-crud.md#Acceptance-Criteria] [Source: docs/backend-architecture.md#Invalidation]"
+tasks-subtasks: |
+  -  [ ] Data model and migrations (AC: 1, 4, 5) [Diff: 6]
+     -  [ ] Ensure Prisma models for `tasks` (and existing `subtasks`) include fields: `id`, `user_id`, `group_id?`, `title`, `note?`, `priority?`, `effort?`, `deadline?`, `repeat_interval?`, `remind_at?`, `status`, timestamps; and `subtasks.task_id → tasks.id ON DELETE CASCADE`. [Source: docs/backend-architecture.md#tasks] [Source: docs/backend-architecture.md#subtasks] [Diff: 3]
+     -  [ ] Add indexes: `idx_tasks_user_status_due`, `idx_tasks_user_priority_due`, `idx_tasks_title_search`. [Source: docs/backend-architecture.md#tasks] [Diff: 3]
+     -  [ ] Run migration workflow and regenerate types: `npm run db:migrate:create` → `npm run db:migrate:apply` → `npx prisma generate`. [Source: docs/backend-architecture.md#Database-Commands] [Diff: 3]
+  -  [ ] Validators (AC: 1, 2, 4) [Diff: 6]
+     -  [ ] Create Zod schemas for create/update: title (required), optional fields with correct types; forbid immutable fields on update. [Source: architecture/coding-standards.md#Validation] [Diff: 3]
+  -  [ ] Routes and services (AC: 1, 2, 3, 4, 5) [Diff: 6]
+     -  [ ] Add Hono routes under `/v1/tasks` in API Worker: `POST /v1/tasks`, `GET /v1/tasks`, `GET /v1/tasks/:id`, `PATCH /v1/tasks/:id`, `DELETE /v1/tasks/:id`. [Source: docs/backend-architecture.md] [Source: docs/backend-architecture.md#1.2-Folder-Structure] [Diff: 3]
+     -  [ ] Protect routes with session auth middleware; derive `userId` from verified session. [Source: docs/backend-architecture.md#1.6-authentication-flow] [Diff: 3]
+     -  [ ] Implement service methods using Kysely with generated `DB` types for: createTask, listTasks (owned-only, pagination), getTaskById (owned-only), updateTask (allowed fields), deleteTask (owned-only). [Source: docs/backend-architecture.md#Kysely-Types-&-Import-Path] [Diff: 3]
+     -  [ ] Ensure 404 is returned for missing or non-owned resources. [Source: epics/2-task-crud.md#Acceptance-Criteria] [Diff: 3]
+  -  [ ] Pagination (AC: 2) [Diff: 6]
+     -  [ ] Support `limit` and `cursor` or `offset` parameters; enforce conservative defaults (e.g., 20). Return paging metadata. [Source: epics/2-task-crud.md#Acceptance-Criteria] [Diff: 3]
+  -  [ ] Caching layer (AC: 6) [Diff: 6]
+     -  [ ] For reads: attempt KV first for list/detail using keys `task-list:{user_id}:{sort}:{filter}` and `task:{task_id}` with TTL=30s; fall back to D1 on miss. [Source: docs/backend-architecture.md#Key-Naming] [Source: docs/backend-architecture.md#TTLs] [Diff: 3]
+     -  [ ] For writes (create/update/delete): write to D1 first, then delete affected KV keys (list for user; specific task key). [Source: docs/backend-architecture.md#Invalidation] [Diff: 3]
+  -  [ ] Tests (AC: 1–6) [Diff: 6]
+     -  [ ] Create tests under `backend/src/__tests__/tasks/` covering: create (required title), list (only caller’s tasks, pagination), detail (404 for not owned/missing), update (allowed fields, timestamp change), delete (cascade removes subtasks), cache invalidation on writes. [Source: epics/2-task-crud.md#Definition-of-Done] [Source: architecture/source-tree.md] [Diff: 3]
+  -  [ ] Documentation [Diff: 6]
+     -  [ ] Add/extend API docs for Tasks endpoints under `docs/v1/api/` mirroring implemented behavior and pagination, and note caching behavior (TTL 30s). [Source: docs/backend-architecture.md] [Source: docs/backend-architecture.md] [Diff: 3]
+dev-notes: |
+  ### Previous Story Insights
+  
+  -  Authentication is session-backed via a signed 20-minute JWT cookie with middleware renewal. All Task CRUD routes must require a valid session and derive the `userId` from it to enforce ownership. [Source: stories/1.2-auth-session-jwt-cookie-migration.md] [Source: docs/backend-architecture.md#1.6-authentication-flow]
+  
+  ### Data Models
+  
+  -  `tasks` table fields and indexes per architecture reference (owner via `user_id`, optional `group_id`, timestamps). [Source: docs/backend-architecture.md#tasks]
+  -  `subtasks` cascade on delete of parent task via FK. [Source: docs/backend-architecture.md#subtasks]
+  
+  ### API Specifications
+  
+  -  Endpoints: `POST /v1/tasks`, `GET /v1/tasks`, `GET /v1/tasks/:id`, `PATCH /v1/tasks/:id`, `DELETE /v1/tasks/:id`. [Source: docs/backend-architecture.md]
+  
+  ### Runtime Components
+  
+  -  API Edge Layer (Cloudflare Workers + Hono) provides routes, validation, and orchestration. [Source: docs/backend-architecture.md#1.3-High-level-Components-(MVP)]
+  -  D1 is the source of truth; KV is a read cache with short TTLs. [Source: docs/backend-architecture.md#1.4-Key-Platform-Constraints-&-Trade-offs] [Source: docs/backend-architecture.md]
+  
+  ### File Locations
+  
+  -  Routes under `backend/src/routes/` (tasks routes). [Source: docs/backend-architecture.md#1.2-Folder-Structure]
+  -  Services under `backend/src/services/` (task service logic). [Source: architecture/source-tree.md]
+  -  DB access under `backend/src/db/` using generated `types.ts`. [Source: architecture/source-tree.md]
+  -  Validators under `backend/src/validators/`. [Source: docs/backend-architecture.md#1.2-Folder-Structure]
+  
+  ### Testing Requirements
+  
+  -  Follow Definition of Done for Epic 2; provide unit/integration tests for all CRUD behaviors, ownership checks, pagination, and caching invalidation. Place tests under `backend/src/__tests__/`. [Source: epics/2-task-crud.md#Definition-of-Done] [Source: architecture/source-tree.md]
+  
+  ### Technical Constraints and Notes
+  
+  -  Prisma-first schema management; never edit SQL directly. Run generators to keep Kysely types in sync. [Source: docs/backend-architecture.md#IMPORTANT-—-Prisma-Enforcement] [Source: docs/backend-architecture.md#Kysely-Types-&-Import-Path]
+  -  Validate all inputs in API layer; avoid leaking internal details in errors. [Source: architecture/coding-standards.md#Validation] [Source: architecture/coding-standards.md#Error-handling]
+  -  Caching: use specified key names and TTLs; on writes, delete affected keys (no durable objects/queues). [Source: docs/backend-architecture.md]
+  
+  ### Project Structure Notes
+  
+  -  Story files for v1 are under `docs/v1/stories/` (this story follows that convention).
+testing-standards:
+  - "Follow Definition of Done for Epic 2; provide unit/integration tests for all CRUD behaviors, ownership checks, pagination, and caching invalidation. Place tests under `backend/src/__tests__/`. [Source: epics/2-task-crud.md#Definition-of-Done] [Source: architecture/source-tree.md]"
+change-log:
+  - date: "2025-08-16"
+    version: "0.1"
+    description: "Draft: Task CRUD endpoints"
+    author: "Bob (SM)"
+developer-record:
+  agent-model: "_To be filled by Dev Agent_"
+  debug-log-references: []
+  completion-notes: []
+  file-list: []
+qa-results: |
+  _To be completed by QA Agent_
+test-specs:
+  specs: []
+  artifacts: []
+risk-mitigation:
+  primary-risk: ""
+  mitigation-strategies: []
+  rollback-plan: ""

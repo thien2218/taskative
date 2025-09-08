@@ -1,0 +1,125 @@
+status: "Done"
+priority: null
+story:
+  role: "backend platform engineer"
+  action: "the POST /v1/auth/logout endpoint to support device-scoped revocation modes (current | all | byIds | others)"
+  benefit: "users can log out just the current device, everywhere, or select sessions"
+acceptance-criteria:
+  - "The POST /v1/auth/logout endpoint accepts an optional JSON body with:"
+  - "Endpoint remains protected by auth middleware: requires a valid session cookie (or a renewable expired cookie) to access. [Source: docs/epics/1-authentication.md#Acceptance-Criteria]"
+  - "On success returns 200 {\"success\": true}. On invalid body returns 400 with validation errors. If not authenticated, returns 401. Operational failures return 500 {\"error\": \"Logout failed\"}. [Source: docs/docs/api/auth-endpoints.md#POST-/v1/auth/logout]"
+  - "Server-side sessions are revoked in D1 with KV cache invalidation; cookie cleared strictly per behavior above. [Source: docs/epics/1-authentication.md#Scope] [Source: docs/docs/api/auth-endpoints.md]"
+  - "Tests cover: current (default) logout, others (all except current), all-sessions logout, byIds (including when includes current and when not), invalid payloads, and unauthorized access. [Source: docs/epics/1-authentication.md#Definition-of-Done]"
+tasks-subtasks: |
+  - [x] API contract and validation (AC: 1, 3) [Diff: 6]
+    - [x] Add/extend Zod validator for logout body: { mode?: enum["current", "others","all","byIds"], sessionIds?: string[] } with conditional requirement of sessionIds for byIds. [Source: docs/docs/api/auth-endpoints.md] [Diff: 3]
+    - [x] Update route handler to parse validated body and default mode to "current". [Diff: 3]
+  - [x] Route behavior implementation (AC: 1, 2, 3, 4) [Diff: 6]
+    - [x] Update backend/src/routes/auth.ts POST "/logout" to accept optional body and branch logic: [Diff: 3]
+          - current: revoke only c.get("user").sessionId; clear cookie
+          - others: revoke all sessions for c.get("user").userId EXCEPT c.get("user").sessionId; do NOT clear cookie
+          - all: revoke all sessions for c.get("user").userId; clear cookie
+          - byIds: revoke provided sessionIds; clear cookie only if current session included
+    - [x] Ensure authMiddleware remains required on the route. [Source: docs/epics/1-authentication.md#Acceptance-Criteria] [Diff: 3]
+    - [x] Leverage SessionService/AuthService to perform session revocations and KV invalidation. [Diff: 3]
+  - [x] Service layer updates (AC: 4) [Diff: 6]
+    - [x] Extend AuthService (or SessionService) with methods to: [Diff: 3]
+          - revokeCurrentSession(sessionId) - using existing revoke()
+          - revokeUserOtherSessions(userId, excludeSessionId)
+          - revokeAllSessionsForUser(userId) - already existed
+          - revokeSessionsByIds(userId, sessionIds)
+    - [x] Return unified result shape { success: boolean; error?: string; status?: number } for route to map to HTTP codes. [Diff: 3]
+  - [x] Cookie handling (AC: 1, 3) [Diff: 6]
+    - [x] Use SessionService.getSessionCookieConfig() to delete cookie for current and all; for byIds, delete only when current sessionId is in payload. [Source: docs/stories/1.2-auth-session-jwt-cookie-migration.md#Routes] [Diff: 3]
+  - [x] Documentation updates (AC: 3) [Diff: 6]
+    - [x] Update docs/docs/api/auth-endpoints.md#POST-/v1/auth/logout to document mode and sessionIds behavior matching architecture/epic. Include examples for each mode. [Source: docs/docs/api/auth-endpoints.md] [Source: docs/epics/1-authentication.md#API-(/v1)] [Diff: 3]
+  - [x] Tests (AC: 5) [Diff: 6]
+    - [x] backend/src/__tests__/routes/auth.spec.ts: add/adjust tests to cover: [Diff: 3]
+          - default current mode: 200, calls revoke current, deletes cookie
+          - others mode: 200, revokes all except current, does NOT delete cookie
+          - all mode: 200, calls revoke all for user, deletes cookie
+          - byIds excluding current: 200, revokes listed, does NOT delete cookie
+          - byIds including current: 200, revokes listed, deletes cookie
+          - invalid payloads (mode unknown, byIds without sessionIds) => 400
+          - unauthorized => 401
+dev-notes: |
+  ### Previous Story Insights
+  - Story 1.2 introduced session-backed JWT cookies, SessionService, and cookie handling via SessionService.getSessionCookieConfig(), and implemented a simple logout that revoked the active session and cleared cookie. This story extends logout to support device scoping and multiple-session revocation. [Source: docs/stories/1.2-auth-session-jwt-cookie-migration.md#Tasks-/-Subtasks]
+  
+  ### API Specifications
+  - Endpoint: POST /v1/auth/logout (protected) [Source: docs/docs/api/auth-endpoints.md]
+  - Contract:
+    - mode: "current" | "others" | "all" | "byIds" (default: "current")
+    - sessionIds: string[] (required when mode = "byIds")
+    - Behavior rules as defined in Acceptance Criteria above. [Source: docs/docs/api/auth-endpoints.md] [Source: docs/epics/1-authentication.md#API-(/v1)]
+  
+  ### Runtime Components
+  - API Edge Layer (Cloudflare Workers + Hono) hosts routes and validation. [Source: docs/stories/1.2-auth-session-jwt-cookie-migration.md#Runtime-Components]
+  - KV cache holds hot session entries; D1 is source of truth. Revocations must update D1 and invalidate KV. [Source: docs/epics/1-authentication.md#Scope]
+  
+  ### File Locations
+  - Route: backend/src/routes/auth.ts (logout route to be enhanced) [Source: docs/stories/1.2-auth-session-jwt-cookie-migration.md#File-Locations]
+  - Validators: backend/src/validators/auth.ts (add logout schema) [Source: docs/stories/1.2-auth-session-jwt-cookie-migration.md#File-Locations]
+  - Services: backend/src/services/auth.ts and backend/src/services/session.ts (add revoke helpers) [Source: docs/stories/1.2-auth-session-jwt-cookie-migration.md#File-Locations]
+  - Tests: backend/src/__tests__/routes/auth.spec.ts [Source: docs/stories/1.2-auth-session-jwt-cookie-migration.md#Testing-Requirements]
+  
+  ### Testing
+  - Follow epic DoD and API testing guidance; ensure coverage for new mode behaviors and error cases. Place tests under backend/src/__tests__/. [Source: docs/epics/1-authentication.md#Definition-of-Done] [Source: docs/stories/1.2-auth-session-jwt-cookie-migration.md#Testing-Requirements]
+  
+  ### Technical Constraints and Notes
+  - Cookie name comes from env SESSION_NAME; use SessionService.getSessionCookieConfig() for deletion. [Source: backend/src/routes/auth.ts]
+  - Middleware handles token verification/renewal; logout remains a protected endpoint. [Source: docs/epics/1-authentication.md#Acceptance-Criteria]
+testing-standards:
+  - "Cover mode behaviors: current, others, all, byIds (with/without current)"
+  - "Validate payloads: enum mode, sessionIds required for byIds"
+  - "Auth required: 401 when unauthenticated; cookie cleared per mode rules"
+  - "Place tests under backend/src/__tests__/routes/auth.spec.ts"
+change-log:
+  - date: "2025-08-18"
+    version: "0.1"
+    description: "Draft: add device-scoped logout modes and behaviors"
+    author: "Bob (SM)"
+developer-record:
+  agent-model: "claude 4 sonnet"
+  debug-log-references:
+    - "No critical debugging issues encountered during implementation"
+  completion-notes: []
+  file-list:
+    - "backend/src/validators/auth.ts (updated: added logoutSchema with conditional validation)"
+    - "backend/src/services/session.ts (updated: added revokeUserOtherSessions, revokeSessionsByIds methods)"
+    - "backend/src/routes/auth.ts (updated: enhanced logout route with mode handling)"
+    - "backend/src/__tests__/__mocks__/auth.ts (updated: added mocks for new SessionService methods)"
+    - "backend/src/__tests__/routes/auth.spec.ts (updated: comprehensive logout mode test coverage)"
+    - "docs/docs/api/auth-endpoints.md (updated: detailed logout endpoint documentation with examples)"
+qa-results: |
+  Gate: PASS
+  Reviewer: Quinn (Test Architect)
+  Summary: Logout endpoint supports device-scoped modes with correct cookie behavior and revocation semantics. Auth required and validated; invalid payloads return 400; operational errors return 500.
+  Evidence:
+    - AC mapping:
+      - AC1 (contract): route accepts optional body with mode and sessionIds; schema enforced.
+      - AC2 (auth required): protected by auth middleware; renewal path covered via middleware specs.
+      - AC3 (responses): 200 on success, 400 on invalid body, 401 when unauthenticated, 500 on failures.
+      - AC4 (revocation + cookie): D1 updates and KV invalidations; cookie cleared per mode rules.
+      - AC5 (tests): routes tests cover current/others/all/byIds, invalid modes, missing sessionIds, and cookie behavior.
+    - Test artifacts reviewed:
+      - backend/src/__tests__/routes/auth.spec.ts — Logout modes and cookie handling
+      - backend/src/__tests__/services/session.spec.ts — Revocation paths and KV invalidation
+      - backend/src/__tests__/middlewares.spec.ts — Auth requirements and renewal
+  NFRs:
+    - Security: PASS (auth required; correct cookie handling; no over-revocation)
+    - Reliability: PASS (error paths and DB/KV failures handled in services)
+    - Maintainability: PASS (clear branching logic and validators)
+    - Performance: PASS (simple D1 updates and KV ops)
+  Recommendations:
+    - Consider adding explicit unauthorized test for logout route (401) even though middleware suite covers it.
+test-specs:
+  specs: []
+  artifacts: []
+risk-mitigation:
+  primary-risk: "Incorrect revocation scope could log users out unexpectedly or fail to revoke sessions."
+  mitigation-strategies:
+    - "Comprehensive tests for each mode and edge cases"
+    - "Idempotent revocation operations in D1; KV invalidation on revoke"
+    - "Explicit cookie clearing only when required"
+  rollback-plan: "Revert to single-session logout behavior by forcing mode='current' and disabling other branches."

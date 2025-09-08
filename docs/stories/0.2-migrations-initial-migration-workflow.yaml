@@ -1,0 +1,96 @@
+status: "Done"
+priority: null
+story:
+  role: "developer"
+  action: "to generate and apply the initial Prisma migration for the core models"
+  benefit: "the database can be reliably created and evolved via a standard workflow."
+acceptance-criteria:
+  - "Initial migration is generated from `src/db/schema.prisma` and applies cleanly on a fresh database. [Source: epics/0-app-init.md#workflows]"
+  - "Local commands exist and are documented to: (a) generate dev migrations and (b) apply migrations (dev/apply). [Source: epics/0-app-init.md#scope]"
+  - "Applying the migration produces the expected tables and indexes consistent with Section 3 reference SQL. [Source: docs/backend-architecture.md]"
+  - "The workflow is captured in repository scripts or docs (e.g., `db:migrate:create`, `db:migrate:apply`). [Source: epics/0-app-init.md#scope]"
+tasks-subtasks: |
+  -  [x] Generate initial migration from `src/db/schema.prisma`. (AC: 1) [Diff: 6]
+     -  [x] Verify a fresh D1 database applies the migration without errors. (AC: 1) [Diff: 3]
+     -  [x] Confirm tables and indexes match the intent of Section 3. [Source: docs/backend-architecture.md] [Diff: 3]
+  -  [x] Add or verify scripts/commands for migration dev and apply (e.g., `db:migrate:create`, `db:migrate:apply`). (AC: 2, 4) [Source: epics/0-app-init.md#scope] [Diff: 6]
+  -  [x] Document the migration workflow steps in repo docs (README or docs note). (AC: 4) [Source: epics/0-app-init.md#workflows] [Diff: 6]
+dev-notes: |
+  ### Platform and Tech Stack
+  
+  -  Workers on Cloudflare with D1 as the relational store; Prisma governs schema changes. [Source: docs/backend-architecture.md#1.1-purpose]
+  
+  ### Prisma Enforcement
+  
+  -  Use Prisma CLI for migration operations; do not edit SQL directly. [Source: docs/backend-architecture.md#important-—-prisma-enforcement]
+  
+  ### Project Structure / File Locations
+  
+  -  Prisma schema at `backend/src/db/schema.prisma` [Source: docs/backend-architecture.md#1.2-folder-structure]
+  -  Migrations output in `backend/src/db/migrations/`
+  -  Add repo scripts (e.g., in `backend/package.json`) for `db:migrate:create` and `db:migrate:apply`
+  
+  ### Testing Requirements
+  
+  No explicit testing strategy doc; validate via fresh DB apply and smoke checks on resulting tables.
+testing-standards:
+
+change-log:
+  - date: "2025-08-12"
+    version: "0.1"
+    description: "Initial draft of Story 0.2"
+    author: "Bob (SM)"
+developer-record:
+  agent-model: "Claude Sonnet 4 (James - Full Stack Developer Agent)"
+  debug-log-references:
+    - "Initial migration generated: `20250812144018_initial_migration`"
+    - "Migration applied successfully to D1 database"
+    - "Scripts validated: `db:migrate:create` and `db:migrate:apply` working properly"
+  completion-notes: []
+  file-list:
+    - "`backend/src/db/migrations/20250812144018_initial_migration/migration.sql` - Initial database migration"
+    - "`backend/src/db/migrations/migration_lock.toml` - Migration lock file"
+    - "Existing: `backend/package.json` - Contains migration scripts"
+qa-results: |
+  ### Review Date: 2025-08-12
+  
+  ### Reviewed By: Quinn (Senior Developer QA)
+  
+  ### Code Quality Assessment
+  
+  -  Initial migration `20250812144018_initial_migration` creates tables, FKs, and indexes that match the Prisma schema and Section 3 SQL.
+  -  Repository scripts include `db:migrate:create` and `db:migrate:apply`; paths and structure under `backend/src/db/migrations/` are correct.
+  
+  ### Refactoring Performed
+  
+  -  None.
+  
+  ### Compliance Check
+  
+  -  Coding Standards: ✓
+  -  Project Structure: ✓
+  -  Testing Strategy: N/A (validated via migration apply in Dev Agent Record)
+  -  All ACs Met: ✓
+  
+  ### Improvements Checklist
+  
+  -  [x] Optionally add a `db:migrate:reset` script for fresh local resets.
+  
+  ### Security Review
+  
+  -  N/A (schema/migration only).
+  
+  ### Performance Considerations
+  
+  -  Indices on `tasks` and `reminders` look appropriate for expected queries.
+  
+  ### Final Status
+  
+  -  ✓ Approved - Ready for Done
+test-specs:
+  specs: []
+  artifacts: []
+risk-mitigation:
+  primary-risk: ""
+  mitigation-strategies: []
+  rollback-plan: ""

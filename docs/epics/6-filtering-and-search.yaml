@@ -1,0 +1,39 @@
+status: "Review"
+epic-overview:
+  goal: |
+    Enable users to filter and search tasks efficiently.
+  description: |
+    API (v1):
+    - GET `/v1/tasks` — Filters via query params; supports `page[size]` and `page[cursor]` or `offset/limit`
+    - GET `/v1/search?query=...` — Returns tasks matching substring criteria (title; note optional)
+    
+    Caching:
+    - List results cached in KV for short TTL (30s); bypass cache when filters are highly specific if needed
+    
+    Risks & Mitigations:
+    - KV eventual consistency may show stale lists — keep TTL short and invalidate on writes
+    - LIKE-based search can be slow — rely on indexes and constrain query shapes; consider FTS post-MVP
+  definition_of_done:
+    - "Filtering and search implemented with validation and tests"
+    - "Query planner reviewed; indexes in place"
+scope-boundaries:
+  in-scope:
+    - "Filtering on list endpoint: `group_id`, `priority`, `status`, `due_before`, `due_after`"
+    - "Pagination and sorting (e.g., by deadline desc, priority desc, created_at desc)"
+    - "Basic search endpoint for substring search across `title` (and optionally `note`)"
+  out-of-scope:
+    - "Advanced full-text search with stemming/ranking; MVP uses substring search with indexes"
+requirements-mapping:
+  functional-requirements:
+    - "**FR6:** Filtering & Searching — Full"
+  non-functional-requirements:
+    - "**NFR2:** Performance — Indexed queries; cached listings"
+    - "**NFR5:** Data Consistency — Cache invalidation on writes"
+story-breakdown:
+  story-list:
+    - "1: Filtering & search endpoints — Implement list filters and /search [Priority: 3]"
+  story-sequencing-rationale: "Depends on Tasks (Epic 2) and indexes."
+dependencies:
+  dependencies:
+    - "**Epic 2:** Task CRUD — Requires tasks endpoints and data"
+  story-dependencies: []

@@ -1,0 +1,39 @@
+status: "Review"
+epic-overview:
+  goal: |
+    Allow users to read, update, and delete their profile information.
+  description: |
+    API (v1):
+    -  GET `/v1/users/me` — Get profile
+    -  PATCH `/v1/users/me` — Update profile
+    -  DELETE `/v1/users/me` — Delete account (and cascade user-owned data)
+    
+    Data Model:
+    -  `users(id, email, password_hash, first_name?, last_name?, username?, profile_image_url?, created_at, updated_at)`
+    
+    Risks & Mitigations:
+    -  Cascading deletes across many tables — implement transactional or staged deletion
+  definition_of_done:
+    - "Profile endpoints implemented with validation and tests"
+    - "Deletion path documented; destructive operation requires auth and confirmation token (MVP can be simple)"
+scope-boundaries:
+  in-scope:
+    - "Read/update profile fields: `first_name`, `last_name`, `username`, `profile_image_url`"
+    - "Account deletion endpoint"
+  out-of-scope:
+    - "Public user directories or search"
+    - "Social profile fields beyond core items (post-MVP)"
+requirements-mapping:
+  functional-requirements:
+    - "**FR8:** User Profiles — Full"
+  non-functional-requirements:
+    - "**NFR3:** Security — Auth required; access control to own profile"
+    - "**NFR5:** Data Consistency — Cascading deletes or scheduled cleanup"
+story-breakdown:
+  story-list:
+    - "1: User profile — Read/Update/Delete endpoints [Priority: 3]"
+  story-sequencing-rationale: "Follows Auth (Epic 1); independent of Tasks."
+dependencies:
+  dependencies:
+    - "**Epic 1:** Authentication — Requires session auth to identify user"
+  story-dependencies: []

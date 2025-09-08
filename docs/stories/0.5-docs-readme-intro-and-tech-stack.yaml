@@ -1,0 +1,83 @@
+status: "Done"
+priority: null
+story:
+  role: "developer/contributor"
+  action: "a concise `docs/README.md` with project introduction and tech stack overview"
+  benefit: "new contributors understand the system quickly and can get started."
+acceptance-criteria:
+  - "Create or update `docs/README.md` with: project introduction/purpose and tech stack overview. [Source: epics/0-app-init.md#scope]"
+  - "Tech stack reflects architecture Section 1 (Hono, Cloudflare Workers, D1, Kysely, KV, and R2 note). [Source: docs/backend-architecture.md#1.1-purpose]"
+  - "Document, at a high level, where to find PRD, epics, and architecture docs in `docs/v1/*` for orientation."
+  - "Include quick links to API endpoints doc and schema overview sections. [Source: docs/backend-architecture.md] [Source: docs/backend-architecture.md]"
+  - "Mention the backend folder layout to orient contributors (`backend/src/{routes,services,db,...}`). [Source: docs/backend-architecture.md#1.2-folder-structure]"
+tasks-subtasks: |
+  -  [x] Draft or revise `docs/README.md` to include: intro, goals, and tech stack summary aligned with Section 1. (AC: 1, 2) [Source: docs/backend-architecture.md#1.1-purpose] [Diff: 6]
+     -  [x] Add links to `docs/v1/prd.md`, `docs/v1/epics/*`, and `docs/v1/architecture/*`. (AC: 3) [Diff: 3]
+     -  [x] Link to API Endpoints and Database Schema sections. (AC: 4) [Diff: 3]
+dev-notes: |
+  ### Orientation
+  
+  -  Architecture overview, API endpoints, and schema are the primary references for contributors. [Source: docs/backend-architecture.md] [Source: docs/backend-architecture.md] [Source: docs/backend-architecture.md]
+  -  Folder structure: `backend/src/` contains `routes/`, `services/`, `db/`, `validators/`, `middlewares/`, `utils/`, `index.ts`, and `types.ts`. [Source: docs/backend-architecture.md#1.2-folder-structure]
+  
+  ### Testing Requirements
+  
+  Documentation; no tests required. Ensure links resolve.
+testing-standards:
+
+change-log:
+  - date: "2025-08-12"
+    version: "0.1"
+    description: "Initial draft of Story 0.5"
+    author: "Bob (SM)"
+developer-record:
+  agent-model: "Claude Sonnet 4 (James - Full Stack Developer Agent)"
+  debug-log-references:
+    - "Created comprehensive documentation covering all acceptance criteria"
+    - "Included all required links to PRD, epics, and architecture docs"
+    - "Added developer-friendly quick start guide and commands"
+  completion-notes: []
+  file-list:
+    - "`docs/README.md` - Complete project documentation with intro, tech stack, and navigation"
+qa-results: |
+  ### Review Date: 2025-08-12
+  
+  ### Reviewed By: Quinn (Senior Developer QA)
+  
+  ### Code Quality Assessment
+  
+  -  `docs/README.md` includes project introduction, tech stack aligned with architecture, quick links to PRD/Epics/Architecture, API endpoints, and database schema. Backend folder structure overview is present.
+  
+  ### Refactoring Performed
+  
+  -  None.
+  
+  ### Compliance Check
+  
+  -  Coding Standards: ✓
+  -  Project Structure: ✓
+  -  Testing Strategy: N/A (documentation)
+  -  All ACs Met: ✓
+  
+  ### Improvements Checklist
+  
+  -  N/A.
+  
+  ### Security Review
+  
+  -  N/A.
+  
+  ### Performance Considerations
+  
+  -  N/A.
+  
+  ### Final Status
+  
+  -  ✓ Approved - Ready for Done
+test-specs:
+  specs: []
+  artifacts: []
+risk-mitigation:
+  primary-risk: ""
+  mitigation-strategies: []
+  rollback-plan: ""

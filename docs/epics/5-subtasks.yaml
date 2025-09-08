@@ -1,0 +1,39 @@
+status: "Review"
+epic-overview:
+  goal: |
+    Allow users to break a task into smaller subtasks with independent completion status.
+  description: |
+    API (v1):
+    - POST `/v1/tasks/:id/subtasks` — Create subtask (title, initial status optional)
+    - PATCH `/v1/subtasks/:id` — Update title/status
+    - DELETE `/v1/subtasks/:id` — Delete subtask
+    - (Optional) GET `/v1/tasks/:id/subtasks` — List subtasks of task
+    
+    Data Model:
+    - `subtasks(id, task_id, title, status, created_at, updated_at)` with FK `ON DELETE CASCADE`
+    
+    Risks & Mitigations:
+    - Performance on listing with embedded subtasks — consider optional `include=subtasks` flag
+  definition_of_done:
+    - "Subtask endpoints implemented with validation and tests"
+    - "FK cascade verified in migrations"
+scope-boundaries:
+  in-scope:
+    - "CRUD for `subtasks` under a parent task"
+    - "Enforce ownership via parent task’s user"
+  out-of-scope:
+    - "Nested subtasks beyond one level (no arbitrary depth in MVP)"
+    - "Cross-task dependencies"
+requirements-mapping:
+  functional-requirements:
+    - "**FR5:** Subtasks — Full"
+  non-functional-requirements:
+    - "**NFR5:** Data Consistency — FK cascade on delete"
+story-breakdown:
+  story-list:
+    - "1: Subtasks — CRUD under parent task [Priority: 3]"
+  story-sequencing-rationale: "Depends on Tasks (Epic 2)."
+dependencies:
+  dependencies:
+    - "**Epic 2:** Task CRUD — Parent task must exist"
+  story-dependencies: []

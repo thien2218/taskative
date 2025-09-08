@@ -1,0 +1,40 @@
+status: "Review"
+epic-overview:
+  goal: |
+    Send reminder notifications based on task settings at the scheduled reminder time.
+  description: |
+    API (v1):
+    - No public API for delivery; delivery is background. Delivery logs accessible via platform logs.
+    
+    Data Model:
+    - `reminders(id, task_id, user_id, remind_at, repeat_interval?, last_sent_at?, status)`
+    
+    Risks & Mitigations:
+    - Clock skew/timezone — standardize on UTC in storage; clients convert
+    - High load bursts — cap per-run batch size; simple backoff on failures
+  definition_of_done:
+    - "Cron Worker implemented and scheduled"
+    - "Unit tests for scheduler windowing and state transitions"
+    - "Observability: minimal structured logs for sends/failures"
+scope-boundaries:
+  in-scope:
+    - "Cron Worker runs at short interval (e.g., every minute)"
+    - "On each run, find reminders due in the next minute and send notifications (push/email stub ok)"
+    - "Update `reminders.status` and `last_sent_at`; if repeating, schedule next occurrence"
+  out-of-scope:
+    - "Durable queues, retries with DLQ, or dedicated messaging infra (post-MVP)"
+    - "Rich in-app notification center (post-MVP)"
+requirements-mapping:
+  functional-requirements:
+    - "**FR7:** Notifications — Full"
+  non-functional-requirements:
+    - "**NFR2:** Performance — Bounded batch size; periodic scheduling"
+    - "**NFR4:** Reliability — Retry on next tick; structured logs"
+story-breakdown:
+  story-list:
+    - "1: Cron delivery — Scan due reminders and send notifications [Priority: 3]"
+  story-sequencing-rationale: "Depends on Task Settings (Epic 4) for reminder data."
+dependencies:
+  dependencies:
+    - "**Epic 4:** Task Settings — Provides reminder rows to deliver"
+  story-dependencies: []

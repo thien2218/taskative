@@ -1,0 +1,52 @@
+status: "Review"
+epic-overview:
+  goal: |
+    Enable users to create, read, update, and delete tasks with core fields, ensuring fast reads via KV cache and D1 as source of truth.
+  description: |
+    API (v1):
+    - POST `/v1/tasks` — Create task
+    - GET `/v1/tasks` — List/filter tasks (see Epic 6 for filters and search)
+    - GET `/v1/tasks/:id` — Get task detail
+    - PATCH `/v1/tasks/:id` — Partial update
+    - DELETE `/v1/tasks/:id` — Delete task
+    
+    Data Model:
+    - `tasks(id, user_id, group_id?, title, note?, priority?, effort?, deadline?, repeat_interval?, remind_at?, status, created_at, updated_at)`
+    - Indexes: `idx_tasks_user_status_due`, `idx_tasks_user_priority_due`, `idx_tasks_title_search`
+    
+    Caching:
+    - KV keys: `task-list:{user_id}:{sort}:{filter}`, `task:{task_id}`
+    - TTL: list/detail 30s; Invalidate on create/update/delete
+    
+    Risks & Mitigations:
+    - Stale reads from KV — keep TTL short (30s) and invalidate on writes
+    - Hot partitions on list queries — ensure composite indexes and conservative default page size
+  definition_of_done:
+    - "All endpoints implemented with validation and tests"
+    - "KV caching wrapper + invalidation utilities in place"
+    - "Kysely queries compiled; migration includes indexes"
+scope-boundaries:
+  in-scope:
+    - "CRUD for `tasks`"
+    - "Ownership enforcement per authenticated user"
+    - "Basic server-side validation"
+    - "Read caching and cache invalidation on writes"
+  out-of-scope:
+    - "Advanced task hierarchies (beyond subtasks)"
+    - "Attachments (post-MVP)"
+    - "Analytics/metrics (post-MVP)"
+requirements-mapping:
+  functional-requirements:
+    - "**FR2:** Task CRUD — Full"
+  non-functional-requirements:
+    - "**NFR2:** Performance — KV cached reads with short TTL"
+    - "**NFR5:** Data Consistency — D1 authoritative; KV cache invalidation"
+    - "**NFR6:** Maintainability — Prisma-first schema with generated Kysely types"
+story-breakdown:
+  story-list:
+    - "1: Tasks — CRUD — Implement endpoints and services [Priority: 1]"
+  story-sequencing-rationale: "Depends on Auth sessions to enforce ownership; builds after Epic 1."
+dependencies:
+  dependencies:
+    - "**Epic 1:** Authentication — Session middleware for ownership enforcement"
+  story-dependencies: []

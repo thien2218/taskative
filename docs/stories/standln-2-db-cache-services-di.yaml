@@ -1,0 +1,138 @@
+status: "WIP"
+priority: null
+story:
+  role: "backend platform engineer"
+  action: "to introduce dedicated DatabaseService and CacheService with service container pattern and inject them into existing services"
+  benefit: "we decouple infrastructure concerns, improve testability, eliminate duplicate service instances, and standardize access patterns"
+acceptance-criteria:
+  - "A ServiceContainer class manages service lifecycle with singleton behavior per request scope."
+  - "Two new services exist: DatabaseService (wrapping Kysely/Prisma access and connections) and CacheService (wrapping KV operations)."
+  - "Existing services (e.g., AuthService, SessionService) are refactored to receive dependencies via constructor injection rather than importing singletons."
+  - "Services with interdependencies (e.g., AuthService depends on SessionService) share the same instances through the container."
+  - "A simple service container/factory builds service instances with shared infra dependencies (DB, cache, config)."
+  - "Unit tests can substitute in-memory or mocked dependencies for DatabaseService and CacheService."
+  - "No behavior changes to public APIs; only structural refactor with green tests."
+tasks-subtasks: |
+  - [x] Create ServiceContainer infrastructure (AC: 1, 5) [Diff: 8]
+    - [x] Implement ServiceContainer class with service factory registration, singleton management, and lazy instantiation.
+    - [x] Add get<T>(key) method for type-safe service resolution with dependency injection.
+    - [x] Add override(key, instance) method for test mocking capabilities.
+    - [x] Create createContainer(env) factory function that uses ServiceContainer internally.
+  - [x] Introduce DatabaseService (AC: 2) [Diff: 5]
+    - [x] Define interface: query builders, transactions, and helpers around generated Kysely `DB` types; ensure camelCase mapping remains intact.
+    - [x] Implement adapter using existing database initialization in `backend/src/db/`.
+    - [x] Move Kysely initialization into DatabaseService constructor; encapsulate `D1Dialect` and `CamelCasePlugin`.
+    - [x] Delete legacy factory file `backend/src/db/index.ts` and update imports.
+  - [x] Introduce CacheService (AC: 2) [Diff: 4]
+    - [x] Define interface: get, set with TTL, delete, mdelete; namespaced key helpers.
+    - [x] Implement adapter using current KV access patterns.
+  - [x] Apply constructor injection with container (AC: 3, 4) [Diff: 7]
+    - [x] Refactor SessionService to accept `{ db: DatabaseService, cache: CacheService }` (and config) via constructor.
+    - [x] Refactor AuthService to accept `{ db: DatabaseService, cache: CacheService, session: SessionService }` (and config) via constructor - session service is injected, not instantiated.
+    - [x] Register service factories in ServiceContainer ensuring AuthService and direct SessionService usage share the same SessionService instance.
+  - [ ] Tests and mocks (AC: 6) [Diff: 5]
+    - [ ] Provide in-memory adapters/mocks for DatabaseService and CacheService to ease unit tests.
+    - [ ] Create test cases for database and cache services.
+    - [ ] Update affected tests to use the container and substitute mocks via override method.
+  - [x] No behavior change (AC: 7) [Diff: 2]
+    - [x] Ensure API contract and external behaviors are unchanged; run existing test suite.
+dev-notes: |
+  ### Previous Story Insights
+  - Current services sometimes import DB or KV directly, which hinders isolation and testing. Services with interdependencies can create multiple instances of the same service (e.g., AuthService creating its own SessionService while SessionService is also used standalone). Introducing service container with singleton management centralizes access and prevents duplicate instances.
+
+  ### ServiceContainer Requirements
+  - **Singleton Management**: Each service MUST be instantiated exactly once per container instance. Use Map-based caching with lazy instantiation.
+  - **Dependency Resolution**: Services that depend on other services (e.g., AuthService depends on SessionService) must receive the SAME instance that would be returned by container.get('session').
+  - **Service Factory Pattern**: Register factories that receive the container for dependency resolution.
+
+  ### Interfaces
+  - `DatabaseService`: exposes strongly-typed query access to generated Kysely `DB` types, transaction helpers, and a way to run raw SQL if needed. Prefer composition over inheritance.
+  - `CacheService`: minimal API around KV with TTL support and batch deletes. Keys should follow existing naming conventions.
+
+  ### Service Dependencies Map
+  - DatabaseService: No dependencies (infrastructure)
+  - CacheService: No dependencies (infrastructure)  
+  - SessionService: depends on [db: DatabaseService, cache: CacheService, config]
+  - AuthService: depends on [db: DatabaseService, cache: CacheService, session: SessionService, config]
+
+  ### Runtime Components
+  - API Edge (Cloudflare Workers + Hono) instantiates a container per request or per env binding, passing `{ env, db, kv }` as needed.
+  - Container manages service lifecycle within request scope.
+
+  ### File Locations
+  - New services: backend/src/services/database.ts, backend/src/services/cache.ts
+  - Container: backend/src/container.ts (or backend/src/di/index.ts)
+  - Service refactors: backend/src/services/*.ts
+  - Tests: backend/src/__tests__/**/*
+
+  ### Technical Constraints and Notes
+  - Maintain Kysely CamelCase plugin mapping; do not manually rename fields in code.
+  - Keep changes incremental: introduce interfaces and adapters, refactor one service at a time, keep green.
+  - Avoid global singletons in runtime code; prefer injected instances through container.
+  - Container must handle lazy instantiation and prevent circular dependencies.
+
+  ### Container Implementation Pattern
+  ```typescript
+  // Service factory registration example
+  this.factories.set('auth', (container) => 
+    new AuthService({
+      db: container.get('database'),
+      cache: container.get('cache'), 
+      session: container.get('session'), // Same instance as direct usage
+      config: this.env
+    })
+  );
+  ```
+
+  ### Testing with Container
+  ```typescript
+  // Services can be mocked individually while maintaining dependencies
+  container.override('database', mockDatabase);
+  // SessionService and AuthService automatically use mockDatabase
+  const authService = container.get('auth'); // Uses real SessionService with mocked DB
+  ```
+
+testing-standards:
+  - "Provide unit tests substituting in-memory adapters for both DatabaseService and CacheService"
+  - "Verify no behavior regressions via existing route/service tests"
+  - "Container tests must verify service instance sharing (same SessionService in AuthService and direct usage)"
+  - "All tests must use ServiceContainer with service mocking via container.override()"
+change-log:
+  - date: "2025-09-07"
+    version: "0.2" 
+    description: "Updated: Add service Container pattern with singleton management; prevent duplicate service instances"
+    author: "PM"
+developer-record:
+  agent-model: "dev"
+  debug-log-references:
+    - "vitest run"
+  completion-notes:
+    - "Implemented DI container and refactored services to use constructor injection; ensured no behavior change with all tests green."
+  file-list:
+    - "backend/src/di/container.ts"
+    - "backend/src/di/index.ts"
+    - "backend/src/services/database.ts"
+    - "backend/src/services/cache.ts"
+    - "backend/src/services/session.ts"
+    - "backend/src/services/auth.ts"
+    - "backend/src/index.ts"
+    - "backend/src/middlewares.ts"
+    - "backend/src/routes/auth.ts"
+    - "backend/src/types/index.ts"
+qa-results: |
+  _To be completed by QA Agent_
+test-specs:
+  specs:
+    - "ServiceContainer singleton behavior: container.get('session') === authService.sessionService"
+    - "Service mocking propagation: mocked DatabaseService flows to SessionService and AuthService"
+    - "Lazy instantiation: services only created when first requested"
+    - "Container prevents duplicate service instances across interdependent services"
+  artifacts: []
+risk-mitigation:
+  primary-risk: "Complex dependency graph with service container could introduce circular dependencies or initialization order issues"
+  mitigation-strategies:
+    - "Implement dependency cycle detection in container"
+    - "Use lazy service instantiation to break potential cycles"
+    - "Start with simple linear dependencies (infrastructure → business services)"
+    - "Provide mocks and ensure test coverage before wide rollout"
+  rollback-plan: "Keep old code paths temporarily alongside container; revert to direct imports if container issues arise"

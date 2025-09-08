@@ -1,0 +1,170 @@
+status: "Done"
+priority: null
+story:
+  role: "backend platform engineer"
+  action: "to replace the previous access/refresh-token authentication with a session-backed JWT cookie and renewal middleware"
+  benefit: "authentication matches the updated v1 architecture and improves security and UX without client-managed refresh tokens."
+acceptance-criteria:
+  - "Login sets a signed 20-minute session JWT cookie containing session ID, user ID, and email. No separate refresh token is used. [Source: epics/1-authentication.md#Acceptance-Criteria] [Source: docs/backend-architecture.md#1.6-authentication-flow] [Source: docs/api/auth-endpoints.md] [Source: docs/api/auth-endpoints.md]"
+  - "Register also sets a signed 20-minute session JWT cookie on success, and never stores plain text passwords. [Source: docs/api/auth-endpoints.md] [Source: docs/backend-architecture.md#1.3-high-level-components-mvp]"
+  - "Middleware on all non-public routes verifies the cookie token; if expired, it extracts session ID + user ID and checks KV first, then D1; when valid, it issues a new 20-minute cookie token and allows the request to proceed; otherwise returns 401 Unauthorized. [Source: epics/1-authentication.md#Acceptance-Criteria] [Source: docs/backend-architecture.md#1.6-authentication-flow] [Source: docs/backend-architecture.md]"
+  - "Server-side session management is implemented using the `taskative_sessions` table (D1) with KV cache for hot lookups; logout revokes the session and clears the cookie. [Source: epics/1-authentication.md#Scope] [Source: docs/backend-architecture.md#sessions] [Source: docs/api/auth-endpoints.md]"
+  - "Implement `POST /v1/auth/logout` to revoke the active session and clear the cookie. [Source: docs/api/auth-endpoints.md]"
+  - "Minimal rate limiting and input validation are in place for auth endpoints. [Source: epics/1-authentication.md#Acceptance-Criteria]"
+  - "Unit/integration tests cover register, login, logout, and middleware renewal path for expired tokens; tests confirm no refresh token logic remains. [Source: epics/1-authentication.md#Definition-of-Done] [Source: docs/api/auth-endpoints.md#Testing]"
+  - "API documentation reflects the session-backed cookie flow (no refresh token), and includes logout docs. [Source: docs/api/auth-endpoints.md] [Source: docs/api/auth-endpoints.md]"
+tasks-subtasks: |
+  -  [x] Data layer and migrations (AC: 4) [Diff: 6]
+     -  [x] Add Prisma model and migration for `taskative_sessions` table to match architecture (id, user_id, status, created_at, expires_at, revoked_at). [Source: docs/backend-architecture.md#sessions] [Diff: 3]
+     -  [x] Generate/update Kysely types via Prisma generators. [Source: docs/backend-architecture.md#Database-Commands] [Diff: 3]
+  -  [x] Session service and KV integration (AC: 3, 4) [Diff: 6]
+     -  [x] Implement `SessionService` with create/revoke/find operations, writing to D1 and populating KV with key `session:{session_id}` and TTL per strategy. [Source: docs/backend-architecture.md#Key-Naming] [Source: docs/backend-architecture.md#TTLs] [Diff: 3]
+     -  [x] Provide helpers to serialize minimal session payloads for JWT claims (session ID, user ID, email). [Source: docs/backend-architecture.md#1.6-authentication-flow] [Diff: 3]
+  -  [x] Middleware (AC: 3) [Diff: 6]
+     -  [x] Create `auth` middleware that verifies JWT from cookie for non-public routes; on expiry, extract session info, check KV then D1, and renew cookie when valid. [Source: docs/backend-architecture.md#1.6-authentication-flow] [Diff: 3]
+     -  [x] Ensure unauthorized requests return 401 without leaking which field/condition failed. [Source: docs/api/auth-endpoints.md#Error-Handling] [Diff: 3]
+  -  [x] Routes (AC: 1, 2, 5) [Diff: 6]
+     -  [x] Update `POST /v1/auth/register` to set the signed 20m session JWT cookie on success. [Source: docs/api/auth-endpoints.md#POST-/v1/auth/register] [Diff: 3]
+     -  [x] Update `POST /v1/auth/login` to create a server-side session and set the signed 20m session JWT cookie on success. [Source: docs/api/auth-endpoints.md#POST-/v1/auth/login] [Diff: 3]
+     -  [x] Implement `POST /v1/auth/logout` to revoke session and clear cookie. [Source: docs/api/auth-endpoints.md] [Diff: 3]
+  -  [x] Validation and rate limiting (AC: 6) [Diff: 6]
+     -  [x] Enforce request validation with Zod on register/login payloads (email format, password length). [Source: docs/api/auth-endpoints.md#Validation] [Diff: 3]
+     -  [x] Implement minimal per-IP rate limiting for auth endpoints. [Source: epics/1-authentication.md#Acceptance-Criteria] [Diff: 3]
+  -  [x] Documentation (AC: 8) [Diff: 6]
+     -  [x] Update `docs/docs/api/auth-endpoints.md` with session-backed cookie behavior and add logout endpoint docs, keeping examples aligned (no refresh token). [Source: docs/api/auth-endpoints.md] [Diff: 3]
+     -  [x] Cross-link from README/auth area if present. [Source: docs/api/auth-endpoints.md] [Diff: 3]
+  -  [x] Tests (AC: 7) [Diff: 6]
+     -  [x] Register: success sets cookie; duplicate email rejected; no plain text password logging. [Source: docs/api/auth-endpoints.md#Security-Features] [Diff: 3]
+     -  [x] Login: success sets cookie; invalid credentials rejected with generic message. [Source: docs/api/auth-endpoints.md#Error-Handling] [Diff: 3]
+     -  [x] Middleware renewal path: expired cookie → KV hit → D1 hit → renew cookie; invalid session → 401. [Source: docs/backend-architecture.md#1.6-authentication-flow] [Diff: 3]
+     -  [x] Logout: revokes session and clears cookie. [Source: docs/api/auth-endpoints.md] [Diff: 3]
+  -  [x] Cleanup (AC: 1, 2, 8) [Diff: 6]
+     -  [x] Remove legacy refresh token logic, configuration, and tests; migrate to single session cookie flow. [Source: docs/api/auth-endpoints.md] [Diff: 3]
+     -  [x] Ensure no references remain to `tokenVersion` or refresh token storage from earlier implementation. [Diff: 3]
+dev-notes: |
+  ### Previous Story Insights
+  
+  -  Prior Story 1.1 implemented access + refresh tokens and referenced a `token_version` field. The v1 architecture replaces this with a server-side session and a 20-minute cookie JWT with middleware renewal. Ensure removal of refresh-token code paths and any `token_version` references to align with v1 docs. [Source: stories/1.1-auth-register-login.md] [Source: docs/backend-architecture.md#1.6-authentication-flow]
+  
+  ### Data Models
+  
+  -  `users` table: `id`, `email` (unique), `password_hash`, profile fields, timestamps. [Source: docs/backend-architecture.md#users]
+  -  `taskative_sessions` table: `id` (session ID), `user_id`, `status` (active/revoked), `created_at`, `expires_at`, `revoked_at?`. [Source: docs/backend-architecture.md#sessions]
+  
+  ### API Specifications
+  
+  -  Auth endpoints (MVP scope for this story):
+     -  `POST /v1/auth/register` — create account, set signed 20m session JWT cookie. [Source: docs/api/auth-endpoints.md#POST-/v1/auth/register]
+     -  `POST /v1/auth/login` — authenticate, create session, set signed 20m session JWT cookie. [Source: docs/api/auth-endpoints.md#POST-/v1/auth/login]
+     -  `POST /v1/auth/logout` — revoke session and clear cookie. [Source: docs/api/auth-endpoints.md]
+  
+  ### Runtime Components
+  
+  -  API Edge Layer (Cloudflare Workers + Hono) hosts routes and validation. [Source: docs/backend-architecture.md#1.3-high-level-components-mvp]
+  -  Auth Service handles bcrypt hashing. [Source: docs/backend-architecture.md#1.3-high-level-components-mvp]
+  -  KV cache holds hot session entries (`session:{session_id}`) with short TTL; D1 is the source of truth. [Source: docs/backend-architecture.md]
+  
+  ### File Locations
+  
+  -  Routes under `backend/src/routes/` (auth routes). [Source: docs/backend-architecture.md#1.2-folder-structure]
+  -  Middlewares under `backend/src/middlewares/` (auth/session middleware). [Source: docs/backend-architecture.md#1.2-folder-structure]
+  -  Services under `backend/src/services/` (`AuthService`, `SessionService`). [Source: docs/backend-architecture.md#1.2-folder-structure]
+  -  DB access under `backend/src/db/`. [Source: docs/backend-architecture.md#1.2-folder-structure]
+  -  Validators under `backend/src/validators/` for request validation. [Source: docs/backend-architecture.md#1.2-folder-structure]
+  
+  ### Testing Requirements
+  
+  -  Follow unit test coverage from API docs security/testing and epic DoD for auth flows. [Source: docs/api/auth-endpoints.md#Testing] [Source: epics/1-authentication.md#Definition-of-Done]
+  -  Test file placement under `backend/src/__tests__/`. [Source: docs/backend-architecture.md#1.2-folder-structure]
+  
+  ### Technical Constraints and Notes
+  
+  -  Password hashing must use bcrypt and run in the dedicated Auth Service Worker. [Source: docs/backend-architecture.md#1.3-high-level-components-mvp]
+  -  JWT tokens are stored as HTTP-only cookies and expire in 20 minutes; middleware renews them when a valid server-side session exists. [Source: docs/backend-architecture.md#1.6-authentication-flow]
+  -  KV is eventual-consistent; use KV only as a cache for sessions, with D1 as the source of truth. [Source: docs/backend-architecture.md]
+  
+  ### Project Structure Notes
+  
+  -  Story files for v1 are located under `docs/v1/stories/` (this story follows that convention).
+testing-standards:
+  - "Follow unit test coverage from API docs security/testing and epic DoD for auth flows. [Source: docs/api/auth-endpoints.md#Testing] [Source: epics/1-authentication.md#Definition-of-Done]"
+  - "Test file placement under `backend/src/__tests__/`. [Source: docs/backend-architecture.md#1.2-folder-structure]"
+change-log:
+  - date: "2025-08-13"
+    version: "0.1"
+    description: "Draft: migrate auth to session-backed cookie + middleware"
+    author: "Bob (SM)"
+developer-record:
+  agent-model: "Claude 3.5 Sonnet (20241022)"
+  debug-log-references:
+    - "All linting errors resolved successfully"
+    - "Database migration executed: `20250813124317_new_auth_flow`"
+    - "Comprehensive test suite implemented for session-based authentication"
+  completion-notes: []
+  file-list:
+    - "`backend/src/services/session.ts` - Session management service"
+    - "`backend/src/middlewares/auth.ts` - Session-based authentication middleware"
+    - "`backend/src/middlewares/rate-limiter.ts` - Rate limiting middleware"
+    - "`backend/src/db/migrations/20250813124317_new_auth_flow/migration.sql` - Database migration"
+    - "`backend/src/types/index.ts` - Core app types (AppEnv/Bindings/UserContext)"
+    - "`backend/src/types/auth.ts` - Auth service result types"
+    - "`backend/src/types/session.ts` - Session service types"
+    - "`backend/src/db/schema.prisma` - Added sessions table, removed token_version"
+    - "`backend/src/db/types.ts` - Updated with Session type definitions"
+    - "`backend/src/services/auth.ts` - Migrated to session-based authentication"
+    - "`backend/src/routes/auth.ts` - Uses services per-request; sets/clears cookie in router via SessionService cookie config"
+    - "`backend/src/middlewares/auth.ts` - Uses instance SessionService for verify/renew and cookie config"
+    - "`backend/src/index.ts` - Updated to use new auth middleware"
+    - "`backend/src/db/seed.ts` - Removed token_version references"
+    - "`backend/src/__tests__/auth.test.ts` - Comprehensive session auth tests"
+    - "`docs/docs/api/auth-endpoints.md` - Updated documentation with session flow"
+    - "`backend/src/utils/jwt.ts` - Replaced by SessionService internal token generation"
+    - "`backend/src/types.ts` - Replaced by types folder structure"
+qa-results: |
+  ### Review Date: 2025-08-13
+  
+  ### Reviewed By: Quinn (Senior Developer QA)
+  
+  ### Code Quality Assessment
+  
+  Implementation matches the session-backed JWT cookie architecture with clear separation of concerns. Based on the product direction, the cookie name, password policy, and public-route documentation were aligned in docs without requesting code changes.
+  
+  ### Documentation Updates Performed
+  
+  -  **File**: `docs/docs/api/auth-endpoints.md`
+  
+     -  **Change**: Standardized cookie name to `taskative_session` across validation/response notes and examples
+     -  **Change**: Updated register password validation to minimum 8 characters
+  
+  ### Compliance Check
+  
+  -  Coding Standards: ✓
+  -  Project Structure: ✓
+  -  Testing Strategy: ✓ (per-feature testing approach acknowledged by product; no changes requested here)
+  -  All ACs Met: ✓ (approved per team decision on test scope for this story)
+  
+  ### Security Review
+  
+  -  Bcrypt in use; no plaintext password storage/logging observed. Session JWT remains HTTP-only with 20-minute expiry. Renewal relies on server-side session validation (KV/D1) after extracting `sessionId` from an expired token payload.
+  
+  ### Performance Considerations
+  
+  -  In-memory rate limiter is acceptable for demo; consider durable store if horizontally scaling.
+  
+  ### Final Status
+  
+  [✓ Approved - Ready for Done]
+  artifacts:
+    - backend/src/__tests__/routes/auth.spec.ts — Auth routes
+    - backend/src/__tests__/services/auth.spec.ts — Auth services
+    - backend/src/__tests__/middlewares.spec.ts — Middleware
+test-specs:
+  specs: []
+  artifacts:
+    - backend/src/__tests__/routes/auth.spec.ts — Auth routes
+    - backend/src/__tests__/services/auth.spec.ts — Auth services
+    - backend/src/__tests__/middlewares.spec.ts — Middleware
+risk-mitigation:
+  primary-risk: ""
+  mitigation-strategies: []
+  rollback-plan: ""

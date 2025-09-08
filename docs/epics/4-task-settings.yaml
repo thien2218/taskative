@@ -1,0 +1,43 @@
+status: "Review"
+epic-overview:
+  goal: |
+    Support per-task settings for deadline, repeat interval, reminder time, priority, and effort estimate.
+  description: |
+    API (v1):
+    - POST `/v1/tasks` — Accept settings at creation
+    - PATCH `/v1/tasks/:id` — Update settings (partial)
+    
+    Data Model:
+    - `tasks(..., deadline DATETIME, repeat_interval TEXT, remind_at DATETIME, priority INTEGER, effort INTEGER, ...)`
+    - `reminders(id, task_id, user_id, remind_at, repeat_interval?, last_sent_at?, status)`
+    
+    Risks & Mitigations:
+    - Duplicate reminder logic vs Epic 7 — keep single responsibility: Epic 4 writes data; Epic 7 delivers
+    - Repeat semantics can be ambiguous — document allowed enums and rollover behavior
+  definition_of_done:
+    - "Validation implemented; migrations include needed columns/indexes"
+    - "Unit/integration tests for create/update with settings"
+    - "Reminders row lifecycle covered (create/update/delete)"
+scope-boundaries:
+  in-scope:
+    - "Persist settings on `tasks` fields: `deadline`, `repeat_interval`, `remind_at`, `priority`, `effort`"
+    - "Maintain a corresponding `reminders` row if `remind_at` is set (see Epic 7 for delivery)"
+    - "Validate inputs: priority bounds (e.g., 0–3), non-past deadlines (warning allowed), ISO8601 times"
+  out-of-scope:
+    - "Complex recurrence rules (RRULE); MVP supports simple presets (none, daily, weekly, monthly)"
+    - "Sophisticated time zones UI (server treats times as ISO UTC; clients handle local)"
+requirements-mapping:
+  functional-requirements:
+    - "**FR4:** Task Settings — Full"
+  non-functional-requirements:
+    - "**NFR2:** Performance — Reminder calculations efficient; indexes in place"
+    - "**NFR5:** Data Consistency — Reminder row lifecycle aligned with task"
+story-breakdown:
+  story-list:
+    - "1: Task settings — Persist fields and manage reminder rows [Priority: 2]"
+  story-sequencing-rationale: "Builds on Tasks (Epic 2); enables Notifications (Epic 7)."
+dependencies:
+  dependencies:
+    - "**Epic 2:** Task CRUD — Requires tasks schema and endpoints"
+    - "**Epic 7:** Notifications (consumer of reminders)"
+  story-dependencies: []

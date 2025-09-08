@@ -1,0 +1,37 @@
+{
+	"schema": 1,
+	"story": "standln-1",
+	"story_title": "session-device-metadata",
+	"gate": "PASS",
+	"status_reason": "Device metadata added to sessions; service and tests cover writes/reads; schema constraints correct.",
+	"reviewer": "Quinn (Test Architect)",
+	"updated": "${ISO_TIMESTAMP}",
+	"waiver": { "active": false },
+	"top_issues": [],
+	"risk_summary": {
+		"totals": { "critical": 0, "high": 0, "medium": 0, "low": 0 },
+		"recommendations": { "must_fix": [], "monitor": [] }
+	},
+	"evidence": {
+		"tests_reviewed": 1,
+		"trace": {
+			"ac_covered": [1, 2, 3, 4, 5],
+			"ac_gaps": []
+		}
+	},
+	"nfr_validation": {
+		"security": {
+			"status": "PASS",
+			"notes": "No sensitive device data; optional IP"
+		},
+		"performance": { "status": "PASS", "notes": "No notable overhead" },
+		"reliability": {
+			"status": "PASS",
+			"notes": "Defaults ensure writes; KV tolerant of null"
+		},
+		"maintainability": {
+			"status": "PASS",
+			"notes": "Typed fields; camelCase mapping"
+		}
+	}
+}

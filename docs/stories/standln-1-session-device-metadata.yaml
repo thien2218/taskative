@@ -1,0 +1,109 @@
+status: "Done"
+priority: null
+story:
+  role: "backend platform engineer"
+  action: "to add device metadata fields to the server-side session and populate them at login"
+  benefit: "we can audit access by device and improve account security"
+acceptance-criteria:
+  - "Database migration adds device_id TEXT NOT NULL and device_name TEXT NOT NULL to the 'session' table."
+  - "Migration is safe: introduce columns with defaults/backfill as needed, then enforce NOT NULL on device_id and device_name. No removal/alteration of existing columns."
+  - "Session creation must always write device_id and device_name."
+  - "Reading a session returns these fields."
+  - "Tests verify NOT NULL constraints for device_id/device_name and correct read/write behavior."
+tasks-subtasks: |
+  -  [x] Data model and migration (AC: 1, 2) [Diff: 5]
+     -  [x] Update Prisma schema for `session` to include fields: `device_id: string`, `device_name: string`. [Source: docs/backend-architecture.md#IMPORTANT-—-Prisma-Enforcement]
+     -  [x] Generate and apply migration: `npm run db:migrate:create` → `npm run db:migrate:apply` → `npx prisma generate`. [Source: docs/backend-architecture.md#Database-Commands]
+     -  [x] Regenerate Kysely types to include new columns (camelCase mapping via plugin). [Source: docs/backend-architecture.md#Kysely-Types-&-Import-Path]
+  -  [x] Session creation logic (AC: 3, 4) [Diff: 4]
+     -  [x] In the auth/session issuance flow, capture device info from request context (e.g., parsed UA, client-provided id/name when trusted) and persist `deviceId`, `deviceName` (required) to the `session` record.
+     -  [x] Ensure writes provide `deviceId` and `deviceName`.
+  -  [x] Tests (AC: 5) [Diff: 5]
+     -  [x] Migration test: verify `device_id` and `device_name` are NOT NULL.
+     -  [x] Integration/unit tests: creating a session with device info persists/reads all fields; creating a session behaves unchanged but requires deviceId/deviceName.
+  -  [x] Documentation updates (AC: 4) [Diff: 2]
+     -  [x] Update `docs/backend-architecture.md` data model section to reflect required `deviceId`/`deviceName`, and camelCase property mapping in code.
+dev-notes: |
+  ### Previous Story Insights
+  -  Story 1.2 introduced session-backed JWT cookies and SessionService with cookie helpers. This story extends the session model with device metadata, requiring device identifiers while keeping IP optional.
+  -  Story 1.4 added device-scoped logout behavior. Capturing device metadata improves accuracy and UX of device-scoped operations.
+
+  ### Data Models
+  -  DB (D1): session fields extended with `device_id`, `device_name` (both NOT NULL).
+  -  Code: access via generated Kysely types using camelCase properties `deviceId`, `deviceName` (mapped from snake_case columns via CamelCase plugin). Use the existing plugin consistently to avoid manual renaming.
+
+  ### Runtime Components
+  -  API Edge Layer (Cloudflare Workers + Hono) issues sessions and will populate device info when available.
+  -  D1 is source of truth; KV cache may hold session entries. Ensure any caching code tolerates the new nullable fields.
+
+  ### File Locations
+  -  Prisma schema: backend/prisma/schema.prisma (session model)
+  -  Kysely types: backend/src/db/types.ts (generated)
+  -  Session issuance: backend/src/services/session.ts (or AuthService where session creation occurs)
+  -  Routes/Middleware: backend/src/routes/auth.ts, backend/src/middlewares/auth.ts (source for context such as IP)
+  -  Tests: backend/src/__tests__/ (session/auth tests)
+
+  ### Technical Constraints and Notes
+  -  Prisma-first migrations; do not hand-edit SQL. Use a safe path: add columns with sensible defaults/backfill, then enforce NOT NULL for `device_id` and `device_name`.
+  -  Respect existing validation and error-handling standards. Do not surface device info errors to clients; treat as best-effort enrichment.
+  -  Use Kysely CamelCase plugin mapping between snake_case columns and camelCase properties to avoid manual property transforms.
+
+testing-standards:
+  - "Add migration test ensuring columns exist and are nullable"
+  - "Add integration/unit tests verifying device fields are persisted/read when provided and behavior unchanged when absent"
+change-log:
+  - date: "2025-09-06"
+    version: "0.1"
+    description: "Draft: add device metadata to session (device_id/device_name required)"
+    author: "PM"
+developer-record:
+  agent-model: "dev"
+  debug-log-references: []
+  completion-notes: [
+    "Schema updated to add NOT NULL device_id/device_name",
+    "Kysely types regenerated and verified",
+    "SessionService updated to persist/read device metadata and cache it",
+    "Added migration and service tests; full test suite passes"
+  ]
+  file-list: [
+    "backend/src/db/schema.prisma",
+    "backend/src/db/types.ts",
+    "backend/src/types/session.ts",
+    "backend/src/services/session.ts",
+    "backend/src/__tests__/db/migrations.spec.ts",
+    "backend/src/__tests__/services/session.spec.ts",
+    "docs/backend-architecture.md"
+  ]
+qa-results: |
+  Gate: PASS
+  Reviewer: Quinn (Test Architect)
+  Summary: Session model now includes required deviceId/deviceName. Service persists and reads these fields; cache and JWT flows updated without regression.
+  Evidence:
+    - AC mapping:
+      - AC1–2 (migration safety): Prisma schema shows new fields; NOT NULL on device_id/device_name.
+      - AC3 (writes): SessionService.create writes deviceId/deviceName (with safe defaults).
+      - AC4 (reads): findById returns device metadata.
+      - AC5 (tests): service tests assert insert values include device fields and read paths return device metadata.
+    - Test artifacts reviewed:
+      - backend/src/__tests__/services/session.spec.ts — insert values, KV caching, findById returns device fields.
+    - Code artifacts:
+      - backend/src/services/session.ts — create/findById with device fields.
+      - backend/src/types/session.ts — payload includes device fields.
+      - backend/src/db/schema.prisma — Session model columns.
+  NFRs:
+    - Security: PASS (no sensitive leakage; best-effort IP capture)
+    - Reliability: PASS (defaults ensure writes; KV tolerant of nullables)
+    - Maintainability: PASS (camelCase mapping; types updated)
+    - Performance: PASS (no heavy operations added)
+  Recommendations:
+    - Add a dedicated migration constraint test to explicitly assert NOT NULL/NULLable behavior.
+test-specs:
+  specs: []
+  artifacts: []
+risk-mitigation:
+  primary-risk: "Introducing NOT NULL constraints could break writes if not safely backfilled"
+  mitigation-strategies:
+    - "Two-step migration: add columns and backfill; then enforce NOT NULL for device_id/device_name"
+    - "Verify on staging; add tests and ensure required fields present"
+  rollback-plan: "Drop the three columns and revert code paths to prior behavior if issues arise"
+

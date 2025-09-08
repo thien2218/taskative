@@ -1,0 +1,279 @@
+status: "Done"
+priority: null
+story:
+  role: "unauthenticated user"
+  action: "register an account and log in"
+  benefit: "I can securely access my tasks and data"
+acceptance-criteria:
+  - "Implement `POST /v1/auth/register` in the API Worker to accept `{ email, password }`, hash the password using the Auth Service (Bcrypt), persist the new user in D1, and never store plain-text passwords. [Source: docs/api/auth-endpoints.md] [Source: docs/backend-architecture.md#1.3-high-level-components-mvp] [Source: docs/backend-architecture.md#users]"
+  - "Implement `POST /v1/auth/login` in the API Worker to verify credentials against the stored Bcrypt hash and return a signed JWT access token, store a refresh token in cookie on success. [Source: docs/api/auth-endpoints.md] [Source: docs/backend-architecture.md#1.1-purpose]"
+  - "Error responses are returned for invalid input or authentication failure, and no information is leaked about which field was incorrect."
+  - "Endpoints are discoverable in the API and follow the `/v1` URL scheme. [Source: docs/api/auth-endpoints.md]"
+  - "Basic endpoint docs (path, method, required body, success/error shapes) are added to project docs alongside implementation notes."
+tasks-subtasks: |
+  -  [x] API routes: Implement `POST /v1/auth/register` and `POST /v1/auth/login` in the API Worker (Hono). (AC: 1, 2, 4) [Diff: 6]
+     -  [x] Define Hono routes under `/v1/auth/*` in the API Worker at `backend/src/routes/`. [Source: docs/backend-architecture.md#1.2-folder-structure] [Source: docs/api/auth-endpoints.md] [Diff: 3]
+     -  [x] For register: call into the Auth Service Worker to compute a Bcrypt password hash; never store plain-text passwords. [Source: docs/backend-architecture.md#1.3-high-level-components-mvp] [Diff: 3]
+     -  [x] Insert/select users using Kysely against D1. [Source: docs/backend-architecture.md#1.1-purpose] [Source: docs/backend-architecture.md#users] [Diff: 3]
+     -  [x] For login: verify password with Bcrypt and on success, issue signed JWT access token and store a refresh token in cookie. [Source: docs/backend-architecture.md#1.1-purpose] [Diff: 3]
+  -  [x] Data layer: Ensure `users` table fields match usage (email unique, password_hash, token_version, timestamps). (AC: 1, 2) [Diff: 6]
+     -  [x] Use schema driven by Prisma (migrations) with Kysely types consumption. [Source: docs/backend-architecture.md#users] [Diff: 3]
+  -  [x] Minimal API documentation updates for the two endpoints (request/response examples, error cases). (AC: 4, 5) [Diff: 6]
+     -  [x] Add endpoint docs to the API section and cross-link from README auth area. [Source: docs/api/auth-endpoints.md] [Diff: 3]
+  -  [x] Tests: Add unit/integration tests for happy paths and key error cases. (AC: 1, 2, 3) [Diff: 6]
+     -  [x] Register: success stores hash, duplicate email path rejected, password never logged. [Diff: 3]
+     -  [x] Login: success returns JWT, invalid credentials rejected without leaking details. [Diff: 3]
+     -  [x] Note: No testing framework or placement is specified in architecture; follow project conventions once established. [Source: docs/api/auth-endpoints.md] [Diff: 3]
+dev-notes: |
+  ### Previous Story Insights
+  
+  No previous story context available.
+  
+  ### Data Models
+  
+  -  `users` table provides: `id`, `email` (unique), `password_hash`, optional profile fields, `token_version`, timestamps. This story uses `email`, `password_hash`, and `token_version` (for future refresh/logout stories). [Source: docs/backend-architecture.md#users]
+  
+  ### API Specifications
+  
+  -  Auth endpoints (MVP scope includes Register/Login; Refresh/Logout/Reset appear in the larger epic):
+     -  `POST /v1/auth/register`
+     -  `POST /v1/auth/login`
+     -  Contract lives under Auth in API Endpoints. [Source: docs/api/auth-endpoints.md]
+  
+  ### Component Specifications / Runtime
+  
+  -  API Edge Layer (Cloudflare Workers + Hono) hosts routes and lightweight orchestration. [Source: docs/backend-architecture.md#1.3-high-level-components-mvp]
+  -  Auth Service Worker handles Bcrypt password hashing (CPU-heavy) to avoid contention on the API Worker. [Source: docs/backend-architecture.md#1.3-high-level-components-mvp]
+  -  Relational store is D1; ORM/Query Builder is Kysely. [Source: docs/backend-architecture.md#1.1-purpose]
+  
+  ### File Locations
+  
+  -  Routes under `backend/src/routes/` (auth routes)
+  -  Services under `backend/src/services/` (auth service integration)
+  -  DB access under `backend/src/db/`
+  -  Validators under `backend/src/validators/` if request validation is added
+     [Source: docs/backend-architecture.md#1.2-folder-structure]
+  
+  ### Testing Requirements
+  
+  No specific testing framework/strategy is defined in the architecture docs for this story. Ensure tests cover:
+  
+  -  Register success and duplicate email
+  -  Login success and invalid credentials
+  -  JWT present on success, no sensitive data leaked on errors
+  
+  If/when a testing strategy document is added, conform to it.
+  
+  ### Technical Constraints and Notes
+  
+  -  Password hashing must use Bcrypt and be executed in the dedicated Auth Service Worker. [Source: docs/backend-architecture.md#1.3-high-level-components-mvp]
+  -  JWT-based sessions are required for authentication. [Source: docs/backend-architecture.md#1.1-purpose]
+  -  D1 is the source of truth; do not store auth state in KV. KV is used for caching (eventual consistency) and is not suitable for primary auth data. [Source: docs/backend-architecture.md#1.4-key-platform-constraints-trade-offs] [Source: docs/backend-architecture.md#ttls]
+testing-standards:
+  - "Register success and duplicate email"
+  - "Login success and invalid credentials"
+  - "JWT present on success, no sensitive data leaked on errors"
+change-log:
+  - date: "2025-08-12"
+    version: "0.1"
+    description: "Initial draft of Story 1.1"
+    author: "Bob (SM)"
+  - date: "2025-08-12"
+    version: "1.0"
+    description: "Implemented auth routes, tests, docs"
+    author: "James (Dev)"
+  - date: "2025-01-28"
+    version: "1.1"
+    description: "All QA improvements completed, architectural questions answered, JWT refresh tokens"
+    author: "James (Dev)"
+  - date: "2025-01-28"
+    version: "1.2"
+    description: "Additional improvements: atomic registration, environment config, unified token generation"
+    author: "James (Dev)"
+developer-record:
+  agent-model: "GPT-5 (Cursor)"
+  debug-log-references:
+    - "Implemented `/v1/auth/register` and `/v1/auth/login` in `backend/src/routes/auth.ts`"
+    - "Added `AuthService` for bcrypt hashing and JWT utils; validators via Zod"
+    - "Ran unit tests with Vitest — all passing"
+    - "**QA Improvements Completed (2025-01-28):**"
+    - "Moved auth configuration to environment variables with fallback defaults"
+    - "Refactored routes to only handle routing/validation, moved business logic to AuthService"
+    - "Removed redundant abstractions and try/catch blocks for cleaner code"
+    - "Implemented JWT-based refresh tokens with token version validation for better security"
+    - "Implemented atomic user registration using Kysely's `onConflict` to eliminate race conditions"
+    - "Added environment-specific configuration (longer token expiration and insecure cookies for dev)"
+    - "Created unified `generateTokenPair` utility for consistent token timestamps and parallel execution"
+    - "Answered all architectural questions about refresh tokens, optimistic inserts, and JWT payload design"
+  completion-notes: []
+  file-list:
+    - "`backend/src/routes/auth.ts` - Auth route handlers for register/login (refactored for routing only)"
+    - "`backend/src/services/auth.ts` - Auth service for password hashing and business logic (enhanced)"
+    - "`backend/src/utils/jwt.ts` - JWT utility functions (updated for env config)"
+    - "`backend/src/validators/auth.ts` - Zod validators for auth requests"
+    - "`backend/src/config/auth.ts` - Auth configuration with environment variables (enhanced)"
+    - "`backend/src/types.ts` - TypeScript type definitions (updated with env vars)"
+    - "`backend/src/db/index.ts` - Database utility with Kysely D1 adapter"
+    - "`backend/src/index.ts` - Updated main app with auth routes"
+    - "`backend/src/__tests__/auth.test.ts` - Unit tests for auth components"
+    - "`docs/docs/api/auth-endpoints.md` - API documentation for auth endpoints"
+qa-results: |
+  ### Review Date: 2025-08-12
+  
+  ### Reviewed By: Quinn (Senior Developer QA)
+  
+  ### Code Quality Assessment
+  
+  Excellent implementation with strong security practices. All acceptance criteria fully met with comprehensive test coverage (13/13 tests passing). Code follows architectural patterns specified in Dev Notes, with proper separation of concerns across routes, services, utilities, and validators. File locations align perfectly with project structure guidance.
+  
+  ### Refactoring Performed
+  
+  -  **File**: `backend/src/config/auth.ts` (created)
+  
+     -  **Change**: Extracted hard-coded configuration values into centralized constants
+     -  **Why**: Eliminates magic numbers and makes configuration maintainable
+     -  **How**: Created AUTH_CONFIG object with SALT_ROUNDS, JWT_EXPIRES_IN, and REFRESH_TOKEN_EXPIRES_IN
+  
+  -  **File**: `backend/src/services/auth.ts`
+  
+     -  **Change**: Updated to use AUTH_CONFIG.SALT_ROUNDS instead of hard-coded value
+     -  **Why**: Centralizes configuration and eliminates duplication
+     -  **How**: Import and reference AUTH_CONFIG.SALT_ROUNDS in hashPassword method
+  
+  -  **File**: `backend/src/utils/jwt.ts`
+  
+     -  **Change**: Added setRefreshTokenCookie helper function and centralized cookie configuration
+     -  **Why**: Eliminates identical code duplication between register and login endpoints
+     -  **How**: Created shared helper with consistent REFRESH_TOKEN_COOKIE_CONFIG
+  
+  -  **File**: `backend/src/routes/auth.ts`
+  
+     -  **Change**: Refactored both endpoints to use shared setRefreshTokenCookie helper
+     -  **Why**: Reduces code duplication and ensures consistency
+     -  **How**: Replaced duplicate setCookie calls with single helper function call
+  
+  -  **File**: `docs/docs/api/auth-endpoints.md`
+     -  **Change**: Updated documentation to reflect actual salt rounds (11 vs 10)
+     -  **Why**: Documentation must match implementation
+     -  **How**: Corrected salt rounds value in security features section
+  
+  ### Compliance Check
+  
+  -  Coding Standards: ✓ Clean separation of concerns, proper TypeScript types, consistent error handling
+  -  Project Structure: ✓ All files in correct locations per architecture guidance
+  -  Testing Strategy: ✓ Comprehensive unit tests covering all security requirements and edge cases
+  -  All ACs Met: ✓ All 5 acceptance criteria fully implemented and validated
+  
+  ### Improvements Checklist
+  
+  -  [x] Extracted configuration constants to eliminate magic numbers (backend/src/config/auth.ts)
+  -  [x] Eliminated code duplication in auth routes with shared helper function (backend/src/utils/jwt.ts)
+  -  [x] Updated documentation to match implementation (salt rounds corrected)
+  -  [x] Verified middleware implementation aligns with usage (jwt.ts and public.ts)
+  -  [x] Logic under /routes directory should only be for routing and validation, not business logic
+  -  [x] Auth service should be a separate module to handle business logic
+  -  [x] generateRefreshToken and setRefreshTokenCookie are redundant abstraction, just use the helpers function/method in place
+  -  [x] Try/catch block is redundant since Hono returns 500 status code error for all errors caused by the server anyway
+  -  [x] Remove redundant user's data returned because user's data is already stored in access token
+  -  [x] Implement JWT-based refresh tokens instead of random UUIDs for better security and consistency
+  -  [x] Use `on conflict do nothing` strategy for registering new user to db
+  -  [x] Auth config should be separated for dev and prod environments (i.e expirations of tokens should be longer, cookie config should be different for dev environment)
+  -  [x] Return both access token and refresh token in a single function using Promise.all since both tokens should always be generated in pair
+  
+  ### Architectural Questions & Answers
+  
+  **Q1: Why isn't refresh token generated with JWT and stored along with user's data in the database so that when a refresh request is sent, we can validate if it's a valid token with JWT secret and if the user's refresh token matches in the database?**
+  
+  A1: **Implemented!** You're absolutely right. The implementation now uses JWT-based refresh tokens instead of random UUIDs.
+  
+  **Current Approach (Updated):**
+  
+  -  Refresh tokens are signed JWTs with payload `{ userId, tokenVersion, type: 'refresh' }`
+  -  Validation uses Hono's JWT helpers for consistency
+  -  Token revocation via `tokenVersion` increment in database (invalidates all user tokens)
+  -  No separate table needed - leverages existing `users.tokenVersion` field
+  -  Consistent token format for both access and refresh tokens
+  
+  **Benefits:**
+  
+  -  Server-side revocation via token version bumping
+  -  Validation through existing JWT infrastructure
+  -  Cleaner architecture without additional storage
+  -  Easy "logout all devices" functionality
+  
+  **Q2: Why doesn't register logic just use `onConflict`, `doNothing` and `returning` (Kysely docs) to do optimistic insert and verify if the user already exists or not based on if the query returns the id of the inserted row or not?**
+  
+  A2: **Implemented!** You're absolutely correct about the race condition vulnerability in the check-then-insert pattern.
+  
+  **Current Approach (Updated):**
+  
+  ```typescript
+  const insertedUser = await db
+  	.insertInto("users")
+  	.values({ ...userdata })
+  	.onConflict((oc) => oc.column("email").doNothing())
+  	.returning(["id", "email", "tokenVersion"])
+  	.executeTakeFirst();
+  
+  // If no user returned, email already exists
+  if (!insertedUser) {
+  	return { success: false, error: "Registration failed", status: 400 };
+  }
+  ```
+  
+  **Benefits:**
+  
+  -  Eliminates race condition vulnerability
+  -  Single atomic database operation (better performance)
+  -  Leverages database constraint enforcement
+  -  Cleaner code with atomic semantics
+  
+  **Q3: Does it make sense to store user's data like first name, last name, etc. in the JWT payload?**
+  
+  A3: Generally **avoid storing mutable user data in JWT**. Current payload `{ userId, email, tokenVersion }` is well-balanced.
+  
+  **Avoid in JWT:** First name, last name, profile pictures, preferences (frequently change, increase token size, stale data issues)
+  **OK to include:** User ID, email (if stable), role/permissions (with careful versioning)
+  
+  **Best Practice:** Keep JWT minimal for authentication, fetch fresh user data from database when needed.
+  
+  ### Security Review
+  
+  Excellent security implementation:
+  
+  -  ✓ Bcrypt password hashing with proper salt rounds (11)
+  -  ✓ JWT tokens with appropriate expiration (24h)
+  -  ✓ Secure HTTP-only cookies for refresh tokens (7d)
+  -  ✓ Generic error messages prevent information leakage
+  -  ✓ No plain text password logging anywhere in codebase
+  -  ✓ Token version field supports future refresh token invalidation
+  -  ✓ Proper cookie security flags (httpOnly, secure, sameSite)
+  
+  ### Performance Considerations
+  
+  Well-optimized implementation:
+  
+  -  ✓ Efficient database queries using Kysely with proper indexing (email unique)
+  -  ✓ Bcrypt salt rounds (11) balanced between security and performance
+  -  ✓ JWT tokens minimize database lookups for authentication
+  -  ✓ Minimal database round trips for user operations
+  
+  ### Final Status
+  
+  ✓ **Approved - Ready for Done**
+  
+  All acceptance criteria met, comprehensive security implementation, excellent test coverage, and code quality improved through senior developer refactoring. No blocking issues identified.
+  artifacts:
+    - backend/src/__tests__/routes/auth.spec.ts — Auth routes
+    - backend/src/__tests__/services/auth.spec.ts — Auth services
+    - backend/src/__tests__/middlewares.spec.ts — Middleware
+test-specs:
+  specs: []
+  artifacts:
+    - backend/src/__tests__/routes/auth.spec.ts — Auth routes
+    - backend/src/__tests__/services/auth.spec.ts — Auth services
+    - backend/src/__tests__/middlewares.spec.ts — Middleware
+risk-mitigation:
+  primary-risk: ""
+  mitigation-strategies: []
+  rollback-plan: ""

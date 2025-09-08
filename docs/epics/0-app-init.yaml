@@ -1,0 +1,45 @@
+status: "Review"
+epic-overview:
+  goal: |
+    Establish a Prisma-managed database schema with reliable migration workflows, generate Kysely types via prisma-kysely, provide an idempotent seed for demo/test data, and update the [README](../../README.md) with a clear project introduction and tech stack overview.
+  description: |
+    Workflows (from backend/package.json):
+    - db:migrate:create: npx prisma migrate dev --create-only --schema ./src/db/schema.prisma
+    - db:migrate:apply: npx prisma migrate dev --schema ./src/db/schema.prisma
+    - db:migrate:reset: rm -rf .wrangler/state && npx prisma migrate reset --force --skip-seed --schema ./src/db/schema.prisma && npx prisma generate --schema ./src/db/schema.prisma
+    - db:seed: tsx src/db/seed.ts
+    - cf-typegen: wrangler types --env-interface CloudflareBindings
+  definition_of_done:
+    - "Fresh environment can: migrate, generate types, and seed without errors"
+    - "Generated Kysely types are consumable by data-access code"
+    - "docs/README.md provides a clear intro and tech stack overview for contributors"
+    - "Schema matches Architecture; future changes follow Prisma migration flow"
+scope-boundaries:
+  in-scope:
+    - "Prisma-first schema definition in `schema.prisma` covering core models per Architecture:"
+    - "`users`, `groups`, `tasks`, `subtasks`, `reminders` (fields/indexes align with Section 3)"
+    - "Migration workflow:"
+    - "`db:migrate:create` for DB migration generation"
+    - "`db:migrate:apply` for DB migration application"
+    - "Kysely type generation:"
+    - "Kysely type generation will be automatically triggered by `db:migrate:apply`"
+    - "Seeding:"
+    - "Create an idempotent seed script that inserts a demo user, tasks, subtasks"
+    - "Make the seed safe to re-run (upsert/ignore-on-conflict strategy)"
+    - "Cloud/Runtime alignment:"
+    - "Ensure outputs are compatible with the chosen runtime (e.g., Cloudflare D1 + Kysely usage) per Architecture; Prisma remains the source of truth for schema/migrations and types"
+    - "Documentation:"
+    - "Update docs/README.md with a project introduction and tech stack overview"
+  out-of-scope:
+    - "Implementing application endpoints (covered by other epics)"
+    - "Advanced data import/export tooling"
+    - "UI scaffolding"
+requirements-mapping:
+  functional-requirements: []
+  non-functional-requirements: []
+story-breakdown:
+  story-list: []
+  story-sequencing-rationale: ""
+dependencies:
+  dependencies: []
+  story-dependencies: []
