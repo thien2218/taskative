@@ -40,7 +40,7 @@ export const logoutSchema = z
 
 export const hashSchema = z.object({
   password: z.string().min(1),
-  cost: z.number().int().min(6).max(12).optional().default(11),
+  cost: z.number().int().min(6).max(14).optional().default(11),
 });
 
 export const verifySchema = z.object({

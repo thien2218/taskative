@@ -6,7 +6,7 @@ describe("Auth Worker", () => {
     const res = await app.request("http://auth/hash", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: "secret", cost: 4 }),
+  body: JSON.stringify({ password: "secret", cost: 6 }),
     });
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -18,7 +18,7 @@ describe("Auth Worker", () => {
     const hashRes = await app.request("http://auth/hash", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: "secret", cost: 4 }),
+  body: JSON.stringify({ password: "secret", cost: 6 }),
     });
     const { hash } = await hashRes.json();
 

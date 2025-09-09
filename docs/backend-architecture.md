@@ -285,6 +285,8 @@ Prisma-first schema located at backend/src/db/schema.prisma with migrations unde
 ```text
 backend/
   src/               # application source
+    index.ts         # app entry (Hono)
+    middlewares.ts   # middlewares & DI initialization
     routes/          # HTTP route handlers (Hono)
     services/        # business/domain services
     di/              # dependency injection container and factories
@@ -292,11 +294,14 @@ backend/
     types/           # shared types and Worker bindings
     db/              # Prisma schema, Kysely types, migrations
       migrations/    # Prisma-generated migration files
+    workers/         # additional Workers (e.g., Auth Worker)
+      auth/          # bcrypt hash/verify endpoints
     __tests__/       # unit tests (mock-first, 90% coverage target)
       __mocks__/     # reusable mocks for services/libs/env
       data/          # shared payloads, fixtures, request options
       routes/        # route-level tests
       services/      # service unit tests
+      workers/       # worker-level tests
 ```
 
 ### Infrastructure and Deployment
