@@ -1,5 +1,6 @@
 import { vi } from "vitest";
 import { mockKV } from "./cache";
+import { mockBcrypt } from "./auth";
 
 // Environment bindings mock
 export const mockEnv = {
@@ -11,6 +12,27 @@ export const mockEnv = {
   AUTH_RATE_LIMITER: {
     limit: vi.fn().mockResolvedValue({ success: true }),
   } as any,
+  AUTH_SERVICE: {
+    fetch: vi.fn(async (req: Request) => {
+      const url = new URL(req.url);
+      const body = await req.json();
+      if (url.pathname === "/hash") {
+        const hash = await mockBcrypt.hash(body.password, body.cost ?? 11);
+        return new Response(JSON.stringify({ hash }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.pathname === "/verify") {
+        const valid = await mockBcrypt.compare(body.password, body.hash);
+        return new Response(JSON.stringify({ valid }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("Not found", { status: 404 });
+    }),
+  },
 };
 
 // Request/Response mocks

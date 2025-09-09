@@ -12,6 +12,7 @@ N/A
 
 | Date       | Version | Description                                                                                                                           | Author |
 | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2025-09-09 | 0.4     | Implement Auth Worker and service binding; add endpoints summary; tests green | Dev    |
 | 2025-09-08 | 0.3     | Align to template v2; add External APIs (none), Test Strategy (mock-first, 90% coverage), infra/security; clarify multi-Worker plan B | PM     |
 | 2025-09-07 | 0.2     | Introduced DI patterns (DatabaseService, CacheService, lightweight container); updated components and diagrams                        | PM     |
 
@@ -190,6 +191,9 @@ graph TD
 -  Responsibility: bcrypt password hashing/verify
 -  Interfaces: Internal RPC/HTTP
 -  Dependencies: none
+-  Internal endpoints:
+   -  POST /hash — body: { password: string, cost?: number } → { hash: string }
+   -  POST /verify — body: { password: string, hash: string } → { valid: boolean }
 
 #### Cron Worker (Reminders)
 
@@ -204,7 +208,7 @@ graph TD
   U[User] -->|HTTPS| API[API Worker (Hono)]
   API --> D1[(Cloudflare D1)]
   API <-->|cache| KV[(Cloudflare KV)]
-  API -->|password ops (planned)| AUTH[Auth Worker]
+  API -->|password ops| AUTH[Auth Worker]
   CRON[Cron Worker] --> D1
   CRON -->|due reminders| U
 ```
@@ -388,7 +392,6 @@ Pending. Populate after running the architect checklist.
 
 ### Next Steps
 
--  Implement Auth Worker (Epic 1) and route password hashing/verify to it
 -  Implement Cron Worker (Epic 2) to scan reminders and deliver notifications
 -  Adopt a structured logger for Workers (enhancement epic)
 -  Generate REST API docs via framework-integrated OpenAPI and link here

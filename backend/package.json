@@ -3,6 +3,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "dev:auth": "wrangler dev -c wrangler.auth.jsonc",
+    "deploy:auth": "wrangler deploy -c wrangler.auth.jsonc",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "db:migrate": "npx prisma migrate dev --schema ./src/db/schema.prisma",

@@ -21,6 +21,9 @@
       "id": "28dc6262406240929e6d421a99e4a123"
     }
   ],
+  "services": [
+    { "binding": "AUTH_SERVICE", "service": "taskative-auth" }
+  ],
   "unsafe": {
     "bindings": [
       {

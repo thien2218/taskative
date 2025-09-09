@@ -1,0 +1,6 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "taskative-auth",
+  "main": "src/workers/auth.ts",
+  "compatibility_date": "2025-08-10"
+}

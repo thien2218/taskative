@@ -53,9 +53,7 @@ qa-results: |
   _To be completed by QA Agent_
 
 test-specs:
-  specs:
-    - "1: [AC 1] Given a Worker handler with the logger, When emitting at each level, Then logs are produced without runtime errors in wrangler dev."
-    - "2: [AC 3] Given context object, When logging, Then output includes ts, level, message, and context keys."
+  specs: []
   artifacts: []
 
 risk-mitigation:

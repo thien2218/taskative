@@ -17,6 +17,7 @@ export interface Bindings {
   JWT_SECRET: string;
   ENVIRONMENT: string;
   SESSION_NAME: string;
+  AUTH_SERVICE: { fetch: (request: Request) => Promise<Response> };
 }
 
 export interface AppEnv {

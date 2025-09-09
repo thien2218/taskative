@@ -19,22 +19,34 @@ export const resetPasswordSchema = z.object({
   newPassword: z.string().min(8, "Password must be at least 8 characters"),
 });
 
-export const logoutSchema = z.object({
-  mode: z.enum(["current", "others", "all", "byIds"]).optional().default("current"),
-  sessionIds: z.array(z.string()).optional(),
-}).refine(
-  (data) => {
-    // sessionIds is required when mode is "byIds"
-    if (data.mode === "byIds") {
-      return data.sessionIds && data.sessionIds.length > 0;
-    }
-    return true;
-  },
-  {
-    message: "sessionIds is required and must not be empty when mode is 'byIds'",
-    path: ["sessionIds"],
-  }
-);
+export const logoutSchema = z
+  .object({
+    mode: z.enum(["current", "others", "all", "byIds"]).optional().default("current"),
+    sessionIds: z.array(z.string()).optional(),
+  })
+  .refine(
+    (data) => {
+      // sessionIds is required when mode is "byIds"
+      if (data.mode === "byIds") {
+        return data.sessionIds && data.sessionIds.length > 0;
+      }
+      return true;
+    },
+    {
+      message: "sessionIds is required and must not be empty when mode is 'byIds'",
+      path: ["sessionIds"],
+    },
+  );
+
+export const hashSchema = z.object({
+  password: z.string().min(1),
+  cost: z.number().int().min(6).max(12).optional().default(11),
+});
+
+export const verifySchema = z.object({
+  password: z.string().min(1),
+  hash: z.string().min(1),
+});
 
 export type RegisterRequest = z.infer<typeof registerSchema>;
 export type LoginRequest = z.infer<typeof loginSchema>;

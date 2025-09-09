@@ -4,6 +4,7 @@ import DatabaseService from "@/services/database";
 import CacheService from "@/services/cache";
 import SessionService from "@/services/session";
 import AuthService from "@/services/auth";
+import AuthCryptoClient from "@/services/authCryptoClient";
 
 export type { ServiceContainer } from "@/di/container";
 
@@ -25,6 +26,8 @@ export function createContainer(env: Bindings): ServiceContainer {
       }),
   );
 
+  container.register("authCryptoClient", () => new AuthCryptoClient(env));
+
   container.register(
     "auth",
     (c) =>
@@ -32,6 +35,7 @@ export function createContainer(env: Bindings): ServiceContainer {
         dbService: c.get("database"),
         session: c.get("session"),
         config: env,
+        crypto: c.get("authCryptoClient"),
       }),
   );
 

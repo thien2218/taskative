@@ -1,5 +1,5 @@
-import bcrypt from "bcryptjs";
 import type { Bindings } from "@/types";
+import AuthCryptoClient from "@/services/authCryptoClient";
 import type { Kysely } from "kysely";
 import type { DB } from "@/db/types";
 import type DatabaseService from "@/services/database";
@@ -13,13 +13,15 @@ import {
 } from "@/validators/auth";
 
 class AuthService {
+  private readonly crypto: AuthCryptoClient;
   private readonly db: Kysely<DB>;
   private readonly sessionService: SessionService;
   private readonly TOKEN_EXPIRY_MINUTES = 60; // 1 hour expiry for reset tokens
 
-  constructor(deps: { dbService: DatabaseService; session: SessionService; config: Bindings }) {
+  constructor(deps: { dbService: DatabaseService; session: SessionService; config: Bindings; crypto: AuthCryptoClient }) {
     this.db = deps.dbService.db;
     this.sessionService = deps.session;
+    this.crypto = deps.crypto;
   }
 
   /**
@@ -28,7 +30,7 @@ class AuthService {
   async register(data: RegisterRequest): Promise<AuthResult | AuthError> {
     const { email, password } = data;
 
-    const passwordHash = await bcrypt.hash(password, 11);
+    const passwordHash = await this.crypto.hash(password, 11);
     const userId = crypto.randomUUID();
 
     // Optimistic insert with conflict handling - eliminates race condition
@@ -91,7 +93,7 @@ class AuthService {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    const isValidPassword = await this.crypto.verify(password, user.passwordHash);
 
     if (!isValidPassword) {
       return {
@@ -218,7 +220,7 @@ class AuthService {
       }
 
       // Hash the new password
-      const passwordHash = await bcrypt.hash(newPassword, 11);
+      const passwordHash = await this.crypto.hash(newPassword, 11);
 
       // Update password in a transaction
       await this.db.transaction().execute(async (trx) => {
