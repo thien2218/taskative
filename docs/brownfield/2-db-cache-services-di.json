@@ -1,0 +1,51 @@
+{
+  "context": {
+    "source-story": "standln-2 — db-cache-services-di",
+    "change-type": "Architecture",
+    "impact-summary": "Introduce ServiceContainer with DatabaseService and CacheService; refactor services to constructor injection; no public API behavior change."
+  },
+  "impacted-documents": [
+    {
+      "Doc Type": "Architecture",
+      "File": "docs/backend-architecture.md",
+      "Section/ID": "Service Container, Runtime Components",
+      "Description of Change": "Document DI container, per-request lifecycle, and standard service interfaces (DB/Cache)."
+    }
+  ],
+  "change-details": {
+    "rationale": "Decouple infrastructure, improve testability, eliminate duplicate instances, and standardize access patterns.",
+    "additions": [
+      "ServiceContainer with singleton-per-container and lazy instantiation",
+      "DatabaseService adapter wrapping Kysely/D1 + CamelCase",
+      "CacheService adapter wrapping KV with TTL"
+    ],
+    "modifications": [
+      "AuthService and SessionService refactored to receive deps via constructor",
+      "Factories registered to ensure shared instances across services"
+    ],
+    "removals": [
+      "Delete legacy backend/src/db/index.ts factory"
+    ]
+  },
+  "diffs-artifacts": {
+    "links": [],
+    "attachments": [
+      {"path": "backend/src/di/container.ts", "purpose": "Service container implementation"},
+      {"path": "backend/src/di/index.ts", "purpose": "Container factory exports"},
+      {"path": "backend/src/services/database.ts", "purpose": "DatabaseService"},
+      {"path": "backend/src/services/cache.ts", "purpose": "CacheService"},
+      {"path": "backend/src/services/session.ts", "purpose": "Refactored to DI"},
+      {"path": "backend/src/services/auth.ts", "purpose": "Refactored to DI"},
+      {"path": "backend/src/index.ts", "purpose": "App wiring"},
+      {"path": "backend/src/middlewares.ts", "purpose": "Container per request"},
+      {"path": "backend/src/routes/auth.ts", "purpose": "Route updates for DI"},
+      {"path": "backend/src/types/index.ts", "purpose": "Types adjusted for DI"},
+      {"path": "docs/backend-architecture.md", "purpose": "Architecture documentation updates"}
+    ]
+  },
+  "approvals": [],
+  "status": "Applied",
+  "change-log": [
+    {"Date": "2025-09-09", "Version": "0.1", "Description": "Initial brownfield record for standln-2", "Author": "PM"}
+  ]
+}

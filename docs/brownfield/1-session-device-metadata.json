@@ -1,0 +1,43 @@
+{
+  "context": {
+    "source-story": "standln-1 — session-device-metadata",
+    "change-type": "Architecture",
+    "impact-summary": "Add required device_id and device_name to session model; update services and tests to persist/read; update backend architecture data model."
+  },
+  "impacted-documents": [
+    {
+      "Doc Type": "Architecture",
+      "File": "docs/backend-architecture.md",
+      "Section/ID": "Data Model: Session",
+      "Description of Change": "Add device_id/device_name as required fields; update camelCase mapping and validation guidance."
+    }
+  ],
+  "change-details": {
+    "rationale": "Improve security/auditability and support device-scoped operations.",
+    "additions": [
+      "New columns device_id and device_name (NOT NULL) in Session model"
+    ],
+    "modifications": [
+      "SessionService persists/reads deviceId and deviceName",
+      "Regenerated Kysely types to include new fields"
+    ],
+    "removals": []
+  },
+  "diffs-artifacts": {
+    "links": [],
+    "attachments": [
+      {"path": "backend/src/db/schema.prisma", "purpose": "Session model update"},
+      {"path": "backend/src/db/types.ts", "purpose": "Generated types incl. new fields"},
+      {"path": "backend/src/types/session.ts", "purpose": "Type updates"},
+      {"path": "backend/src/services/session.ts", "purpose": "Read/write device fields"},
+      {"path": "backend/src/__tests__/db/migrations.spec.ts", "purpose": "Migration tests"},
+      {"path": "backend/src/__tests__/services/session.spec.ts", "purpose": "Service tests"},
+      {"path": "docs/backend-architecture.md", "purpose": "Updated data model guidance"}
+    ]
+  },
+  "approvals": [],
+  "status": "Applied",
+  "change-log": [
+    {"Date": "2025-09-09", "Version": "0.1", "Description": "Initial brownfield record for standln-1", "Author": "PM"}
+  ]
+}

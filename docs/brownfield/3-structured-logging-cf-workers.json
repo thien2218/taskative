@@ -1,0 +1,36 @@
+{
+  "context": {
+    "source-story": "standln-3 — structured-logging-cf-workers",
+    "change-type": "Architecture",
+    "impact-summary": "Introduce Workers-compatible structured logging wrapper with JSON output (ts, level, message, context), level gating, request context injection, and pretty/compact modes."
+  },
+  "impacted-documents": [
+    {
+      "Doc Type": "Architecture",
+      "File": "docs/backend-architecture.md",
+      "Section/ID": "Logging",
+      "Description of Change": "Add logging guidelines: JSON format keys, environment compatibility constraints, configuration for pretty vs compact, and context injection."
+    }
+  ],
+  "change-details": {
+    "rationale": "Provide consistent structured logs for easier debugging and analysis in Cloudflare Workers.",
+    "additions": [
+      "Logger wrapper API (debug, info, warn, error)",
+      "JSON formatter with safe serialization and request context support",
+      "Config flag/binding to toggle pretty vs compact output"
+    ],
+    "modifications": [],
+    "removals": []
+  },
+  "diffs-artifacts": {
+    "links": [],
+    "attachments": [
+      {"path": "docs/backend-architecture.md", "purpose": "Logging section to be updated"}
+    ]
+  },
+  "approvals": [],
+  "status": "Proposed",
+  "change-log": [
+    {"Date": "2025-09-09", "Version": "0.1", "Description": "Initial brownfield record for standln-3", "Author": "PM"}
+  ]
+}
