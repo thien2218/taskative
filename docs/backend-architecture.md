@@ -12,7 +12,7 @@ N/A
 
 | Date       | Version | Description                                                                                                                           | Author |
 | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 2025-09-09 | 0.4     | Implement Auth Worker and service binding; add endpoints summary; tests green | Dev    |
+| 2025-09-09 | 0.4     | Implement Auth Worker and service binding; add endpoints summary; tests green                                                         | Dev    |
 | 2025-09-08 | 0.3     | Align to template v2; add External APIs (none), Test Strategy (mock-first, 90% coverage), infra/security; clarify multi-Worker plan B | PM     |
 | 2025-09-07 | 0.2     | Introduced DI patterns (DatabaseService, CacheService, lightweight container); updated components and diagrams                        | PM     |
 
@@ -295,7 +295,6 @@ backend/
     db/              # Prisma schema, Kysely types, migrations
       migrations/    # Prisma-generated migration files
     workers/         # additional Workers (e.g., Auth Worker)
-      auth/          # bcrypt hash/verify endpoints
     __tests__/       # unit tests (mock-first, 90% coverage target)
       __mocks__/     # reusable mocks for services/libs/env
       data/          # shared payloads, fixtures, request options
@@ -310,9 +309,9 @@ backend/
    -  Tool: Wrangler (config in backend/wrangler.jsonc)
    -  Approach: platform-managed resources with config-as-code; bindings for DB (D1), KV (CACHE), ratelimiter (AUTH_RATE_LIMITER), ENVIRONMENT, SESSION_NAME
 -  Deployment Strategy:
-  -  Strategy: Workers deploy via wrangler (manual/local for now); production deploys remain manual for now
-  -  CI/CD Platform: GitHub Actions (workflow: .github/workflows/ci.yml)
-  -  Pipeline Configuration: jobs: lint, typecheck, test (unit); triggers: push and pull_request; Node.js 20.x; working-directory: backend; cache installs (pnpm or npm). A deploy job can be added later with manual approval.
+-  Strategy: Workers deploy via wrangler (manual/local for now); production deploys remain manual for now
+-  CI/CD Platform: GitHub Actions (workflow: .github/workflows/ci.yml)
+-  Pipeline Configuration: jobs: lint, typecheck, test (unit); triggers: push and pull_request; Node.js 20.x; working-directory: backend; cache installs (pnpm or npm). A deploy job can be added later with manual approval.
 -  Environments:
    -  test: local dev via wrangler; ENVIRONMENT=test; cookies not secure
    -  production: ENVIRONMENT=production; cookies secure=true

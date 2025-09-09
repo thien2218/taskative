@@ -1,15 +1,18 @@
 import { describe, it, expect } from "vitest";
 import app from "@/workers/auth";
 
+type HashResponse = { hash: string };
+type VerifyResponse = { valid: boolean };
+
 describe("Auth Worker", () => {
   it("hashes a password", async () => {
     const res = await app.request("http://auth/hash", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ password: "secret", cost: 6 }),
+      body: JSON.stringify({ password: "secret", cost: 6 }),
     });
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data: HashResponse = await res.json();
     expect(typeof data.hash).toBe("string");
     expect(data.hash.length).toBeGreaterThan(20);
   });
@@ -18,16 +21,17 @@ describe("Auth Worker", () => {
     const hashRes = await app.request("http://auth/hash", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ password: "secret", cost: 6 }),
+      body: JSON.stringify({ password: "secret", cost: 6 }),
     });
-    const { hash } = await hashRes.json();
+    const hashData: HashResponse = await hashRes.json();
+    const { hash } = hashData;
 
     const verifyRes = await app.request("http://auth/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password: "secret", hash }),
     });
-    const data = await verifyRes.json();
+    const data: VerifyResponse = await verifyRes.json();
     expect(data.valid).toBe(true);
   });
 });
